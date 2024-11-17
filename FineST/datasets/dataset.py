@@ -37,6 +37,13 @@ _CRC16um = AMetadata(
     url="https://figshare.com/ndownloader/files/49633644", 
 )
 
+_CRC08um = AMetadata(
+    name="CRC08um",
+    doc_header="Original colorectal cancer (CRC) dataset from Oliveira, et al. <https://www.biorxiv.org/content/10.1101/2024.06.04.597233v1.full>`__.",
+    shape=(547816, 18085),  
+    url="https://figshare.com/ndownloader/files/50571282", 
+)
+
 _CRC_Original = AMetadata(
     name="CRC_Original",
     doc_header="Original colorectal cancer (CRC) dataset from Oliveira, et al. <https://www.biorxiv.org/content/10.1101/2024.06.04.597233v1.full>`__.",
@@ -100,4 +107,4 @@ for name, var in copy(locals()).items():
 
 
 __all__ = [  # noqa: F822
-    "NPC", "BRCA_FineST_allspot", "BRCA_Original_whole", "BRCA_FineST_subspot", "CRC16um", "CRC_Original", "CRC_FineST", "A3","A4","A6","A7","A8","A9"]
+    "NPC", "BRCA_FineST_allspot", "BRCA_Original_whole", "BRCA_FineST_subspot", "CRC16um", "CRC08um", "CRC_Original", "CRC_FineST", "A3","A4","A6","A7","A8","A9"]

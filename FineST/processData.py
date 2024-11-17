@@ -9,6 +9,18 @@ from .inference import *
 import pickle
 
 
+def parquet2csv(path):
+
+    os.chdir(str(path))
+    positions = pd.read_parquet("tissue_positions.parquet")
+    
+    positions.set_index('barcode', inplace=True)
+    positions.columns = ['in_tissue', 'array_row', 'array_col', 'pxl_col_in_fullres', 'pxl_row_in_fullres']
+    position_tissue = positions[positions['in_tissue'] == 1]
+    
+    return position_tissue
+
+
 ######################################
 # 2024.11.13 add for Visium position
 ######################################
@@ -287,7 +299,7 @@ def image_coord_merge(df, position, dataset):
     # Use dataset to decide which function to call
     if dataset == 'Visium':
         return merge_dfs(df, position)
-    elif dataset == 'Visium HD':
+    elif dataset == 'VisiumHD':
         return merge_dfs_HD(df, position)
     else:
         raise ValueError(f"Unknown dataset: {dataset}")

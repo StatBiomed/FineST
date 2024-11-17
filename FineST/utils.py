@@ -114,7 +114,7 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
     
 
 
-def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, p=None, q=None):
+def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, p=None, q=None, dataset_class=None):
     def get_x_y(adata, p):
         if isinstance(adata, AnnData):
             return adata.obsm['spatial'][p][0], adata.obsm['spatial'][p][1]
@@ -126,6 +126,16 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, p=None, q
     all_spot_all_variable = np.zeros((recon_mat_reshape_tensor.shape[0]*recon_mat_reshape_tensor.shape[1], recon_mat_reshape_tensor.shape[2]))
     C2 = np.zeros((recon_mat_reshape_tensor.shape[0] * recon_mat_reshape_tensor.shape[1], 2), dtype=int)
     first_spot_first_variable = None
+
+
+    # set ‘split_num’, according 'dataset_class'
+    if dataset_class == 'Visium':
+        split_num = 16
+    elif dataset_class == 'VisiumHD':
+        split_num = 4
+    else:
+        raise ValueError('Invalid dataset_class. Only "Visium" and "VisiumHD" are supported.')
+
 
     if p is None and q is None:
         for p_ in range(recon_mat_reshape_tensor.shape[0]):
@@ -148,7 +158,7 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, p=None, q
                 C[k - 1, 0] = x - 8 - 1 * 16 + (i - 1) * 16
                 C[k - 1, 1] = y - 8 - 1 * 16 + (j - 1) * 16
 
-            C2[p_ * 16:(p_ + 1) * 16, :] = C
+            C2[p_ * split_num:(p_ + 1) * split_num, :] = C
 
         for q_ in range(recon_mat_reshape_tensor.shape[2]):
             all_spot_all_variable[:, q_] = recon_mat_reshape_tensor[:, :, q_].flatten().cpu().detach().numpy()

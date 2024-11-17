@@ -9,7 +9,7 @@ Uniquely, FineST can distinguish co-expressed ligand-receptor pairs (LR pairs)
 from spatially separating pairs at sub-spot level or single-cell level, 
 and identify the super-resolved ligand-receptor interaction (LRI).
 
-.. image:: https://github.com/LingyuLi-math/FineST/blob/main/docs/fig/FineST_framework_all.png?raw=true
+.. image:: https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework_all.png?raw=true
    :width: 800px
    :align: center
 
@@ -40,14 +40,14 @@ development) version (time: < 1 min):
 
 .. code-block:: bash
 
-   pip install -U git+https://github.com/LingyuLi-math/FineST
+   pip install -U git+https://github.com/StatBiomed/FineST
 
 Installation using Conda
 ========================
 
 .. code-block:: bash
 
-   $ git clone https://github.com/LingyuLi-math/FineST.git
+   $ git clone https://github.com/StatBiomed/FineST.git
    $ conda create --name FineST python=3.8
    $ conda activate FineST
    $ cd FineST
@@ -86,9 +86,9 @@ Step0: HE image feature extraction (for *Visium*)
 *Visium (v2)* measures about 5k spots across the entire tissue area. 
 The diameter of each individual spot is roughly 55 micrometers (um), 
 while the center-to-center distance between two adjacent spots is about 100 um.
-
 In order to capture the gene expression profile across the whole tissue ASSP, 
-firstly, we will interpolate ``between spots`` in horizontal and vertical directions, 
+
+Firstly, interpolate ``between spots`` in horizontal and vertical directions, 
 using ``Spot_interpolate.py``.
 
 .. code-block:: bash
@@ -103,16 +103,18 @@ using ``Spot_interpolate.py``.
 .. * The spots feature interpolation time is: 2.549 seconds
 .. * # of interpolated between-spots are: 2.786 times vs. original within-spots
 .. * # 0f final all spots are: 3.786 times vs. original within-spots
+with **Input: ** ``tissue_positions_list.csv`` - Locations of ``within spots`` (n),  
+and **Output: **  ``_position_add_tissue.csv``- Locations of ``between spots`` (m ~= 3n)
 
 
-**Input file:**
+.. **Input file:**
 
-* ``tissue_positions_list.csv``: Spot locations
+.. * ``tissue_positions_list.csv``: Spot locations
 
-**Output files:**
+.. **Output files:**
 
-* ``_position_add_tissue.csv``: Spot locations of the ``between spots`` (m ~= 3n)
-* ``_position_all_tissue.csv``: Spot locations of all ``between spots`` and ``within spots``
+.. * ``_position_add_tissue.csv``: Spot locations of the ``between spots`` (m ~= 3n)
+.. * ``_position_all_tissue.csv``: Spot locations of all ``between spots`` and ``within spots``
 
 Then extracte the ``within spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
 
@@ -233,13 +235,17 @@ The full manual is at `finest-rtd-tutorial <https://finest-rtd-tutorial.readthed
 
 * `Interpolate between-spots among within-spots by FineST (For Visium dataset)`_.
 
-* `Sub-spot level prediction by FineST (For Visium dataset)`_.
+* `Sub-spot level (16x resolution) prediction by FineST (For Visium dataset)`_.
+
+* `Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset)`_.
 
 * `Super-resolved ligand-receptor interavtion discovery by FineST`_.
 
-.. _Interpolate between-spots among within-spots by FineST (For Visium dataset): docs/source/Between_spot_demo.ipynb
+.. _Interpolate between-spots among within-spots by FineST (For Visium dataset): Between_spot_demo.ipynb
 
-.. _Sub-spot level prediction by FineST (For Visium dataset): docs/source/NPC_Train_Impute.ipynb
+.. _Sub-spot level (16x resolution) prediction by FineST (For Visium dataset): NPC_Train_Impute.ipynb
 
-.. _Super-resolved ligand-receptor interavtion discovery by FineST: docs/source/NPC_LRI_CCC.ipynb
+.. _Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset): CRC16_Train_Impute.ipynb
+
+.. _Super-resolved ligand-receptor interavtion discovery by FineST: NPC_LRI_CCC.ipynb
 

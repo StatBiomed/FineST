@@ -446,9 +446,9 @@ def gene_expr(adata, matrix_order_df, gene_selet, save_path=None):
         fig.savefig(save_path, save_path, format='pdf', dpi=300, bbox_inches='tight')
 
 
-def subspot_expr(C, value, save_path=None):
+def subspot_expr(C, value, marker='o', s=1800, save_path=None):
     fig, ax = plt.subplots(figsize=(2.5, 2.5))
-    ax.scatter(C[:, 0], C[:, 1], c=value, marker='o', cmap=cnt_color, s=1800)
+    ax.scatter(C[:, 0], C[:, 1], c=value, marker=marker, cmap=cnt_color, s=s)
     ax.invert_yaxis()
     ax.set_title("First spot")
     plt.show()
@@ -463,7 +463,11 @@ def subspot_expr(C, value, save_path=None):
 ###########################################
 def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, save_path=None):
 
-    orignal_matrix = pd.DataFrame(adata.X.todense())
+    if isinstance(adata.X, np.ndarray):
+        orignal_matrix = pd.DataFrame(adata.X)
+    else:
+        orignal_matrix = pd.DataFrame(adata.X.todense())
+
     orignal_matrix.columns = gene_hv
 
     imputed_matrix_test_exp = pd.DataFrame(data_impt_reshape)
@@ -502,23 +506,31 @@ def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, 
     plt.show()
 
 
-def mean_cor_box(adata, data_impt_reshape, save_path=None):
+#####################################################################
+# 2024.11.16 add 'gene_only' for VisumHD 8um: only gene cor boxplot
+#####################################################################
+def mean_cor_box(adata, data_impt_reshape, gene_only=False, save_path=None):
 
-    matrix_profile = np.array(adata.X.todense())
+    if isinstance(adata.X, np.ndarray):
+        matrix_profile = np.array(adata.X)
+    else:
+        matrix_profile = np.array(adata.X.todense())
 
-    corr_spot = calculate_correlation(matrix_profile, data_impt_reshape, method='pearson', sample="spot")
-    mean_corr_spot = np.mean(corr_spot)
+    if not gene_only:
+        corr_spot = calculate_correlation(matrix_profile, data_impt_reshape, method='pearson', sample="spot")
+        mean_corr_spot = np.mean(corr_spot)
+        print(mean_corr_spot)
+
     corr_gene = calculate_correlation(matrix_profile, data_impt_reshape, method='pearson', sample="gene")
     ## avoid nan
     corr_gene = np.nan_to_num(corr_gene, nan=0.0)
     mean_corr_gene = np.mean(corr_gene)
 
-    print(mean_corr_spot)
     print(mean_corr_gene)
 
     data = pd.DataFrame({
-        'Type': np.concatenate([np.repeat('corr_spot', len(corr_spot)), np.repeat('corr_gene', len(corr_gene))]),
-        'mean_corr': np.concatenate([corr_spot, corr_gene])
+        'Type': np.repeat('corr_gene', len(corr_gene)) if gene_only else np.concatenate([np.repeat('corr_spot', len(corr_spot)), np.repeat('corr_gene', len(corr_gene))]),
+        'mean_corr': corr_gene if gene_only else np.concatenate([corr_spot, corr_gene])
     })
 
     plt.rcParams['font.family'] = 'sans-serif'

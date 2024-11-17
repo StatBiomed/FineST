@@ -3,11 +3,40 @@ import  logging
 logging.getLogger().setLevel(logging.INFO)
 from .utils import *
 from .loadData import *
+from scipy.spatial import cKDTree
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics.pairwise import cosine_similarity
 import torch
 
 
+#############################
+# 2024.11.16 align 8um adata
+#############################
+def align_adata_fst2hd(adata_impt, adata_8um):
+    """
+    Uses cKDTree to find the closest point in 'adata_impt' for each spatial point in 'adata_8um'.
+    Creates 'adata_impt_align' dataset with observation names matching 'adata_8um' based on closest points indices.
+    Finally, it converts both datasets into DataFrames and prints their shapes.
+
+    Args:
+    adata_impt (anndata.AnnData): The dataset to be aligned.
+    adata_8um (anndata.AnnData): The reference dataset.
+
+    Returns:
+    adata_impt_align (anndata.AnnData): The aligned dataset.
+    shared_finest_df (pandas.DataFrame): DataFrame  of 'adata_impt_align'.
+    shared_visium_df (pandas.DataFrame): DataFrame  of 'adata_8um'.
+    """
+    tree = cKDTree(adata_impt.obsm['spatial'])
+    _, closest_points_indices = tree.query(adata_8um.obsm['spatial'], k=1)
+    
+    adata_impt_align = adata_impt[closest_points_indices]
+    adata_impt_align.obs_names = adata_8um.obs_names
+    
+    shared_finest_df = adata_impt_align.to_df()
+    shared_visium_df = adata_8um.to_df()
+    
+    return adata_impt_align, shared_finest_df, shared_visium_df
 
 #############################
 # 2024.11.08 more fast
@@ -43,7 +72,11 @@ def calculate_correlation(matrix_tensor_test_np, reconstructed_matrix_test_np, m
 
 def mean_cor(adata, data_impt_reshape, label, sample="gene"):
 
-    matrix1 = np.array(adata.X.todense())
+    if isinstance(adata.X, np.ndarray):
+        matrix1 = np.array(adata.X)
+    else:
+        matrix1 = np.array(adata.X.todense())
+
     matrix2 = np.array(data_impt_reshape)
 
     print("matrix1: ", matrix1.shape)

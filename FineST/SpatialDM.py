@@ -9,6 +9,58 @@ import anndata as ann
 import scipy
 
 
+
+#######################################
+# 2024.11.17 Add code of SpatialDM
+#######################################
+def LRpair_gene(df):
+    """
+    df : DataFrame
+
+    ## see the unique gene of sig LR pairs
+
+    Returns a DataFrame of unique elements from  'Ligand0', 'Ligand1', 'Receptor0', 
+    'Receptor1', and 'Receptor2' columns of the DataFrame where 'selected' is True.
+    """
+    # Filter the DataFrame
+    filtered_df = df[df['selected'] == True]
+
+    # Get the unique elements
+    unique_elements = set(filtered_df['Ligand0'].tolist() + 
+                          filtered_df['Ligand1'].tolist() + 
+                          filtered_df['Receptor0'].tolist() + 
+                          filtered_df['Receptor1'].tolist() + 
+                          filtered_df['Receptor2'].tolist())
+    unique_elements_df = pd.DataFrame(unique_elements)
+
+    return unique_elements_df
+
+
+def anno_LRpair(adata_impt_all):
+    """
+    adata_impt_all : AnnData object
+
+    Returns a DataFrame resulting from merging 
+    adata_impt_all.uns['global_res'].sort_values(by='fdr')  with 
+    adata_impt_all.uns['geneInter'] on 'Ligand0' and 'interaction_name'.
+    """
+
+    # Create a DataFrame from 'geneInter'
+    geneInter_df = adata_impt_all.uns['geneInter']
+    spa_coexp_pair = adata_impt_all.uns['global_res'].sort_values(by='fdr')  
+
+    # Merge the dataframes
+    merged_df = pd.merge(spa_coexp_pair, geneInter_df, how='left', 
+                         left_index=True, right_index=True)
+
+    # Keep only the columns of interest
+    final_df = merged_df[['Ligand0', 'Ligand1', 'Receptor0', 'Receptor1', 
+                          'Receptor2', 'z_pval', 'z', 'fdr', 'selected', 
+                          'evidence', 'annotation']]
+
+    return final_df
+
+
 #######################################
 # 2024.11.11.Adjust code of SpatialDM
 #######################################
@@ -24,7 +76,15 @@ def _Euclidean_to_RBF(X, l, singlecell):
     
     # At single-cell resolution, no within-spot communications
     if singlecell:
-        np.fill_diagonal(rbf_d, 0)
+
+        ###################
+        # old for SpatialDM
+        ###################
+        # np.fill_diagonal(rbf_d, 0)
+
+        rbf_d_dense = rbf_d.toarray()  # or rbf_d.todense()
+        np.fill_diagonal(rbf_d_dense, 0)
+
     else:
         rbf_d.setdiag(np.exp(-X.diagonal()**2 / (2 * l ** 2)))
 
