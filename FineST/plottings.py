@@ -44,9 +44,7 @@ cnt_color = clr.LinearSegmentedColormap.from_list('magma', colors, N=256)
 
 
 
-def compute_pathway(sample=None,
-                    all_interactions=None,
-        interaction_ls=None, name=None, dic=None):
+def compute_pathway(sample=None, all_interactions=None, interaction_ls=None, name=None, dic=None):
     """
     Compute enriched pathways for a list of pairs or a dic of SpatialDE results.
     :param sample: spatialdm obj
@@ -99,13 +97,14 @@ def dot(pathway_res, figsize, markersize, pdf):
         perc = result1.selected / result1.pathway_size
         value = -np.log10(result1.loc[:, 'fisher_p'].values)
         size = value * markersize
-        im = dotplot.scatter(result1.selected.values, result1.index, c=perc.loc[result1.index].values,
-                             s=size, cmap='Reds')
+        im = dotplot.scatter(result1.selected.values, result1.index, 
+                             c=perc.loc[result1.index].values, s=size, cmap='Reds')
         dotplot.set_xlabel('Number of pairs')
         # dotplot.set_xticks(np.arange(0, max(result1.selected.values) + 2))
 
         # Set the x-axis tick positions and labels
-        xticks_positions = np.arange(0, max(result1.selected.values) + 2, 4)  # Display a label every 2 ticks
+        # Display a label every 2 ticks
+        xticks_positions = np.arange(0, max(result1.selected.values) + 2, 4)  
         dotplot.set_xticks(xticks_positions)
         dotplot.set_xticklabels(xticks_positions)
 
@@ -256,13 +255,16 @@ def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, s=10, sav
     for i in range(w):
         plt.subplot(1, w, i + 1)
         if isinstance(patterns.columns, pd.RangeIndex):
-            scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = 's', c=patterns[i], cmap="viridis", s=s)
+            scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = 's', 
+                                  c=patterns[i], cmap="viridis", s=s)
         else:
-            scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = 's', c=patterns[str(i)], cmap="viridis", s=s)
+            scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = 's', 
+                                  c=patterns[str(i)], cmap="viridis", s=s)
         plt.colorbar(scatter)  
         plt.axis('equal')
         plt.gca().invert_yaxis()
-        plt.title('Pattern {} - {} LR pairs'.format(i, histology_results.query('pattern == @i').shape[0]))
+        plt.title('Pattern {} - {} LR pairs'.format(i, 
+                                                    histology_results.query('pattern == @i').shape[0]))
         plt.gcf().set_dpi(300)
 
     if save_path is not None:
@@ -289,7 +291,8 @@ def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None, save_pa
 
     for i in range(gaussian_subspot.K):
         plt.subplot(h, w, i + 1)
-        scatter = plt.scatter(gaussian_subspot.kernel.spatial[:,0],gaussian_subspot.kernel.spatial[:,1],marker='s', 
+        scatter = plt.scatter(gaussian_subspot.kernel.spatial[:,0],
+                              gaussian_subspot.kernel.spatial[:,1],marker='s', 
                               c=gaussian_subspot.mean[:,i], cmap="viridis", s=s)
         plt.colorbar(scatter)  
         plt.axis('equal')
@@ -305,7 +308,8 @@ def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None, save_pa
     plt.show()
 
 
-def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r, marker_size, **kwargs):
+def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r, 
+                           marker, marker_size, **kwargs):
     i = pd.Series(selected_ind == pair).idxmax()
     L = sample.uns['ligand'].loc[pair].dropna().values
     R = sample.uns['receptor'].loc[pair].dropna().values
@@ -319,18 +323,18 @@ def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cma
     plt.figure(figsize=figsize)
     plt.subplot(1, 5, 1)
     plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=spots.loc[pair], cmap=cmap,
-                vmax=1, s=marker_size, **kwargs)
+                vmax=1, marker=marker, s=marker_size, **kwargs)
     plt_util_invert('Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots')
     
     for l in range(l1):
         plt.subplot(1, 5, 2 + l)
         plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,L[l]].X.toarray(),
-                    cmap=cmap_l, s=marker_size, **kwargs)
+                    cmap=cmap_l, marker=marker, s=marker_size, **kwargs)
         plt_util_invert('Ligand: ' + L[l])
     for l in range(l2):
         plt.subplot(1, 5, 2 + l1 + l)
         plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,R[l]].X.toarray(),
-                    cmap=cmap_r, s=marker_size, **kwargs)
+                    cmap=cmap_r, marker=marker, s=marker_size, **kwargs)
         plt_util_invert('Receptor: ' + R[l])
 
 
@@ -343,7 +347,8 @@ def plt_util_invert(title):
 
 
 def plot_pairs_dot(sample, pairs_to_plot, pdf=None, figsize=(56, 8),
-               cmap='Greens', cmap_l='Purples', cmap_r='Purples', marker_size=5, **kwargs):
+               cmap='Greens', cmap_l='Purples', cmap_r='Purples', 
+               marker='o', marker_size=5, **kwargs):
                # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', marker_size=5, **kwargs):
     if sample.uns['local_stat']['local_method'] == 'z-score':
         selected_ind = sample.uns['local_z_p'].index
@@ -355,7 +360,8 @@ def plot_pairs_dot(sample, pairs_to_plot, pdf=None, figsize=(56, 8),
         with PdfPages(pdf + '.pdf') as pdf:
             for pair in pairs_to_plot:
                 plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap=cmap,
-                                   cmap_l=cmap_l, cmap_r=cmap_r, marker_size=marker_size, **kwargs)
+                                   cmap_l=cmap_l, cmap_r=cmap_r, 
+                                   marker=marker, marker_size=marker_size, **kwargs)
                 pdf.savefig()
                 plt.show()
                 plt.close()
@@ -363,7 +369,8 @@ def plot_pairs_dot(sample, pairs_to_plot, pdf=None, figsize=(56, 8),
     else:
         for pair in pairs_to_plot:
             plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap=cmap,
-                               cmap_l=cmap_l, cmap_r=cmap_r, marker_size=marker_size, **kwargs)
+                               cmap_l=cmap_l, cmap_r=cmap_r, 
+                               marker=marker, marker_size=marker_size, **kwargs)
             plt.show()
             plt.close()
 
@@ -372,10 +379,12 @@ def plot_pairs_dot(sample, pairs_to_plot, pdf=None, figsize=(56, 8),
 ###########################################
 # 2024.11.11 For all spot gene expression
 ###########################################
-def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, gene_hv, label, s=8, save_path=None):
+def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, gene_hv, 
+                       label, s=8, save_path=None):
     def plot_gene_data_dot(spatial_loc, genedata, title, ax, s):
         normalized_data = genedata
-        scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=normalized_data, cmap=cnt_color, s=s)   
+        scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=normalized_data, 
+                             cmap=cnt_color, s=s)   
         ax.invert_yaxis()
         ax.set_title(title)
         return scatter
@@ -387,7 +396,8 @@ def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, gene_hv,
     genedata3 = reconstruction_f2_reshape_pd_all[[gene]].to_numpy()
     print(str(gene)+" gene expression dim: ", genedata3.shape)
     print(str(gene)+" gene expression: \n", genedata3)
-    scatter3 = plot_gene_data_dot(spatial_loc_all, genedata3, str(gene)+' expression: '+str(label), ax, s) 
+    scatter3 = plot_gene_data_dot(spatial_loc_all, genedata3, 
+                                  str(gene)+' expression: '+str(label), ax, s) 
     fig.colorbar(scatter3, ax=ax)
 
     # Save the figure if a save path is provided
@@ -400,10 +410,12 @@ def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, gene_hv,
 ###########################################
 # 2024.11.11 Adjust comparision plot 
 ###########################################
-def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, save_path=None):
+def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, marker='o', s=2, 
+                      cmap=cnt_color, save_path=None):
     def plot_gene_data_scale(spatial_loc, genedata, title, ax):
         normalized_data = (genedata - genedata.min()) / (genedata.max() - genedata.min())
-        scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=normalized_data, cmap=cnt_color)   
+        scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=normalized_data, 
+                             marker=marker, s=s, cmap=cmap)   
         ax.invert_yaxis()
         ax.set_title(title)
         return scatter
@@ -412,17 +424,26 @@ def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, save_path=None):
 
     fig, axes = plt.subplots(1, 2, figsize=(22, 8))
 
-    # Orignal test data
-    orignal_matrix = pd.DataFrame(adata.X.todense())
-    orignal_matrix.columns = gene_hv
-    genedata1 = orignal_matrix[[gene]].to_numpy()
-    scatter1 = plot_gene_data_scale(spatial_loc, genedata1, str(gene)+" Expression: Orignal", axes[0])
+    ## Orignal test data
+    # original_matrix = pd.DataFrame(adata.X.todense())
+
+    ## Check if 'todense' attribute exists
+    if hasattr(adata.X, 'todense'):
+        original_matrix = pd.DataFrame(adata.X.todense())
+    else:
+        original_matrix = pd.DataFrame(adata.X)
+
+    original_matrix.columns = gene_hv
+    genedata1 = original_matrix[[gene]].to_numpy()
+    scatter1 = plot_gene_data_scale(spatial_loc, genedata1, 
+                                    str(gene)+" Expression: Orignal", axes[0])
 
     # Imputed test data
     imputed_matrix_test_exp = pd.DataFrame(data_impt_reshape)
     imputed_matrix_test_exp.columns = gene_hv
     genedata2 = imputed_matrix_test_exp[[gene]].to_numpy()
-    scatter2 = plot_gene_data_scale(spatial_loc, genedata2, str(gene)+" Expression: FineST", axes[1])
+    scatter2 = plot_gene_data_scale(spatial_loc, genedata2, 
+                                    str(gene)+" Expression: FineST", axes[1])
 
     fig.colorbar(scatter1, ax=axes.ravel().tolist())
     plt.show()
@@ -432,10 +453,12 @@ def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, save_path=None):
         fig.savefig(save_path, save_path, format='pdf', dpi=300, bbox_inches='tight')
 
 
-def gene_expr(adata, matrix_order_df, gene_selet, save_path=None):
-    fig, ax1 = plt.subplots(1, 1, figsize=(9, 7))
+def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22, 
+              figsize=(9, 7), save_path=None):
+    fig, ax1 = plt.subplots(1, 1, figsize=figsize)
     scatter_plot = ax1.scatter(adata.obsm['spatial'][:, 0], adata.obsm['spatial'][:, 1], 
-                               c=matrix_order_df[gene_selet], cmap=cnt_color, marker='h', s=22) 
+                               c=matrix_order_df[gene_selet], cmap=cnt_color, 
+                               marker=marker, s=s) 
     ax1.invert_yaxis()
     ax1.set_title(str(gene_selet)+' Expression')
     fig.colorbar(scatter_plot, ax=ax1)
@@ -464,16 +487,16 @@ def subspot_expr(C, value, marker='o', s=1800, save_path=None):
 def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, save_path=None):
 
     if isinstance(adata.X, np.ndarray):
-        orignal_matrix = pd.DataFrame(adata.X)
+        original_matrix = pd.DataFrame(adata.X)
     else:
-        orignal_matrix = pd.DataFrame(adata.X.todense())
+        original_matrix = pd.DataFrame(adata.X.todense())
 
-    orignal_matrix.columns = gene_hv
+    original_matrix.columns = gene_hv
 
     imputed_matrix_test_exp = pd.DataFrame(data_impt_reshape)
     imputed_matrix_test_exp.columns = gene_hv
 
-    genedata1 = orignal_matrix[[gene]].to_numpy()
+    genedata1 = original_matrix[[gene]].to_numpy()
     genedata2 = imputed_matrix_test_exp[[gene]].to_numpy()  
 
     g = sns.JointGrid(x=genedata1[:, 0], y=genedata2[:, 0], space=0, height=size)
@@ -517,11 +540,13 @@ def mean_cor_box(adata, data_impt_reshape, gene_only=False, save_path=None):
         matrix_profile = np.array(adata.X.todense())
 
     if not gene_only:
-        corr_spot = calculate_correlation(matrix_profile, data_impt_reshape, method='pearson', sample="spot")
+        corr_spot = calculate_correlation(matrix_profile, data_impt_reshape, 
+                                          method='pearson', sample="spot")
         mean_corr_spot = np.mean(corr_spot)
         print(mean_corr_spot)
 
-    corr_gene = calculate_correlation(matrix_profile, data_impt_reshape, method='pearson', sample="gene")
+    corr_gene = calculate_correlation(matrix_profile, data_impt_reshape, 
+                                      method='pearson', sample="gene")
     ## avoid nan
     corr_gene = np.nan_to_num(corr_gene, nan=0.0)
     mean_corr_gene = np.mean(corr_gene)
@@ -856,349 +881,66 @@ def chord_celltype_allpairs(adata, color_dic=None,
 
 
 
-def plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r, **kwargs):
-    i = pd.Series(selected_ind == pair).idxmax()
-    L = sample.uns['ligand'].loc[pair].dropna().values
-    R = sample.uns['receptor'].loc[pair].dropna().values
-    l1, l2 = len(L), len(R)
+# def plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r, **kwargs):
+#     i = pd.Series(selected_ind == pair).idxmax()
+#     L = sample.uns['ligand'].loc[pair].dropna().values
+#     R = sample.uns['receptor'].loc[pair].dropna().values
+#     l1, l2 = len(L), len(R)
     
-    if isinstance(sample.obsm['spatial'], pd.DataFrame):
-        spatial_loc = sample.obsm['spatial'].values
-    else:
-        spatial_loc = sample.obsm['spatial']
-    
-    plt.figure(figsize=figsize)
-    plt.subplot(1, 5, 1)
-    plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=spots.loc[pair], cmap=cmap,
-                vmax=1, **kwargs)
-    plt_util('Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots')
-    
-    for l in range(l1):
-        plt.subplot(1, 5, 2 + l)
-        plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,L[l]].X.toarray(),
-                    cmap=cmap_l, **kwargs)
-        plt_util('Ligand: ' + L[l])
-    for l in range(l2):
-        plt.subplot(1, 5, 2 + l1 + l)
-        plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,R[l]].X.toarray(),
-                    cmap=cmap_r, **kwargs)
-        plt_util('Receptor: ' + R[l])
-
-def plot_pairs(sample, pairs_to_plot, pdf=None, figsize=(35, 5),
-               cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', **kwargs):
-    """
-    plot selected spots as well as LR expression.
-    :param sample: AnnData object.
-    :param pairs_to_plot: list or arrays. pair name(s), should be from spatialdm_local pairs .
-    :param pdf: str. pdf file prefix. save plots in a pdf file.
-    :param figsize: figsize for each pair. Default to (35, 5).
-    :param markersize: markersize for each spot. Default
-    :param cmap: cmap for selected local spots.
-    :param cmap_l: cmap for selected ligand. If None, no subplot for ligand expression.
-    :param cmap_r: cmap for selected receptor. If None, no subplot for receptor expression
-    :return: subplots of spatial scatter plots, 1 for local Moran p-values, others for the original expression values
-    """
-    if sample.uns['local_stat']['local_method'] == 'z-score':
-        selected_ind = sample.uns['local_z_p'].index
-        spots = 1 - sample.uns['local_z_p']
-    if sample.uns['local_stat']['local_method'] == 'permutation':
-        selected_ind = sample.uns['local_perm_p'].index
-        spots = 1 - sample.uns['local_perm_p']
-    if pdf != None:
-        with PdfPages(pdf + '.pdf') as pdf:
-            for pair in pairs_to_plot:
-                plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap=cmap,
-                                   cmap_l=cmap_l, cmap_r=cmap_r, **kwargs)
-                pdf.savefig()
-                plt.show()
-                plt.close()
-
-    else:
-        for pair in pairs_to_plot:
-            plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap=cmap,
-                               cmap_l=cmap_l, cmap_r=cmap_r, **kwargs)
-            plt.show()
-            plt.close()
-
-
-# def make_grid_spec(
-#     ax_or_figsize,
-#     nrows: int,
-#     ncols: int,
-#     wspace= None,
-#     hspace = None,
-#     width_ratios = None,
-#     height_ratios= None,
-# ):
-#     kw = dict(
-#         wspace=wspace,
-#         hspace=hspace,
-#         width_ratios=width_ratios,
-#         height_ratios=height_ratios,
-#     )
-#     if isinstance(ax_or_figsize, tuple):
-#         fig = plt.figure(figsize=ax_or_figsize)
-#         return fig, gridspec.GridSpec(nrows, ncols, **kw)
+#     if isinstance(sample.obsm['spatial'], pd.DataFrame):
+#         spatial_loc = sample.obsm['spatial'].values
 #     else:
-#         ax = ax_or_figsize
-#         ax.axis('off')
-#         ax.set_frame_on(False)
-#         ax.set_xticks([])
-#         ax.set_yticks([])
-#         return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
+#         spatial_loc = sample.obsm['spatial']
+    
+#     plt.figure(figsize=figsize)
+#     plt.subplot(1, 5, 1)
+#     plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=spots.loc[pair], cmap=cmap,
+#                 vmax=1, **kwargs)
+#     plt_util('Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots')
+    
+#     for l in range(l1):
+#         plt.subplot(1, 5, 2 + l)
+#         plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,L[l]].X.toarray(),
+#                     cmap=cmap_l, **kwargs)
+#         plt_util('Ligand: ' + L[l])
+#     for l in range(l2):
+#         plt.subplot(1, 5, 2 + l1 + l)
+#         plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,R[l]].X.toarray(),
+#                     cmap=cmap_r, **kwargs)
+#         plt_util('Receptor: ' + R[l])
 
-# def dot(pathway_res, figsize, markersize, pdf):
-#     for i, name in enumerate(pathway_res.name.unique()):
-#         fig, legend_gs = make_grid_spec(figsize,
-#                                         nrows=2, ncols=1,
-#                                         height_ratios=(4, 1))
-#         dotplot = fig.add_subplot(legend_gs[0])
-#         result1 = pathway_res.loc[pathway_res.name == name]
-#         result1 = result1.sort_values('selected', ascending=False)
-#         cts = result1.selected
-#         perc = result1.selected / result1.pathway_size
-#         value = -np.log10(result1.loc[:, 'fisher_p'].values)
-#         size = value * markersize
-#         im = dotplot.scatter(result1.selected.values, result1.index, c=perc.loc[result1.index].values,
-#                              s=size, cmap='Reds')
-#         dotplot.set_xlabel('Number of pairs')
-#         dotplot.set_xticks(np.arange(0, max(result1.selected.values) + 2))
-#         dotplot.tick_params(axis='y', labelsize=10)
-#         dotplot.set_title(name)
-#         plt.colorbar(im, location='bottom', label='percentage of pairs out of CellChatDB')
-#         #                 dotplot.tight_layout()
-
-#         # plot size bar
-#         size_uniq = np.quantile(size, np.arange(1, 0, -0.1))
-#         value_uniq = np.quantile(value, np.arange(1, 0, -0.1))
-#         size_range = value_uniq
-#         size_legend_ax = fig.add_subplot(legend_gs[1])
-#         size_legend_ax.scatter(
-#             np.arange(len(size_uniq)) + 0.5,
-#             np.repeat(0, len(size_uniq)),
-#             s=size_uniq,
-#             color='gray',
-#             edgecolor='black',
-#             zorder=100,
-#         )
-#         size_legend_ax.set_xticks(np.arange(len(value_uniq)) + 0.5)
-#         # labels = [
-#         #     "{}".format(np.round((x * 100), decimals=0).astype(int)) for x in size_range
-#         # ]
-#         size_legend_ax.set_xticklabels(np.round(np.exp(-value_uniq), 3),
-#                                        rotation=60, fontsize='small')
-
-#         # remove y ticks and labels
-#         size_legend_ax.tick_params(
-#             axis='y', left=False, labelleft=False, labelright=False
-#         )
-
-#         # remove surrounding lines
-#         size_legend_ax.spines['right'].set_visible(False)
-#         size_legend_ax.spines['top'].set_visible(False)
-#         size_legend_ax.spines['left'].set_visible(False)
-#         size_legend_ax.spines['bottom'].set_visible(False)
-#         size_legend_ax.grid(False)
-
-#         ymax = size_legend_ax.get_ylim()[1]
-#         size_legend_ax.set_title('fisher exact p-value (right tile)', y=ymax + 0.9, size='small')
-
-#         xmin, xmax = size_legend_ax.get_xlim()
-#         size_legend_ax.set_xlim(xmin - 0.15, xmax + 0.5)
-#         if pdf != None:
-#             pdf.savefig()
-
-
-# def dot_path(adata, uns_key=None, dic=None, cut_off=1, groups=None, markersize=50,
-#              figsize=(6, 8), pdf=None,
-#              **kwargs):
+# def plot_pairs(sample, pairs_to_plot, pdf=None, figsize=(35, 5),
+#                cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', **kwargs):
 #     """
-#     Either input a dict containing lists of interactions, or specify a dict key in adata.uns
+#     plot selected spots as well as LR expression.
 #     :param sample: AnnData object.
-#     :param uns_key: a dict key in adata.uns
-#     :param dic: a dict containing 1 or more list(s) of interactions
-#     :param cut_off: Minimum number of spots to be plotted.
-#     :param groups: subgroups from all dict keys.
-#     :param markersize:
-#     :param figsize:
-#     :param pdf: export pdf under your current directory
-#     :param kwargs:
-#     :return:
+#     :param pairs_to_plot: list or arrays. pair name(s), should be from spatialdm_local pairs .
+#     :param pdf: str. pdf file prefix. save plots in a pdf file.
+#     :param figsize: figsize for each pair. Default to (35, 5).
+#     :param markersize: markersize for each spot. Default
+#     :param cmap: cmap for selected local spots.
+#     :param cmap_l: cmap for selected ligand. If None, no subplot for ligand expression.
+#     :param cmap_r: cmap for selected receptor. If None, no subplot for receptor expression
+#     :return: subplots of spatial scatter plots, 1 for local Moran p-values, others for the original expression values
 #     """
-#     # plt.figure(figsize=figsize)
-
-#     if uns_key is not None:
-#         dic = {uns_key: adata.uns[uns_key]}
-#     pathway_res = compute_pathway(adata, dic=dic)
-#     pathway_res = pathway_res[pathway_res.selected >= cut_off]
-#     if groups is not None:
-#         pathway_res = pathway_res.loc[pathway_res.name.isin(groups)]
-#     n_subplot = len(pathway_res.name.unique())
+#     if sample.uns['local_stat']['local_method'] == 'z-score':
+#         selected_ind = sample.uns['local_z_p'].index
+#         spots = 1 - sample.uns['local_z_p']
+#     if sample.uns['local_stat']['local_method'] == 'permutation':
+#         selected_ind = sample.uns['local_perm_p'].index
+#         spots = 1 - sample.uns['local_perm_p']
 #     if pdf != None:
 #         with PdfPages(pdf + '.pdf') as pdf:
-#             dot(pathway_res, figsize, markersize, pdf)
+#             for pair in pairs_to_plot:
+#                 plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap=cmap,
+#                                    cmap_l=cmap_l, cmap_r=cmap_r, **kwargs)
+#                 pdf.savefig()
+#                 plt.show()
+#                 plt.close()
+
+#     else:
+#         for pair in pairs_to_plot:
+#             plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap=cmap,
+#                                cmap_l=cmap_l, cmap_r=cmap_r, **kwargs)
 #             plt.show()
 #             plt.close()
-#     else:
-#         dot(pathway_res, figsize, markersize, pdf)
-
-
-
-# def corr_plot(x, y, max_num=10000, outlier=0.01, line_on=True, method='spearman',
-#               legend_on=True, size=30, dot_color=None, outlier_color="r",
-#               alpha=0.8, color_rate=10, corr_on=None):
-#     """
-#     Please see hilearn package for more details
-#     x: `array_like`, (1, )
-#         Values on x-axis
-#     y: `array_like`, (1, )
-#         Values on y-axis
-#     max_num: int
-#         Maximum number of dots to plotting by subsampling
-#     outlier: float
-#         The proportion of dots as outliers in different color
-#     line_on : bool
-#         If True, show the regression line
-#     method: 'spearman' or 'pearson'
-#         Method for coefficient R computation
-#     legend_on: bool
-#         If True, show the Pearson's correlation coefficient in legend. Replace
-#         of *corr_on*
-#     size: float
-#         The dot size
-#     dot_color: string
-#         The dot color. If None (by default), density color will be use
-#     outlier_color: string
-#         The color for outlier dot
-#     alpha : float
-#         The transparency: 0 (fully transparent) to 1
-#     color_rate: float
-#         Color rate for density
-#     :return:
-#     ax: matplotlib Axes
-#         The Axes object containing the plot.
-#     """
-#     if method == 'pearson':
-#         score = stats.pearsonr(x, y)
-#     if method == 'spearman':
-#         score = stats.spearmanr(x, y)
-#     np.random.seed(0)
-#     if len(x) > max_num:
-#         idx = np.random.permutation(len(x))[:max_num]
-#         x, y = x[idx], y[idx]
-#     outlier = int(len(x) * outlier)
-
-#     xy = np.vstack([x, y])
-#     z = stats.gaussian_kde(xy)(xy)
-#     idx = z.argsort()
-#     idx1, idx2 = idx[outlier:], idx[:outlier]
-
-#     if dot_color is None:
-#         c_score = np.log2(z[idx] + color_rate * np.min(z[idx]))
-#     else:
-#         c_score = dot_color
-
-#     plt.set_cmap("Blues")
-#     plt.scatter(x[idx], y[idx], c=c_score, edgecolor=None, s=size, alpha=alpha)
-#     plt.scatter(x[idx2], y[idx2], c=outlier_color, edgecolor=None, s=size / 5,
-#                 alpha=alpha / 3.0)
-
-#     if line_on:
-#         clf = linear_model.LinearRegression()
-#         clf.fit(x.reshape(-1, 1), y)
-#         xx = np.linspace(x.min(), x.max(), 1000).reshape(-1, 1)
-#         yy = clf.predict(xx)
-#         plt.plot(xx, yy, "k--", label="R=%.3f" % score[0])
-
-#     if legend_on or corr_on:
-#         plt.legend(loc="best", fancybox=True, ncol=1)
-
-# def global_plot(sample, pairs=None, figsize=(3,4),loc=2, **kwarg):
-#     """
-#     overview of global selected pairs for a SpatialDM obj
-#     :param sample: AnnData object
-#     :param pairs: list
-#     list of pairs to be highlighted in the scatter plot, e.g. ['SPP1_CD44'] or ['SPP1_CD44','ANGPTL4_SDC2']
-#     :param figsize: tuple
-#     default to (3,4)
-#     :param kwarg: plt.scatter arguments
-#     :return: ax: matplotlib Axes.
-#     """
-#     if pairs is not None:
-#         color_codes = generate_colormap(max(10, len(pairs)+2))[2:]
-#     fig = plt.figure(figsize=figsize)
-#     ax = plt.axes()
-#     if sample.uns['global_stat']['method'] == 'permutation':
-#         p = 'perm_pval'
-#     elif sample.uns['global_stat']['method'] == 'z-score':
-#         p = 'z_pval'
-#     plt.scatter(np.log1p(sample.uns['global_I']), -np.log1p(sample.uns['global_res'][p]),
-#                 c=sample.uns['global_res'].selected, **kwarg)
-#     if pairs!=None:
-#         for i,pair in enumerate(pairs):
-#             plt.scatter(np.log1p(sample.uns['global_I'])[sample.uns['ligand'].index==pair],
-#                         -np.log1p(sample.uns['global_res'][p])[sample.uns['ligand'].index==pair],
-#                         c=color_codes[i]) #TODO: perm pval only?
-#     plt.xlabel('log1p Global I')
-#     plt.ylabel('-log1p(pval)')
-#     ax.spines['top'].set_visible(False)
-#     ax.spines['right'].set_visible(False)
-#     plt.legend(np.hstack(([''], pairs)), loc=loc)
-
-# def differential_dendrogram(sample):
-#     _range = np.arange(1, sample.uns['n_sub'])
-#     ax = sns.clustermap(1-sample.uns['p_df'].loc[(sample.uns['p_val']<0.1) & (sample.uns['tf_df'].sum(1).isin(_range)),
-#                                      sample.uns['subset']])
-#     return ax
-
-# def differential_volcano(sample, pairs=None, legend=None, xmax = 25, xmin = -20):
-#     """
-#     Volcano plot for a differential obj
-#     :param sample: concatenated AnnData after running spatialdm separately
-#     :param pairs: list
-#     list of pairs to be highlighted in the volcano plot, e.g. ['SPP1_CD44'] or ['SPP1_CD44','ANGPTL4_SDC2']
-#     :param legend: list
-#     list of specified names for each side of the volcano plot
-#     :param xmax: float
-#     max z-score difference
-#     :param xmin: float
-#     min z-score difference
-#     :return: ax: matplotlib Axes.
-#     """
-#     if pairs is not None:
-#         color_codes = generate_colormap(max(10, len(pairs)+8))[8:]
-#     q1 = sample.uns['q1']
-#     q2 = sample.uns['q2']
-#     fdr_co = sample.uns['fdr_co']
-
-#     _range = np.arange(1, sample.uns['n_sub'])
-#     diff_cp = sample.uns['diff'].copy()
-#     diff_cp = np.where((diff_cp>xmax), xmax, diff_cp)
-#     diff_cp = np.where((diff_cp<xmin), xmin, diff_cp)
-
-#     plt.scatter(diff_cp[sample.uns['tf_df'].sum(1).isin(_range)],
-#                 -np.log10(sample.uns['diff_fdr'])[sample.uns['tf_df'].sum(1).isin(_range)], s=10, c='grey')
-#     keys = sample.uns.keys()
-#     conditions = []
-#     for key in keys:
-#         if key.endswith('_specific'):
-#             conditions.append(key.replace('_specific',''))
-#     label = 'difference between z-score of {0[0]} and {0[1]}'.format(conditions)
-#     plt.xlabel(label)
-#     plt.ylabel('differential fdr (log-likelihood, -log10)')
-#     plt.xlim([xmin-1,xmax+1])
-
-#     plt.scatter(diff_cp[(diff_cp>q1) & (sample.uns['diff_fdr']<fdr_co) & \
-#                            (sample.uns['tf_df'].sum(1).isin(_range))],
-#                 -np.log10(sample.uns['diff_fdr'])[(diff_cp>q1) & (sample.uns['diff_fdr']<fdr_co) & \
-#                            (sample.uns['tf_df'].sum(1).isin(_range))], s=10,c='tab:orange')
-#     plt.scatter(diff_cp[(diff_cp<q2) & (sample.uns['diff_fdr']<fdr_co) & \
-#                            (sample.uns['tf_df'].sum(1).isin(_range))],
-#                 -np.log10(sample.uns['diff_fdr'])[(diff_cp<q2) & (sample.uns['diff_fdr']<fdr_co)& \
-#                            (sample.uns['tf_df'].sum(1).isin(_range))], s=10,c='tab:green')
-#     if type(pairs)!=type(None):
-#         for i,pair in enumerate(pairs):
-#             plt.scatter(diff_cp[sample.uns['p_df'].index==pair],
-#                         -np.log10(sample.uns['diff_fdr'])[sample.uns['p_df'].index==pair], c=color_codes[i])
-#     plt.legend(np.hstack(([''], legend, pairs)))
-

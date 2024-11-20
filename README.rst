@@ -235,17 +235,21 @@ The full manual is at `finest-rtd-tutorial <https://finest-rtd-tutorial.readthed
 
 * `Interpolate between-spots among within-spots by FineST (For Visium dataset)`_.
 
+* `Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD)`_.
+
 * `Sub-spot level (16x resolution) prediction by FineST (For Visium dataset)`_.
 
 * `Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset)`_.
 
 * `Super-resolved ligand-receptor interavtion discovery by FineST`_.
 
-.. _Interpolate between-spots among within-spots by FineST (For Visium dataset): Between_spot_demo.ipynb
+.. _Interpolate between-spots among within-spots by FineST (For Visium dataset): docs/source/Between_spot_demo.ipynb
 
-.. _Sub-spot level (16x resolution) prediction by FineST (For Visium dataset): NPC_Train_Impute.ipynb
+.. _Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD): docs/source/Crop_ROI_image.ipynb
 
-.. _Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset): CRC16_Train_Impute.ipynb
+.. _Sub-spot level (16x resolution) prediction by FineST (For Visium dataset): docs/source/NPC_Train_Impute.ipynb
 
-.. _Super-resolved ligand-receptor interavtion discovery by FineST: NPC_LRI_CCC.ipynb
+.. _Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset): docs/source/CRC16_Train_Impute.ipynb
+
+.. _Super-resolved ligand-receptor interavtion discovery by FineST: docs/source/NPC_LRI_CCC.ipynb
 

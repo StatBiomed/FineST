@@ -40,7 +40,7 @@ _CRC16um = AMetadata(
 _CRC08um = AMetadata(
     name="CRC08um",
     doc_header="Original colorectal cancer (CRC) dataset from Oliveira, et al. <https://www.biorxiv.org/content/10.1101/2024.06.04.597233v1.full>`__.",
-    shape=(547816, 18085),  
+    shape=(545913, 18085),  
     url="https://figshare.com/ndownloader/files/50571282", 
 )
 

@@ -46,6 +46,8 @@ Please refer to our tutorials for details:
 
 * `Interpolate between-spots among within-spots by FineST (For Visium dataset)`_.
 
+* `Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD)`_.
+
 * `Sub-spot level (16x resolution) prediction by FineST (For Visium dataset)`_.
 
 * `Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset)`_.
@@ -53,6 +55,8 @@ Please refer to our tutorials for details:
 * `Super-resolved ligand-receptor interavtion discovery by FineST`_.
 
 .. _Interpolate between-spots among within-spots by FineST (For Visium dataset): Between_spot_demo.ipynb
+
+.. _Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD): Crop_ROI_image.ipynb
 
 .. _Sub-spot level (16x resolution) prediction by FineST (For Visium dataset): NPC_Train_Impute.ipynb
 
@@ -75,6 +79,8 @@ Please refer to our tutorials for details:
    :hidden:
 
    install
+   StarDist_demo
+   HIPT_demo
    release
 
 .. toctree::
@@ -83,6 +89,7 @@ Please refer to our tutorials for details:
    :hidden:
 
    Between_spot_demo
+   Crop_ROI_image
    NPC_Train_Impute
    CRC16_Train_Impute
    NPC_LRI_CCC

@@ -15,4 +15,5 @@ from .downloadData import *
 from .SparseAEH import *
 from .SpatialDM import *
 from .plottings import *
+from .cropping import *
 

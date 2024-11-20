@@ -17,7 +17,7 @@ development) version.
 
 
 Installation using Conda
-========================
+------------------------
 
 .. code-block:: bash
 

@@ -9,6 +9,31 @@ import scanpy as sc
 from anndata import AnnData
 import logging
 import os
+## for configure_logging
+import sys
+
+
+###########################################################
+# 2024.11.20 Form SpatialScope
+#            created for StarDist_nuclei_segmente.py
+###########################################################
+def configure_logging(logger_name):
+    LOG_LEVEL = logging.DEBUG
+    log_filename = logger_name+'.log'
+    importer_logger = logging.getLogger('importer_logger')
+    importer_logger.setLevel(LOG_LEVEL)
+    formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
+
+    fh = logging.FileHandler(filename=log_filename)
+    fh.setLevel(LOG_LEVEL)
+    fh.setFormatter(formatter)
+    importer_logger.addHandler(fh)
+
+    sh = logging.StreamHandler(sys.stdout)
+    sh.setLevel(LOG_LEVEL)
+    sh.setFormatter(formatter)
+    importer_logger.addHandler(sh)
+    return importer_logger
 
 
 ## set the random seed
