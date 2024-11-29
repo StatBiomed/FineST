@@ -97,10 +97,6 @@ source_suffix = ['.rst']
 root_doc = 'index'
 
 
-
-
-
-
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
@@ -127,4 +123,4 @@ epub_show_urls = 'footnote'
 html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'SpatialDM'
+htmlhelp_basename = 'FineST'
