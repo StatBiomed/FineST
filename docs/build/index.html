@@ -47,7 +47,17 @@
               <p class="caption" role="heading"><span class="caption-text">Main</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="StarDist_demo.html">Nuclei segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HIPT_demo.html">Geometric segmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="release.html">Release History</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Between_spot_demo.html">Interpolate between-spots</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Crop_ROI_image.html">Crop image of ROI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="NPC_Train_Impute.html">FineST in NPC Visium data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CRC16_Train_Impute.html">FineST in CRC Visium HD data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="NPC_LRI_CCC.html">LRI and CCC discovery in super-resolved NPC data</a></li>
 </ul>
 
         </div>
@@ -79,23 +89,28 @@
 <h1>Home<a class="headerlink" href="#home" title="Permalink to this heading"></a></h1>
 <section id="about-finest">
 <h2>About FineST<a class="headerlink" href="#about-finest" title="Permalink to this heading"></a></h2>
-<p><strong>FineST</strong> (Fine-grained Spatial Transcriptomic) is a statistical model and toolbox to identify the super-resolved spatial co-expression (i.e., spatial association) between a pair of ligand and receptor.
-It pulls data from the <a class="reference external" href="https://world.openfoodfacts.org/">Open Food Facts database</a>
-and offers a <em>simple</em> and <em>intuitive</em> API.</p>
-<p>Uniquely, <strong>FineST</strong> can distinguish co-expressed ligand-receptor pairs (LR pairs) from spatially separating pairs at sub-spot level or single-cell level, and identify the super-resolved interaction.</p>
+<p><strong>FineST</strong> (<strong>Fine</strong> -grained <strong>S</strong> patial <strong>T</strong> ranscriptomic) is a computational method and toolbox
+to identify the super-resolved spatial co-expression (i.e., spatial association)
+between a pair of ligand and receptor.</p>
+<p>Uniquely, <strong>FineST</strong> can distinguish co-expressed ligand-receptor pairs (LR pairs)
+from spatially separating pairs at sub-spot level or single-cell level,
+and identify the super-resolved LR interaction.</p>
 <a class="reference internal image-reference" href="https://github.com/LingyuLi-math/FineST/blob/main/docs/fig/FineST_workflow.png?raw=true"><img alt="https://github.com/LingyuLi-math/FineST/blob/main/docs/fig/FineST_workflow.png?raw=true" class="align-center" src="https://github.com/LingyuLi-math/FineST/blob/main/docs/fig/FineST_workflow.png?raw=true" style="width: 600px;" /></a>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This project is under active development.</p>
 </div>
+</section>
+<section id="tutorial">
+<h2>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this heading"></a></h2>
 <p>Please refer to our tutorials for details:</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="NPC_Train_Impute.html"><span class="doc">Sub-spot level prediction</span></a>.</p></li>
+<li><p><a class="reference internal" href="Between_spot_demo.html"><span class="doc">Interpolate between-spots among within-spots by FineST (For Visium dataset)</span></a>.</p></li>
+<li><p><a class="reference internal" href="Crop_ROI_image.html"><span class="doc">Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD)</span></a>.</p></li>
+<li><p><a class="reference internal" href="NPC_Train_Impute.html"><span class="doc">Sub-spot level (16x resolution) prediction by FineST (For Visium dataset)</span></a>.</p></li>
+<li><p><a class="reference internal" href="CRC16_Train_Impute.html"><span class="doc">Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset)</span></a>.</p></li>
+<li><p><a class="reference internal" href="NPC_LRI_CCC.html"><span class="doc">Super-resolved ligand-receptor interavtion discovery by FineST</span></a>.</p></li>
 </ul>
-</section>
-<section id="references">
-<h2>References<a class="headerlink" href="#references" title="Permalink to this heading"></a></h2>
-<p>FineST manuscript with more details is available on <a class="reference external" href="https://www.biorxiv.org/content/10.1101/2022.08.19.504616v1/">bioRxiv</a> now and is currently under review.</p>
 <div class="toctree-wrapper compound">
 </div>
 <div class="toctree-wrapper compound">

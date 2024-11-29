@@ -7,7 +7,179 @@ from .utils import *
 from itertools import zip_longest
 import anndata as ann
 import scipy
+import pyreadr
+import requests
 
+
+
+
+
+#######################################
+# 2024.11.28 Add code of LR-TF
+# , datahost='builtin' -- !!
+#######################################
+def extract_tf(species, datahost='package'):
+    """
+    find overlapping LRs from CellChatDB
+    :param species: support 'human', 'mouse' and 'zebrafish'
+    :param datahost: the host of the ligand-receptor data. 
+                    'builtin' for package built-in otherwise from figshare
+    :return: LR_TF (containing comprehensive info from CellChatDB) dataframe
+    """
+    
+    if datahost == 'package':
+
+        if species in ['mouse', 'human']:
+            # datapath = '/mnt/lingyu/nfs_share2/Python/FineST/FineST/FineST/datasets/TF_data/%s-' %(species)
+            # datapath = './datasets/TF_data/%s-' %(species)
+            datapath = './FineST/datasets/TF_data/%s-' %(species)
+        else:
+            raise ValueError("species type: {} is not supported currently. Please have a check.".format(species))
+        
+        LR_TF = pyreadr.read_r(datapath + 'TF_PPRhuman.rda')['TF_PPRhuman']
+
+    else:
+        if species == 'mouse':
+            url = 'https://figshare.com/ndownloader/files/50860644'
+        elif species == 'human':
+            url = 'https://figshare.com/ndownloader/files/50860650'
+        else:
+            raise ValueError("species type: {} is not supported currently. Please have a check.".format(species))
+        
+        # specify where to download the file
+        # download_path = '/mnt/lingyu/nfs_share2/Python/FineST/FineST/FineST/datasets/TF_data/temp.rda'
+        # download_path = './datasets/TF_data/'
+        download_path = './FineST/datasets/TF_data/'
+        
+        # download the file
+        r = requests.get(url)
+        with open(download_path, 'wb') as f:
+            f.write(r.content)
+
+        LR_TF = pyreadr.read_r(download_path)['TF_PPRhuman']
+
+        # remove the downloaded file after use
+        os.remove(download_path)
+
+        # if species == 'mouse':
+        #     LR_TF = pyreadr.read_r('https://figshare.com/ndownloader/files/50860644')['TF_PPRhuman']
+        #     # TF_TG = pyreadr.read_r('https://figshare.com/ndownloader/files/50860656')
+        # elif species == 'human':
+        #     LR_TF = pyreadr.read_r('https://figshare.com/ndownloader/files/50860650')['TF_PPRhuman']
+        #     # TF_TG = pyreadr.read_r('https://figshare.com/ndownloader/files/50860647')
+        # else:
+        #     raise ValueError("species type: {} is not supported currently. Please have a check.".format(species))
+        
+    return LR_TF
+
+
+def top_pattern_LR2TF(tmp, ligand_list, receptor_list, top_num=20):
+    """
+    The function takes in a DataFrame and two lists of ligands and receptors respectively, 
+    filter the DataFrame based on the lists and return the top rows sorted by 'value' column.
+    Args:
+    tmp : a DataFrame to process
+    ligand_list : a list of ligands to filter on
+    receptor_list : a list of receptors to filter on
+    top_num : the number of top rows to return, defaults to 20
+
+    Returns:
+    tmp_df : a DataFrame after processing
+    """
+
+    #################################################
+    # Ligand or Receptor contain pattern LR external
+    #################################################
+    # # Filter the DataFrame based on the ligand_list and receptor_list
+    # lData = [tmp[tmp['Ligand'].str.contains(ligand, na=False)] for ligand in ligand_list]
+    # rData = [tmp[tmp['Receptor'].str.contains(receptor, na=False)] for receptor in receptor_list]
+    # print("Ligand in R2TFdatabase:", len(lData))
+    # print("Receptor in R2TFdatabase:", len(rData))
+    
+    # # Concatenate the filtered DataFrame and drop duplicates
+    # fData = pd.concat(lData + rData).drop_duplicates()
+    # print("Ligand or Receptor in R2TFdatabase:", fData.shape[0])
+    
+    #################################################
+    # Ligand or Receptor only contain pattern LR 
+    #################################################
+    # Filter the DataFrame based on the ligand_list and receptor_list
+    fData = tmp[tmp['Ligand'].isin(ligand_list) & tmp['Receptor'].isin(receptor_list)]
+    print("Ligand and Receptor in R2TFdatabase:", fData.shape[0])
+
+    # Sort the DataFrame by 'value' column and return the top rows
+    tmp_df = fData.sort_values(by='value', ascending=False).head(top_num)
+
+    # rename colname
+    subdf = pd.DataFrame(tmp_df.rename(columns={"Ligand": "Ligand_symbol", 
+                                                "Receptor": "Receptor_symbol", 
+                                                "tf": "TF", "value": "value"}) )    
+    
+    return subdf
+
+
+
+
+
+def pattern_LR2TF(histology_results, pattern_num, R_TFdatabase):
+    """
+    The function takes in a DataFrame, checks if column 'g' contains two '_', if so, it splits the 'g' column value into two new rows
+    Args:
+    histology_results : a DataFrame to process
+    pattern_num : the pattern number to filter on, defaults to 0
+    R_TFdatabase : the DataFrame containing receptor to TF mapping
+
+    Returns:
+    tmp : a DataFrame after processing
+    """
+    rows = []
+
+    for i, row in histology_results.iterrows():
+        # check if column 'g' contains two '_'
+        if row['g'].count('_') == 2:
+            # split the 'g' column value into three parts
+            gene1, gene2, gene3 = row['g'].split('_')
+
+            # create two new rows, gene1_gene2 and gene1_gene3 respectively
+            new_row1 = row.copy()
+            new_row1['g'] = gene1 + '_' + gene2
+            new_row2 = row.copy()
+            new_row2['g'] = gene1 + '_' + gene3
+
+            # add the new rows to the result DataFrame
+            rows.append(new_row1)
+            rows.append(new_row2)
+        else:
+            # if column 'g' does not contain two '_', add the original row to the result DataFrame directly
+            rows.append(row)
+
+    # after the loop, create DataFrame at once
+    p0_results = pd.DataFrame(rows, columns=histology_results.columns)
+    
+    LRp0 = p0_results[p0_results['pattern']==pattern_num]['g']
+
+    Lp0 = [gene for pair in LRp0 for gene in pair.split('_')[0:1]]
+    print("This pattern contain %s unique ligand", len(set(Lp0)))
+
+    Rp0 = [gene for pair in LRp0 for gene in pair.split('_')[1:]]
+    print("This pattern contain %s unique receptor", len(set(Rp0)))
+
+    R_TFdata_df = R_TFdatabase[R_TFdatabase['receptor'].isin(Rp0)]
+    ligand = Lp0
+    receptor = Rp0
+
+    result = pd.concat([pd.DataFrame(ligand), pd.DataFrame(receptor)], axis=1)
+    result.columns = ['ligand', 'receptor']
+    result = result.dropna()
+
+    comm = result.merge(R_TFdata_df, on='receptor', how='left')
+    comm = comm.dropna()
+
+    tmp = comm[["ligand","receptor","tf","tf_PPR"]]
+    tmp = tmp.rename(columns={"ligand": "Ligand", "receptor": "Receptor", "tf": "tf", "tf_PPR": "value"})
+    tmp = tmp.drop_duplicates()
+    
+    return tmp
 
 
 #######################################

@@ -16,6 +16,9 @@ scipy>=1.4.0
 statsmodels>=0.11
 pandas==2.0.3
 h5py==3.10.0
+openpyxl==3.1.5
+brokenaxes==0.6.2
+pyreadr==0.5.2
 
 # Nuclei segmentation
 squidpy==1.2.3
@@ -27,6 +30,10 @@ matplotlib>=3.1.2
 holoviews
 seaborn==0.13.2
 selenium
+plotly==5.24.1
+tenacity==9.0.0
+nbformat==5.10.4
+kaleido==0.2.1
 
 # Machine learning
 numpy

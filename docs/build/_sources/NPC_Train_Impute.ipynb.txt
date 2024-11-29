@@ -15,15 +15,15 @@
    "source": [
     "## Main steps\n",
     "\n",
-    "- Step1: Prepare the paired image patch and expression data: Align image pixels with spot coordinates.\n",
-    "- Step2:Train FineST model oOn within spost: Train the model on 80% data and test on 20% data\n",
-    "- Step3:Infer on between spots:Iinfer gene expression of between spo using trained model\n",
-    "- Step4: Impute on all sub-spots: Impute gene expression using measured gene expressiont"
+    "- Step1: Prepare paired image patch and ST spot: Align image pixels with spot coordinates\n",
+    "- Step2: Train model on within spots: Train the model on 80% data and test on 20% data\n",
+    "- Step3: Infer on between spots: Infer gene expression of between spot using trained model\n",
+    "- Step4: Impute on all sub-spots: Impute gene expression using measured gene expression"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 1,
+   "execution_count": null,
    "id": "41bf6f98-724f-4207-82d2-52a19b1f3c7f",
    "metadata": {},
    "outputs": [
@@ -50,547 +50,31 @@
     "import matplotlib.colors as clr\n",
     "import json\n",
     "\n",
-    "# import FineST as fst\n",
-    "# from FineST.datasets import dataset\n",
-    "# import FineST.plottings as fstplt\n",
+    "import FineST as fst\n",
+    "from FineST.datasets import dataset\n",
+    "import FineST.plottings as fstplt\n",
     "print(torch.__version__)\n",
-    "# print(\"FineST version: %s\" %fst.__version__)"
+    "print(\"FineST version: %s\" %fst.__version__)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 2,
+   "execution_count": null,
    "id": "85098490-3327-4b3e-aea8-458fd2581de1",
    "metadata": {},
    "outputs": [
     {
      "data": {
-      "application/javascript": [
-       "(function(root) {\n",
-       "  function now() {\n",
-       "    return new Date();\n",
-       "  }\n",
-       "\n",
-       "  var force = true;\n",
-       "  var py_version = '3.1.1'.replace('rc', '-rc.').replace('.dev', '-dev.');\n",
-       "  var is_dev = py_version.indexOf(\"+\") !== -1 || py_version.indexOf(\"-\") !== -1;\n",
-       "  var reloading = false;\n",
-       "  var Bokeh = root.Bokeh;\n",
-       "  var bokeh_loaded = Bokeh != null && (Bokeh.version === py_version || (Bokeh.versions !== undefined && Bokeh.versions.has(py_version)));\n",
-       "\n",
-       "  if (typeof (root._bokeh_timeout) === \"undefined\" || force) {\n",
-       "    root._bokeh_timeout = Date.now() + 5000;\n",
-       "    root._bokeh_failed_load = false;\n",
-       "  }\n",
-       "\n",
-       "  function run_callbacks() {\n",
-       "    try {\n",
-       "      root._bokeh_onload_callbacks.forEach(function(callback) {\n",
-       "        if (callback != null)\n",
-       "          callback();\n",
-       "      });\n",
-       "    } finally {\n",
-       "      delete root._bokeh_onload_callbacks;\n",
-       "    }\n",
-       "    console.debug(\"Bokeh: all callbacks have finished\");\n",
-       "  }\n",
-       "\n",
-       "  function load_libs(css_urls, js_urls, js_modules, js_exports, callback) {\n",
-       "    if (css_urls == null) css_urls = [];\n",
-       "    if (js_urls == null) js_urls = [];\n",
-       "    if (js_modules == null) js_modules = [];\n",
-       "    if (js_exports == null) js_exports = {};\n",
-       "\n",
-       "    root._bokeh_onload_callbacks.push(callback);\n",
-       "\n",
-       "    if (root._bokeh_is_loading > 0) {\n",
-       "      console.debug(\"Bokeh: BokehJS is being loaded, scheduling callback at\", now());\n",
-       "      return null;\n",
-       "    }\n",
-       "    if (js_urls.length === 0 && js_modules.length === 0 && Object.keys(js_exports).length === 0) {\n",
-       "      run_callbacks();\n",
-       "      return null;\n",
-       "    }\n",
-       "    if (!reloading) {\n",
-       "      console.debug(\"Bokeh: BokehJS not loaded, scheduling load and callback at\", now());\n",
-       "    }\n",
-       "\n",
-       "    function on_load() {\n",
-       "      root._bokeh_is_loading--;\n",
-       "      if (root._bokeh_is_loading === 0) {\n",
-       "        console.debug(\"Bokeh: all BokehJS libraries/stylesheets loaded\");\n",
-       "        run_callbacks()\n",
-       "      }\n",
-       "    }\n",
-       "    window._bokeh_on_load = on_load\n",
-       "\n",
-       "    function on_error() {\n",
-       "      console.error(\"failed to load \" + url);\n",
-       "    }\n",
-       "\n",
-       "    var skip = [];\n",
-       "    if (window.requirejs) {\n",
-       "      window.requirejs.config({'packages': {}, 'paths': {'jspanel': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel', 'jspanel-modal': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/modal/jspanel.modal', 'jspanel-tooltip': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/tooltip/jspanel.tooltip', 'jspanel-hint': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/hint/jspanel.hint', 'jspanel-layout': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/layout/jspanel.layout', 'jspanel-contextmenu': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/contextmenu/jspanel.contextmenu', 'jspanel-dock': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/dock/jspanel.dock', 'gridstack': 'https://cdn.jsdelivr.net/npm/gridstack@7.2.3/dist/gridstack-all', 'notyf': 'https://cdn.jsdelivr.net/npm/notyf@3/notyf.min'}, 'shim': {'jspanel': {'exports': 'jsPanel'}, 'gridstack': {'exports': 'GridStack'}}});\n",
-       "      require([\"jspanel\"], function(jsPanel) {\n",
-       "\twindow.jsPanel = jsPanel\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      require([\"jspanel-modal\"], function() {\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      require([\"jspanel-tooltip\"], function() {\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      require([\"jspanel-hint\"], function() {\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      require([\"jspanel-layout\"], function() {\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      require([\"jspanel-contextmenu\"], function() {\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      require([\"jspanel-dock\"], function() {\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      require([\"gridstack\"], function(GridStack) {\n",
-       "\twindow.GridStack = GridStack\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      require([\"notyf\"], function() {\n",
-       "\ton_load()\n",
-       "      })\n",
-       "      root._bokeh_is_loading = css_urls.length + 9;\n",
-       "    } else {\n",
-       "      root._bokeh_is_loading = css_urls.length + js_urls.length + js_modules.length + Object.keys(js_exports).length;\n",
-       "    }\n",
-       "\n",
-       "    var existing_stylesheets = []\n",
-       "    var links = document.getElementsByTagName('link')\n",
-       "    for (var i = 0; i < links.length; i++) {\n",
-       "      var link = links[i]\n",
-       "      if (link.href != null) {\n",
-       "\texisting_stylesheets.push(link.href)\n",
-       "      }\n",
-       "    }\n",
-       "    for (var i = 0; i < css_urls.length; i++) {\n",
-       "      var url = css_urls[i];\n",
-       "      if (existing_stylesheets.indexOf(url) !== -1) {\n",
-       "\ton_load()\n",
-       "\tcontinue;\n",
-       "      }\n",
-       "      const element = document.createElement(\"link\");\n",
-       "      element.onload = on_load;\n",
-       "      element.onerror = on_error;\n",
-       "      element.rel = \"stylesheet\";\n",
-       "      element.type = \"text/css\";\n",
-       "      element.href = url;\n",
-       "      console.debug(\"Bokeh: injecting link tag for BokehJS stylesheet: \", url);\n",
-       "      document.body.appendChild(element);\n",
-       "    }    if (((window['jsPanel'] !== undefined) && (!(window['jsPanel'] instanceof HTMLElement))) || window.requirejs) {\n",
-       "      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/jspanel.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/modal/jspanel.modal.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/tooltip/jspanel.tooltip.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/hint/jspanel.hint.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/layout/jspanel.layout.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/contextmenu/jspanel.contextmenu.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/dock/jspanel.dock.js'];\n",
-       "      for (var i = 0; i < urls.length; i++) {\n",
-       "        skip.push(urls[i])\n",
-       "      }\n",
-       "    }    if (((window['GridStack'] !== undefined) && (!(window['GridStack'] instanceof HTMLElement))) || window.requirejs) {\n",
-       "      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/gridstack/gridstack@7.2.3/dist/gridstack-all.js'];\n",
-       "      for (var i = 0; i < urls.length; i++) {\n",
-       "        skip.push(urls[i])\n",
-       "      }\n",
-       "    }    if (((window['Notyf'] !== undefined) && (!(window['Notyf'] instanceof HTMLElement))) || window.requirejs) {\n",
-       "      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/notificationarea/notyf@3/notyf.min.js'];\n",
-       "      for (var i = 0; i < urls.length; i++) {\n",
-       "        skip.push(urls[i])\n",
-       "      }\n",
-       "    }    var existing_scripts = []\n",
-       "    var scripts = document.getElementsByTagName('script')\n",
-       "    for (var i = 0; i < scripts.length; i++) {\n",
-       "      var script = scripts[i]\n",
-       "      if (script.src != null) {\n",
-       "\texisting_scripts.push(script.src)\n",
-       "      }\n",
-       "    }\n",
-       "    for (var i = 0; i < js_urls.length; i++) {\n",
-       "      var url = js_urls[i];\n",
-       "      if (skip.indexOf(url) !== -1 || existing_scripts.indexOf(url) !== -1) {\n",
-       "\tif (!window.requirejs) {\n",
-       "\t  on_load();\n",
-       "\t}\n",
-       "\tcontinue;\n",
-       "      }\n",
-       "      var element = document.createElement('script');\n",
-       "      element.onload = on_load;\n",
-       "      element.onerror = on_error;\n",
-       "      element.async = false;\n",
-       "      element.src = url;\n",
-       "      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n",
-       "      document.head.appendChild(element);\n",
-       "    }\n",
-       "    for (var i = 0; i < js_modules.length; i++) {\n",
-       "      var url = js_modules[i];\n",
-       "      if (skip.indexOf(url) !== -1 || existing_scripts.indexOf(url) !== -1) {\n",
-       "\tif (!window.requirejs) {\n",
-       "\t  on_load();\n",
-       "\t}\n",
-       "\tcontinue;\n",
-       "      }\n",
-       "      var element = document.createElement('script');\n",
-       "      element.onload = on_load;\n",
-       "      element.onerror = on_error;\n",
-       "      element.async = false;\n",
-       "      element.src = url;\n",
-       "      element.type = \"module\";\n",
-       "      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n",
-       "      document.head.appendChild(element);\n",
-       "    }\n",
-       "    for (const name in js_exports) {\n",
-       "      var url = js_exports[name];\n",
-       "      if (skip.indexOf(url) >= 0 || root[name] != null) {\n",
-       "\tif (!window.requirejs) {\n",
-       "\t  on_load();\n",
-       "\t}\n",
-       "\tcontinue;\n",
-       "      }\n",
-       "      var element = document.createElement('script');\n",
-       "      element.onerror = on_error;\n",
-       "      element.async = false;\n",
-       "      element.type = \"module\";\n",
-       "      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n",
-       "      element.textContent = `\n",
-       "      import ${name} from \"${url}\"\n",
-       "      window.${name} = ${name}\n",
-       "      window._bokeh_on_load()\n",
-       "      `\n",
-       "      document.head.appendChild(element);\n",
-       "    }\n",
-       "    if (!js_urls.length && !js_modules.length) {\n",
-       "      on_load()\n",
-       "    }\n",
-       "  };\n",
-       "\n",
-       "  function inject_raw_css(css) {\n",
-       "    const element = document.createElement(\"style\");\n",
-       "    element.appendChild(document.createTextNode(css));\n",
-       "    document.body.appendChild(element);\n",
-       "  }\n",
-       "\n",
-       "  var js_urls = [\"https://cdn.bokeh.org/bokeh/release/bokeh-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-gl-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-widgets-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-tables-3.1.1.min.js\", \"https://cdn.holoviz.org/panel/1.2.3/dist/panel.min.js\"];\n",
-       "  var js_modules = [];\n",
-       "  var js_exports = {};\n",
-       "  var css_urls = [];\n",
-       "  var inline_js = [    function(Bokeh) {\n",
-       "      Bokeh.set_log_level(\"info\");\n",
-       "    },\n",
-       "function(Bokeh) {} // ensure no trailing comma for IE\n",
-       "  ];\n",
-       "\n",
-       "  function run_inline_js() {\n",
-       "    if ((root.Bokeh !== undefined) || (force === true)) {\n",
-       "      for (var i = 0; i < inline_js.length; i++) {\n",
-       "        inline_js[i].call(root, root.Bokeh);\n",
-       "      }\n",
-       "      // Cache old bokeh versions\n",
-       "      if (Bokeh != undefined && !reloading) {\n",
-       "\tvar NewBokeh = root.Bokeh;\n",
-       "\tif (Bokeh.versions === undefined) {\n",
-       "\t  Bokeh.versions = new Map();\n",
-       "\t}\n",
-       "\tif (NewBokeh.version !== Bokeh.version) {\n",
-       "\t  Bokeh.versions.set(NewBokeh.version, NewBokeh)\n",
-       "\t}\n",
-       "\troot.Bokeh = Bokeh;\n",
-       "      }} else if (Date.now() < root._bokeh_timeout) {\n",
-       "      setTimeout(run_inline_js, 100);\n",
-       "    } else if (!root._bokeh_failed_load) {\n",
-       "      console.log(\"Bokeh: BokehJS failed to load within specified timeout.\");\n",
-       "      root._bokeh_failed_load = true;\n",
-       "    }\n",
-       "    root._bokeh_is_initializing = false\n",
-       "  }\n",
-       "\n",
-       "  function load_or_wait() {\n",
-       "    // Implement a backoff loop that tries to ensure we do not load multiple\n",
-       "    // versions of Bokeh and its dependencies at the same time.\n",
-       "    // In recent versions we use the root._bokeh_is_initializing flag\n",
-       "    // to determine whether there is an ongoing attempt to initialize\n",
-       "    // bokeh, however for backward compatibility we also try to ensure\n",
-       "    // that we do not start loading a newer (Panel>=1.0 and Bokeh>3) version\n",
-       "    // before older versions are fully initialized.\n",
-       "    if (root._bokeh_is_initializing && Date.now() > root._bokeh_timeout) {\n",
-       "      root._bokeh_is_initializing = false;\n",
-       "      root._bokeh_onload_callbacks = undefined;\n",
-       "      console.log(\"Bokeh: BokehJS was loaded multiple times but one version failed to initialize.\");\n",
-       "      load_or_wait();\n",
-       "    } else if (root._bokeh_is_initializing || (typeof root._bokeh_is_initializing === \"undefined\" && root._bokeh_onload_callbacks !== undefined)) {\n",
-       "      setTimeout(load_or_wait, 100);\n",
-       "    } else {\n",
-       "      Bokeh = root.Bokeh;\n",
-       "      bokeh_loaded = Bokeh != null && (Bokeh.version === py_version || (Bokeh.versions !== undefined && Bokeh.versions.has(py_version)));\n",
-       "      root._bokeh_is_initializing = true\n",
-       "      root._bokeh_onload_callbacks = []\n",
-       "      if (!reloading && (!bokeh_loaded || is_dev)) {\n",
-       "\troot.Bokeh = undefined;\n",
-       "      }\n",
-       "      load_libs(css_urls, js_urls, js_modules, js_exports, function() {\n",
-       "\tconsole.debug(\"Bokeh: BokehJS plotting callback run at\", now());\n",
-       "\trun_inline_js();\n",
-       "      });\n",
-       "    }\n",
-       "  }\n",
-       "  // Give older versions of the autoload script a head-start to ensure\n",
-       "  // they initialize before we start loading newer version.\n",
-       "  setTimeout(load_or_wait, 100)\n",
-       "}(window));"
-      ],
-      "application/vnd.holoviews_load.v0+json": "(function(root) {\n  function now() {\n    return new Date();\n  }\n\n  var force = true;\n  var py_version = '3.1.1'.replace('rc', '-rc.').replace('.dev', '-dev.');\n  var is_dev = py_version.indexOf(\"+\") !== -1 || py_version.indexOf(\"-\") !== -1;\n  var reloading = false;\n  var Bokeh = root.Bokeh;\n  var bokeh_loaded = Bokeh != null && (Bokeh.version === py_version || (Bokeh.versions !== undefined && Bokeh.versions.has(py_version)));\n\n  if (typeof (root._bokeh_timeout) === \"undefined\" || force) {\n    root._bokeh_timeout = Date.now() + 5000;\n    root._bokeh_failed_load = false;\n  }\n\n  function run_callbacks() {\n    try {\n      root._bokeh_onload_callbacks.forEach(function(callback) {\n        if (callback != null)\n          callback();\n      });\n    } finally {\n      delete root._bokeh_onload_callbacks;\n    }\n    console.debug(\"Bokeh: all callbacks have finished\");\n  }\n\n  function load_libs(css_urls, js_urls, js_modules, js_exports, callback) {\n    if (css_urls == null) css_urls = [];\n    if (js_urls == null) js_urls = [];\n    if (js_modules == null) js_modules = [];\n    if (js_exports == null) js_exports = {};\n\n    root._bokeh_onload_callbacks.push(callback);\n\n    if (root._bokeh_is_loading > 0) {\n      console.debug(\"Bokeh: BokehJS is being loaded, scheduling callback at\", now());\n      return null;\n    }\n    if (js_urls.length === 0 && js_modules.length === 0 && Object.keys(js_exports).length === 0) {\n      run_callbacks();\n      return null;\n    }\n    if (!reloading) {\n      console.debug(\"Bokeh: BokehJS not loaded, scheduling load and callback at\", now());\n    }\n\n    function on_load() {\n      root._bokeh_is_loading--;\n      if (root._bokeh_is_loading === 0) {\n        console.debug(\"Bokeh: all BokehJS libraries/stylesheets loaded\");\n        run_callbacks()\n      }\n    }\n    window._bokeh_on_load = on_load\n\n    function on_error() {\n      console.error(\"failed to load \" + url);\n    }\n\n    var skip = [];\n    if (window.requirejs) {\n      window.requirejs.config({'packages': {}, 'paths': {'jspanel': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel', 'jspanel-modal': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/modal/jspanel.modal', 'jspanel-tooltip': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/tooltip/jspanel.tooltip', 'jspanel-hint': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/hint/jspanel.hint', 'jspanel-layout': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/layout/jspanel.layout', 'jspanel-contextmenu': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/contextmenu/jspanel.contextmenu', 'jspanel-dock': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/dock/jspanel.dock', 'gridstack': 'https://cdn.jsdelivr.net/npm/gridstack@7.2.3/dist/gridstack-all', 'notyf': 'https://cdn.jsdelivr.net/npm/notyf@3/notyf.min'}, 'shim': {'jspanel': {'exports': 'jsPanel'}, 'gridstack': {'exports': 'GridStack'}}});\n      require([\"jspanel\"], function(jsPanel) {\n\twindow.jsPanel = jsPanel\n\ton_load()\n      })\n      require([\"jspanel-modal\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-tooltip\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-hint\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-layout\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-contextmenu\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-dock\"], function() {\n\ton_load()\n      })\n      require([\"gridstack\"], function(GridStack) {\n\twindow.GridStack = GridStack\n\ton_load()\n      })\n      require([\"notyf\"], function() {\n\ton_load()\n      })\n      root._bokeh_is_loading = css_urls.length + 9;\n    } else {\n      root._bokeh_is_loading = css_urls.length + js_urls.length + js_modules.length + Object.keys(js_exports).length;\n    }\n\n    var existing_stylesheets = []\n    var links = document.getElementsByTagName('link')\n    for (var i = 0; i < links.length; i++) {\n      var link = links[i]\n      if (link.href != null) {\n\texisting_stylesheets.push(link.href)\n      }\n    }\n    for (var i = 0; i < css_urls.length; i++) {\n      var url = css_urls[i];\n      if (existing_stylesheets.indexOf(url) !== -1) {\n\ton_load()\n\tcontinue;\n      }\n      const element = document.createElement(\"link\");\n      element.onload = on_load;\n      element.onerror = on_error;\n      element.rel = \"stylesheet\";\n      element.type = \"text/css\";\n      element.href = url;\n      console.debug(\"Bokeh: injecting link tag for BokehJS stylesheet: \", url);\n      document.body.appendChild(element);\n    }    if (((window['jsPanel'] !== undefined) && (!(window['jsPanel'] instanceof HTMLElement))) || window.requirejs) {\n      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/jspanel.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/modal/jspanel.modal.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/tooltip/jspanel.tooltip.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/hint/jspanel.hint.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/layout/jspanel.layout.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/contextmenu/jspanel.contextmenu.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/dock/jspanel.dock.js'];\n      for (var i = 0; i < urls.length; i++) {\n        skip.push(urls[i])\n      }\n    }    if (((window['GridStack'] !== undefined) && (!(window['GridStack'] instanceof HTMLElement))) || window.requirejs) {\n      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/gridstack/gridstack@7.2.3/dist/gridstack-all.js'];\n      for (var i = 0; i < urls.length; i++) {\n        skip.push(urls[i])\n      }\n    }    if (((window['Notyf'] !== undefined) && (!(window['Notyf'] instanceof HTMLElement))) || window.requirejs) {\n      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/notificationarea/notyf@3/notyf.min.js'];\n      for (var i = 0; i < urls.length; i++) {\n        skip.push(urls[i])\n      }\n    }    var existing_scripts = []\n    var scripts = document.getElementsByTagName('script')\n    for (var i = 0; i < scripts.length; i++) {\n      var script = scripts[i]\n      if (script.src != null) {\n\texisting_scripts.push(script.src)\n      }\n    }\n    for (var i = 0; i < js_urls.length; i++) {\n      var url = js_urls[i];\n      if (skip.indexOf(url) !== -1 || existing_scripts.indexOf(url) !== -1) {\n\tif (!window.requirejs) {\n\t  on_load();\n\t}\n\tcontinue;\n      }\n      var element = document.createElement('script');\n      element.onload = on_load;\n      element.onerror = on_error;\n      element.async = false;\n      element.src = url;\n      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n      document.head.appendChild(element);\n    }\n    for (var i = 0; i < js_modules.length; i++) {\n      var url = js_modules[i];\n      if (skip.indexOf(url) !== -1 || existing_scripts.indexOf(url) !== -1) {\n\tif (!window.requirejs) {\n\t  on_load();\n\t}\n\tcontinue;\n      }\n      var element = document.createElement('script');\n      element.onload = on_load;\n      element.onerror = on_error;\n      element.async = false;\n      element.src = url;\n      element.type = \"module\";\n      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n      document.head.appendChild(element);\n    }\n    for (const name in js_exports) {\n      var url = js_exports[name];\n      if (skip.indexOf(url) >= 0 || root[name] != null) {\n\tif (!window.requirejs) {\n\t  on_load();\n\t}\n\tcontinue;\n      }\n      var element = document.createElement('script');\n      element.onerror = on_error;\n      element.async = false;\n      element.type = \"module\";\n      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n      element.textContent = `\n      import ${name} from \"${url}\"\n      window.${name} = ${name}\n      window._bokeh_on_load()\n      `\n      document.head.appendChild(element);\n    }\n    if (!js_urls.length && !js_modules.length) {\n      on_load()\n    }\n  };\n\n  function inject_raw_css(css) {\n    const element = document.createElement(\"style\");\n    element.appendChild(document.createTextNode(css));\n    document.body.appendChild(element);\n  }\n\n  var js_urls = [\"https://cdn.bokeh.org/bokeh/release/bokeh-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-gl-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-widgets-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-tables-3.1.1.min.js\", \"https://cdn.holoviz.org/panel/1.2.3/dist/panel.min.js\"];\n  var js_modules = [];\n  var js_exports = {};\n  var css_urls = [];\n  var inline_js = [    function(Bokeh) {\n      Bokeh.set_log_level(\"info\");\n    },\nfunction(Bokeh) {} // ensure no trailing comma for IE\n  ];\n\n  function run_inline_js() {\n    if ((root.Bokeh !== undefined) || (force === true)) {\n      for (var i = 0; i < inline_js.length; i++) {\n        inline_js[i].call(root, root.Bokeh);\n      }\n      // Cache old bokeh versions\n      if (Bokeh != undefined && !reloading) {\n\tvar NewBokeh = root.Bokeh;\n\tif (Bokeh.versions === undefined) {\n\t  Bokeh.versions = new Map();\n\t}\n\tif (NewBokeh.version !== Bokeh.version) {\n\t  Bokeh.versions.set(NewBokeh.version, NewBokeh)\n\t}\n\troot.Bokeh = Bokeh;\n      }} else if (Date.now() < root._bokeh_timeout) {\n      setTimeout(run_inline_js, 100);\n    } else if (!root._bokeh_failed_load) {\n      console.log(\"Bokeh: BokehJS failed to load within specified timeout.\");\n      root._bokeh_failed_load = true;\n    }\n    root._bokeh_is_initializing = false\n  }\n\n  function load_or_wait() {\n    // Implement a backoff loop that tries to ensure we do not load multiple\n    // versions of Bokeh and its dependencies at the same time.\n    // In recent versions we use the root._bokeh_is_initializing flag\n    // to determine whether there is an ongoing attempt to initialize\n    // bokeh, however for backward compatibility we also try to ensure\n    // that we do not start loading a newer (Panel>=1.0 and Bokeh>3) version\n    // before older versions are fully initialized.\n    if (root._bokeh_is_initializing && Date.now() > root._bokeh_timeout) {\n      root._bokeh_is_initializing = false;\n      root._bokeh_onload_callbacks = undefined;\n      console.log(\"Bokeh: BokehJS was loaded multiple times but one version failed to initialize.\");\n      load_or_wait();\n    } else if (root._bokeh_is_initializing || (typeof root._bokeh_is_initializing === \"undefined\" && root._bokeh_onload_callbacks !== undefined)) {\n      setTimeout(load_or_wait, 100);\n    } else {\n      Bokeh = root.Bokeh;\n      bokeh_loaded = Bokeh != null && (Bokeh.version === py_version || (Bokeh.versions !== undefined && Bokeh.versions.has(py_version)));\n      root._bokeh_is_initializing = true\n      root._bokeh_onload_callbacks = []\n      if (!reloading && (!bokeh_loaded || is_dev)) {\n\troot.Bokeh = undefined;\n      }\n      load_libs(css_urls, js_urls, js_modules, js_exports, function() {\n\tconsole.debug(\"Bokeh: BokehJS plotting callback run at\", now());\n\trun_inline_js();\n      });\n    }\n  }\n  // Give older versions of the autoload script a head-start to ensure\n  // they initialize before we start loading newer version.\n  setTimeout(load_or_wait, 100)\n}(window));"
+      "application/javascript": "(function(root) {\n  function now() {\n    return new Date();\n  }\n\n  var force = true;\n  var py_version = '3.1.1'.replace('rc', '-rc.').replace('.dev', '-dev.');\n  var is_dev = py_version.indexOf(\"+\") !== -1 || py_version.indexOf(\"-\") !== -1;\n  var reloading = false;\n  var Bokeh = root.Bokeh;\n  var bokeh_loaded = Bokeh != null && (Bokeh.version === py_version || (Bokeh.versions !== undefined && Bokeh.versions.has(py_version)));\n\n  if (typeof (root._bokeh_timeout) === \"undefined\" || force) {\n    root._bokeh_timeout = Date.now() + 5000;\n    root._bokeh_failed_load = false;\n  }\n\n  function run_callbacks() {\n    try {\n      root._bokeh_onload_callbacks.forEach(function(callback) {\n        if (callback != null)\n          callback();\n      });\n    } finally {\n      delete root._bokeh_onload_callbacks;\n    }\n    console.debug(\"Bokeh: all callbacks have finished\");\n  }\n\n  function load_libs(css_urls, js_urls, js_modules, js_exports, callback) {\n    if (css_urls == null) css_urls = [];\n    if (js_urls == null) js_urls = [];\n    if (js_modules == null) js_modules = [];\n    if (js_exports == null) js_exports = {};\n\n    root._bokeh_onload_callbacks.push(callback);\n\n    if (root._bokeh_is_loading > 0) {\n      console.debug(\"Bokeh: BokehJS is being loaded, scheduling callback at\", now());\n      return null;\n    }\n    if (js_urls.length === 0 && js_modules.length === 0 && Object.keys(js_exports).length === 0) {\n      run_callbacks();\n      return null;\n    }\n    if (!reloading) {\n      console.debug(\"Bokeh: BokehJS not loaded, scheduling load and callback at\", now());\n    }\n\n    function on_load() {\n      root._bokeh_is_loading--;\n      if (root._bokeh_is_loading === 0) {\n        console.debug(\"Bokeh: all BokehJS libraries/stylesheets loaded\");\n        run_callbacks()\n      }\n    }\n    window._bokeh_on_load = on_load\n\n    function on_error() {\n      console.error(\"failed to load \" + url);\n    }\n\n    var skip = [];\n    if (window.requirejs) {\n      window.requirejs.config({'packages': {}, 'paths': {'jspanel': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/jspanel', 'jspanel-modal': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/modal/jspanel.modal', 'jspanel-tooltip': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/tooltip/jspanel.tooltip', 'jspanel-hint': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/hint/jspanel.hint', 'jspanel-layout': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/layout/jspanel.layout', 'jspanel-contextmenu': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/contextmenu/jspanel.contextmenu', 'jspanel-dock': 'https://cdn.jsdelivr.net/npm/jspanel4@4.12.0/dist/extensions/dock/jspanel.dock', 'gridstack': 'https://cdn.jsdelivr.net/npm/gridstack@7.2.3/dist/gridstack-all', 'notyf': 'https://cdn.jsdelivr.net/npm/notyf@3/notyf.min'}, 'shim': {'jspanel': {'exports': 'jsPanel'}, 'gridstack': {'exports': 'GridStack'}}});\n      require([\"jspanel\"], function(jsPanel) {\n\twindow.jsPanel = jsPanel\n\ton_load()\n      })\n      require([\"jspanel-modal\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-tooltip\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-hint\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-layout\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-contextmenu\"], function() {\n\ton_load()\n      })\n      require([\"jspanel-dock\"], function() {\n\ton_load()\n      })\n      require([\"gridstack\"], function(GridStack) {\n\twindow.GridStack = GridStack\n\ton_load()\n      })\n      require([\"notyf\"], function() {\n\ton_load()\n      })\n      root._bokeh_is_loading = css_urls.length + 9;\n    } else {\n      root._bokeh_is_loading = css_urls.length + js_urls.length + js_modules.length + Object.keys(js_exports).length;\n    }\n\n    var existing_stylesheets = []\n    var links = document.getElementsByTagName('link')\n    for (var i = 0; i < links.length; i++) {\n      var link = links[i]\n      if (link.href != null) {\n\texisting_stylesheets.push(link.href)\n      }\n    }\n    for (var i = 0; i < css_urls.length; i++) {\n      var url = css_urls[i];\n      if (existing_stylesheets.indexOf(url) !== -1) {\n\ton_load()\n\tcontinue;\n      }\n      const element = document.createElement(\"link\");\n      element.onload = on_load;\n      element.onerror = on_error;\n      element.rel = \"stylesheet\";\n      element.type = \"text/css\";\n      element.href = url;\n      console.debug(\"Bokeh: injecting link tag for BokehJS stylesheet: \", url);\n      document.body.appendChild(element);\n    }    if (((window['jsPanel'] !== undefined) && (!(window['jsPanel'] instanceof HTMLElement))) || window.requirejs) {\n      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/jspanel.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/modal/jspanel.modal.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/tooltip/jspanel.tooltip.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/hint/jspanel.hint.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/layout/jspanel.layout.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/contextmenu/jspanel.contextmenu.js', 'https://cdn.holoviz.org/panel/1.2.3/dist/bundled/floatpanel/jspanel4@4.12.0/dist/extensions/dock/jspanel.dock.js'];\n      for (var i = 0; i < urls.length; i++) {\n        skip.push(urls[i])\n      }\n    }    if (((window['GridStack'] !== undefined) && (!(window['GridStack'] instanceof HTMLElement))) || window.requirejs) {\n      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/gridstack/gridstack@7.2.3/dist/gridstack-all.js'];\n      for (var i = 0; i < urls.length; i++) {\n        skip.push(urls[i])\n      }\n    }    if (((window['Notyf'] !== undefined) && (!(window['Notyf'] instanceof HTMLElement))) || window.requirejs) {\n      var urls = ['https://cdn.holoviz.org/panel/1.2.3/dist/bundled/notificationarea/notyf@3/notyf.min.js'];\n      for (var i = 0; i < urls.length; i++) {\n        skip.push(urls[i])\n      }\n    }    var existing_scripts = []\n    var scripts = document.getElementsByTagName('script')\n    for (var i = 0; i < scripts.length; i++) {\n      var script = scripts[i]\n      if (script.src != null) {\n\texisting_scripts.push(script.src)\n      }\n    }\n    for (var i = 0; i < js_urls.length; i++) {\n      var url = js_urls[i];\n      if (skip.indexOf(url) !== -1 || existing_scripts.indexOf(url) !== -1) {\n\tif (!window.requirejs) {\n\t  on_load();\n\t}\n\tcontinue;\n      }\n      var element = document.createElement('script');\n      element.onload = on_load;\n      element.onerror = on_error;\n      element.async = false;\n      element.src = url;\n      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n      document.head.appendChild(element);\n    }\n    for (var i = 0; i < js_modules.length; i++) {\n      var url = js_modules[i];\n      if (skip.indexOf(url) !== -1 || existing_scripts.indexOf(url) !== -1) {\n\tif (!window.requirejs) {\n\t  on_load();\n\t}\n\tcontinue;\n      }\n      var element = document.createElement('script');\n      element.onload = on_load;\n      element.onerror = on_error;\n      element.async = false;\n      element.src = url;\n      element.type = \"module\";\n      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n      document.head.appendChild(element);\n    }\n    for (const name in js_exports) {\n      var url = js_exports[name];\n      if (skip.indexOf(url) >= 0 || root[name] != null) {\n\tif (!window.requirejs) {\n\t  on_load();\n\t}\n\tcontinue;\n      }\n      var element = document.createElement('script');\n      element.onerror = on_error;\n      element.async = false;\n      element.type = \"module\";\n      console.debug(\"Bokeh: injecting script tag for BokehJS library: \", url);\n      element.textContent = `\n      import ${name} from \"${url}\"\n      window.${name} = ${name}\n      window._bokeh_on_load()\n      `\n      document.head.appendChild(element);\n    }\n    if (!js_urls.length && !js_modules.length) {\n      on_load()\n    }\n  };\n\n  function inject_raw_css(css) {\n    const element = document.createElement(\"style\");\n    element.appendChild(document.createTextNode(css));\n    document.body.appendChild(element);\n  }\n\n  var js_urls = [\"https://cdn.bokeh.org/bokeh/release/bokeh-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-gl-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-widgets-3.1.1.min.js\", \"https://cdn.bokeh.org/bokeh/release/bokeh-tables-3.1.1.min.js\", \"https://cdn.holoviz.org/panel/1.2.3/dist/panel.min.js\"];\n  var js_modules = [];\n  var js_exports = {};\n  var css_urls = [];\n  var inline_js = [    function(Bokeh) {\n      Bokeh.set_log_level(\"info\");\n    },\nfunction(Bokeh) {} // ensure no trailing comma for IE\n  ];\n\n  function run_inline_js() {\n    if ((root.Bokeh !== undefined) || (force === true)) {\n      for (var i = 0; i < inline_js.length; i++) {\n        inline_js[i].call(root, root.Bokeh);\n      }\n      // Cache old bokeh versions\n      if (Bokeh != undefined && !reloading) {\n\tvar NewBokeh = root.Bokeh;\n\tif (Bokeh.versions === undefined) {\n\t  Bokeh.versions = new Map();\n\t}\n\tif (NewBokeh.version !== Bokeh.version) {\n\t  Bokeh.versions.set(NewBokeh.version, NewBokeh)\n\t}\n\troot.Bokeh = Bokeh;\n      }} else if (Date.now() < root._bokeh_timeout) {\n      setTimeout(run_inline_js, 100);\n    } else if (!root._bokeh_failed_load) {\n      console.log(\"Bokeh: BokehJS failed to load within specified timeout.\");\n      root._bokeh_failed_load = true;\n    }\n    root._bokeh_is_initializing = false\n  }\n\n  function load_or_wait() {\n    // Implement a backoff loop that tries to ensure we do not load multiple\n    // versions of Bokeh and its dependencies at the same time.\n    // In recent versions we use the root._bokeh_is_initializing flag\n    // to determine whether there is an ongoing attempt to initialize\n    // bokeh, however for backward compatibility we also try to ensure\n    // that we do not start loading a newer (Panel>=1.0 and Bokeh>3) version\n    // before older versions are fully initialized.\n    if (root._bokeh_is_initializing && Date.now() > root._bokeh_timeout) {\n      root._bokeh_is_initializing = false;\n      root._bokeh_onload_callbacks = undefined;\n      console.log(\"Bokeh: BokehJS was loaded multiple times but one version failed to initialize.\");\n      load_or_wait();\n    } else if (root._bokeh_is_initializing || (typeof root._bokeh_is_initializing === \"undefined\" && root._bokeh_onload_callbacks !== undefined)) {\n      setTimeout(load_or_wait, 100);\n    } else {\n      Bokeh = root.Bokeh;\n      bokeh_loaded = Bokeh != null && (Bokeh.version === py_version || (Bokeh.versions !== undefined && Bokeh.versions.has(py_version)));\n      root._bokeh_is_initializing = true\n      root._bokeh_onload_callbacks = []\n      if (!reloading && (!bokeh_loaded || is_dev)) {\n\troot.Bokeh = undefined;\n      }\n      load_libs(css_urls, js_urls, js_modules, js_exports, function() {\n\tconsole.debug(\"Bokeh: BokehJS plotting callback run at\", now());\n\trun_inline_js();\n      });\n    }\n  }\n  // Give older versions of the autoload script a head-start to ensure\n  // they initialize before we start loading newer version.\n  setTimeout(load_or_wait, 100)\n}(window));",
+      "application/vnd.holoviews_load.v0+json": ""
      },
      "metadata": {},
      "output_type": "display_data"
     },
     {
      "data": {
-      "application/javascript": [
-       "\n",
-       "if ((window.PyViz === undefined) || (window.PyViz instanceof HTMLElement)) {\n",
-       "  window.PyViz = {comms: {}, comm_status:{}, kernels:{}, receivers: {}, plot_index: []}\n",
-       "}\n",
-       "\n",
-       "\n",
-       "    function JupyterCommManager() {\n",
-       "    }\n",
-       "\n",
-       "    JupyterCommManager.prototype.register_target = function(plot_id, comm_id, msg_handler) {\n",
-       "      if (window.comm_manager || ((window.Jupyter !== undefined) && (Jupyter.notebook.kernel != null))) {\n",
-       "        var comm_manager = window.comm_manager || Jupyter.notebook.kernel.comm_manager;\n",
-       "        comm_manager.register_target(comm_id, function(comm) {\n",
-       "          comm.on_msg(msg_handler);\n",
-       "        });\n",
-       "      } else if ((plot_id in window.PyViz.kernels) && (window.PyViz.kernels[plot_id])) {\n",
-       "        window.PyViz.kernels[plot_id].registerCommTarget(comm_id, function(comm) {\n",
-       "          comm.onMsg = msg_handler;\n",
-       "        });\n",
-       "      } else if (typeof google != 'undefined' && google.colab.kernel != null) {\n",
-       "        google.colab.kernel.comms.registerTarget(comm_id, (comm) => {\n",
-       "          var messages = comm.messages[Symbol.asyncIterator]();\n",
-       "          function processIteratorResult(result) {\n",
-       "            var message = result.value;\n",
-       "            console.log(message)\n",
-       "            var content = {data: message.data, comm_id};\n",
-       "            var buffers = []\n",
-       "            for (var buffer of message.buffers || []) {\n",
-       "              buffers.push(new DataView(buffer))\n",
-       "            }\n",
-       "            var metadata = message.metadata || {};\n",
-       "            var msg = {content, buffers, metadata}\n",
-       "            msg_handler(msg);\n",
-       "            return messages.next().then(processIteratorResult);\n",
-       "          }\n",
-       "          return messages.next().then(processIteratorResult);\n",
-       "        })\n",
-       "      }\n",
-       "    }\n",
-       "\n",
-       "    JupyterCommManager.prototype.get_client_comm = function(plot_id, comm_id, msg_handler) {\n",
-       "      if (comm_id in window.PyViz.comms) {\n",
-       "        return window.PyViz.comms[comm_id];\n",
-       "      } else if (window.comm_manager || ((window.Jupyter !== undefined) && (Jupyter.notebook.kernel != null))) {\n",
-       "        var comm_manager = window.comm_manager || Jupyter.notebook.kernel.comm_manager;\n",
-       "        var comm = comm_manager.new_comm(comm_id, {}, {}, {}, comm_id);\n",
-       "        if (msg_handler) {\n",
-       "          comm.on_msg(msg_handler);\n",
-       "        }\n",
-       "      } else if ((plot_id in window.PyViz.kernels) && (window.PyViz.kernels[plot_id])) {\n",
-       "        var comm = window.PyViz.kernels[plot_id].connectToComm(comm_id);\n",
-       "        comm.open();\n",
-       "        if (msg_handler) {\n",
-       "          comm.onMsg = msg_handler;\n",
-       "        }\n",
-       "      } else if (typeof google != 'undefined' && google.colab.kernel != null) {\n",
-       "        var comm_promise = google.colab.kernel.comms.open(comm_id)\n",
-       "        comm_promise.then((comm) => {\n",
-       "          window.PyViz.comms[comm_id] = comm;\n",
-       "          if (msg_handler) {\n",
-       "            var messages = comm.messages[Symbol.asyncIterator]();\n",
-       "            function processIteratorResult(result) {\n",
-       "              var message = result.value;\n",
-       "              var content = {data: message.data};\n",
-       "              var metadata = message.metadata || {comm_id};\n",
-       "              var msg = {content, metadata}\n",
-       "              msg_handler(msg);\n",
-       "              return messages.next().then(processIteratorResult);\n",
-       "            }\n",
-       "            return messages.next().then(processIteratorResult);\n",
-       "          }\n",
-       "        }) \n",
-       "        var sendClosure = (data, metadata, buffers, disposeOnDone) => {\n",
-       "          return comm_promise.then((comm) => {\n",
-       "            comm.send(data, metadata, buffers, disposeOnDone);\n",
-       "          });\n",
-       "        };\n",
-       "        var comm = {\n",
-       "          send: sendClosure\n",
-       "        };\n",
-       "      }\n",
-       "      window.PyViz.comms[comm_id] = comm;\n",
-       "      return comm;\n",
-       "    }\n",
-       "    window.PyViz.comm_manager = new JupyterCommManager();\n",
-       "    \n",
-       "\n",
-       "\n",
-       "var JS_MIME_TYPE = 'application/javascript';\n",
-       "var HTML_MIME_TYPE = 'text/html';\n",
-       "var EXEC_MIME_TYPE = 'application/vnd.holoviews_exec.v0+json';\n",
-       "var CLASS_NAME = 'output';\n",
-       "\n",
-       "/**\n",
-       " * Render data to the DOM node\n",
-       " */\n",
-       "function render(props, node) {\n",
-       "  var div = document.createElement(\"div\");\n",
-       "  var script = document.createElement(\"script\");\n",
-       "  node.appendChild(div);\n",
-       "  node.appendChild(script);\n",
-       "}\n",
-       "\n",
-       "/**\n",
-       " * Handle when a new output is added\n",
-       " */\n",
-       "function handle_add_output(event, handle) {\n",
-       "  var output_area = handle.output_area;\n",
-       "  var output = handle.output;\n",
-       "  if ((output.data == undefined) || (!output.data.hasOwnProperty(EXEC_MIME_TYPE))) {\n",
-       "    return\n",
-       "  }\n",
-       "  var id = output.metadata[EXEC_MIME_TYPE][\"id\"];\n",
-       "  var toinsert = output_area.element.find(\".\" + CLASS_NAME.split(' ')[0]);\n",
-       "  if (id !== undefined) {\n",
-       "    var nchildren = toinsert.length;\n",
-       "    var html_node = toinsert[nchildren-1].children[0];\n",
-       "    html_node.innerHTML = output.data[HTML_MIME_TYPE];\n",
-       "    var scripts = [];\n",
-       "    var nodelist = html_node.querySelectorAll(\"script\");\n",
-       "    for (var i in nodelist) {\n",
-       "      if (nodelist.hasOwnProperty(i)) {\n",
-       "        scripts.push(nodelist[i])\n",
-       "      }\n",
-       "    }\n",
-       "\n",
-       "    scripts.forEach( function (oldScript) {\n",
-       "      var newScript = document.createElement(\"script\");\n",
-       "      var attrs = [];\n",
-       "      var nodemap = oldScript.attributes;\n",
-       "      for (var j in nodemap) {\n",
-       "        if (nodemap.hasOwnProperty(j)) {\n",
-       "          attrs.push(nodemap[j])\n",
-       "        }\n",
-       "      }\n",
-       "      attrs.forEach(function(attr) { newScript.setAttribute(attr.name, attr.value) });\n",
-       "      newScript.appendChild(document.createTextNode(oldScript.innerHTML));\n",
-       "      oldScript.parentNode.replaceChild(newScript, oldScript);\n",
-       "    });\n",
-       "    if (JS_MIME_TYPE in output.data) {\n",
-       "      toinsert[nchildren-1].children[1].textContent = output.data[JS_MIME_TYPE];\n",
-       "    }\n",
-       "    output_area._hv_plot_id = id;\n",
-       "    if ((window.Bokeh !== undefined) && (id in Bokeh.index)) {\n",
-       "      window.PyViz.plot_index[id] = Bokeh.index[id];\n",
-       "    } else {\n",
-       "      window.PyViz.plot_index[id] = null;\n",
-       "    }\n",
-       "  } else if (output.metadata[EXEC_MIME_TYPE][\"server_id\"] !== undefined) {\n",
-       "    var bk_div = document.createElement(\"div\");\n",
-       "    bk_div.innerHTML = output.data[HTML_MIME_TYPE];\n",
-       "    var script_attrs = bk_div.children[0].attributes;\n",
-       "    for (var i = 0; i < script_attrs.length; i++) {\n",
-       "      toinsert[toinsert.length - 1].childNodes[1].setAttribute(script_attrs[i].name, script_attrs[i].value);\n",
-       "    }\n",
-       "    // store reference to server id on output_area\n",
-       "    output_area._bokeh_server_id = output.metadata[EXEC_MIME_TYPE][\"server_id\"];\n",
-       "  }\n",
-       "}\n",
-       "\n",
-       "/**\n",
-       " * Handle when an output is cleared or removed\n",
-       " */\n",
-       "function handle_clear_output(event, handle) {\n",
-       "  var id = handle.cell.output_area._hv_plot_id;\n",
-       "  var server_id = handle.cell.output_area._bokeh_server_id;\n",
-       "  if (((id === undefined) || !(id in PyViz.plot_index)) && (server_id !== undefined)) { return; }\n",
-       "  var comm = window.PyViz.comm_manager.get_client_comm(\"hv-extension-comm\", \"hv-extension-comm\", function () {});\n",
-       "  if (server_id !== null) {\n",
-       "    comm.send({event_type: 'server_delete', 'id': server_id});\n",
-       "    return;\n",
-       "  } else if (comm !== null) {\n",
-       "    comm.send({event_type: 'delete', 'id': id});\n",
-       "  }\n",
-       "  delete PyViz.plot_index[id];\n",
-       "  if ((window.Bokeh !== undefined) & (id in window.Bokeh.index)) {\n",
-       "    var doc = window.Bokeh.index[id].model.document\n",
-       "    doc.clear();\n",
-       "    const i = window.Bokeh.documents.indexOf(doc);\n",
-       "    if (i > -1) {\n",
-       "      window.Bokeh.documents.splice(i, 1);\n",
-       "    }\n",
-       "  }\n",
-       "}\n",
-       "\n",
-       "/**\n",
-       " * Handle kernel restart event\n",
-       " */\n",
-       "function handle_kernel_cleanup(event, handle) {\n",
-       "  delete PyViz.comms[\"hv-extension-comm\"];\n",
-       "  window.PyViz.plot_index = {}\n",
-       "}\n",
-       "\n",
-       "/**\n",
-       " * Handle update_display_data messages\n",
-       " */\n",
-       "function handle_update_output(event, handle) {\n",
-       "  handle_clear_output(event, {cell: {output_area: handle.output_area}})\n",
-       "  handle_add_output(event, handle)\n",
-       "}\n",
-       "\n",
-       "function register_renderer(events, OutputArea) {\n",
-       "  function append_mime(data, metadata, element) {\n",
-       "    // create a DOM node to render to\n",
-       "    var toinsert = this.create_output_subarea(\n",
-       "    metadata,\n",
-       "    CLASS_NAME,\n",
-       "    EXEC_MIME_TYPE\n",
-       "    );\n",
-       "    this.keyboard_manager.register_events(toinsert);\n",
-       "    // Render to node\n",
-       "    var props = {data: data, metadata: metadata[EXEC_MIME_TYPE]};\n",
-       "    render(props, toinsert[0]);\n",
-       "    element.append(toinsert);\n",
-       "    return toinsert\n",
-       "  }\n",
-       "\n",
-       "  events.on('output_added.OutputArea', handle_add_output);\n",
-       "  events.on('output_updated.OutputArea', handle_update_output);\n",
-       "  events.on('clear_output.CodeCell', handle_clear_output);\n",
-       "  events.on('delete.Cell', handle_clear_output);\n",
-       "  events.on('kernel_ready.Kernel', handle_kernel_cleanup);\n",
-       "\n",
-       "  OutputArea.prototype.register_mime_type(EXEC_MIME_TYPE, append_mime, {\n",
-       "    safe: true,\n",
-       "    index: 0\n",
-       "  });\n",
-       "}\n",
-       "\n",
-       "if (window.Jupyter !== undefined) {\n",
-       "  try {\n",
-       "    var events = require('base/js/events');\n",
-       "    var OutputArea = require('notebook/js/outputarea').OutputArea;\n",
-       "    if (OutputArea.prototype.mime_types().indexOf(EXEC_MIME_TYPE) == -1) {\n",
-       "      register_renderer(events, OutputArea);\n",
-       "    }\n",
-       "  } catch(err) {\n",
-       "  }\n",
-       "}\n"
-      ],
-      "application/vnd.holoviews_load.v0+json": "\nif ((window.PyViz === undefined) || (window.PyViz instanceof HTMLElement)) {\n  window.PyViz = {comms: {}, comm_status:{}, kernels:{}, receivers: {}, plot_index: []}\n}\n\n\n    function JupyterCommManager() {\n    }\n\n    JupyterCommManager.prototype.register_target = function(plot_id, comm_id, msg_handler) {\n      if (window.comm_manager || ((window.Jupyter !== undefined) && (Jupyter.notebook.kernel != null))) {\n        var comm_manager = window.comm_manager || Jupyter.notebook.kernel.comm_manager;\n        comm_manager.register_target(comm_id, function(comm) {\n          comm.on_msg(msg_handler);\n        });\n      } else if ((plot_id in window.PyViz.kernels) && (window.PyViz.kernels[plot_id])) {\n        window.PyViz.kernels[plot_id].registerCommTarget(comm_id, function(comm) {\n          comm.onMsg = msg_handler;\n        });\n      } else if (typeof google != 'undefined' && google.colab.kernel != null) {\n        google.colab.kernel.comms.registerTarget(comm_id, (comm) => {\n          var messages = comm.messages[Symbol.asyncIterator]();\n          function processIteratorResult(result) {\n            var message = result.value;\n            console.log(message)\n            var content = {data: message.data, comm_id};\n            var buffers = []\n            for (var buffer of message.buffers || []) {\n              buffers.push(new DataView(buffer))\n            }\n            var metadata = message.metadata || {};\n            var msg = {content, buffers, metadata}\n            msg_handler(msg);\n            return messages.next().then(processIteratorResult);\n          }\n          return messages.next().then(processIteratorResult);\n        })\n      }\n    }\n\n    JupyterCommManager.prototype.get_client_comm = function(plot_id, comm_id, msg_handler) {\n      if (comm_id in window.PyViz.comms) {\n        return window.PyViz.comms[comm_id];\n      } else if (window.comm_manager || ((window.Jupyter !== undefined) && (Jupyter.notebook.kernel != null))) {\n        var comm_manager = window.comm_manager || Jupyter.notebook.kernel.comm_manager;\n        var comm = comm_manager.new_comm(comm_id, {}, {}, {}, comm_id);\n        if (msg_handler) {\n          comm.on_msg(msg_handler);\n        }\n      } else if ((plot_id in window.PyViz.kernels) && (window.PyViz.kernels[plot_id])) {\n        var comm = window.PyViz.kernels[plot_id].connectToComm(comm_id);\n        comm.open();\n        if (msg_handler) {\n          comm.onMsg = msg_handler;\n        }\n      } else if (typeof google != 'undefined' && google.colab.kernel != null) {\n        var comm_promise = google.colab.kernel.comms.open(comm_id)\n        comm_promise.then((comm) => {\n          window.PyViz.comms[comm_id] = comm;\n          if (msg_handler) {\n            var messages = comm.messages[Symbol.asyncIterator]();\n            function processIteratorResult(result) {\n              var message = result.value;\n              var content = {data: message.data};\n              var metadata = message.metadata || {comm_id};\n              var msg = {content, metadata}\n              msg_handler(msg);\n              return messages.next().then(processIteratorResult);\n            }\n            return messages.next().then(processIteratorResult);\n          }\n        }) \n        var sendClosure = (data, metadata, buffers, disposeOnDone) => {\n          return comm_promise.then((comm) => {\n            comm.send(data, metadata, buffers, disposeOnDone);\n          });\n        };\n        var comm = {\n          send: sendClosure\n        };\n      }\n      window.PyViz.comms[comm_id] = comm;\n      return comm;\n    }\n    window.PyViz.comm_manager = new JupyterCommManager();\n    \n\n\nvar JS_MIME_TYPE = 'application/javascript';\nvar HTML_MIME_TYPE = 'text/html';\nvar EXEC_MIME_TYPE = 'application/vnd.holoviews_exec.v0+json';\nvar CLASS_NAME = 'output';\n\n/**\n * Render data to the DOM node\n */\nfunction render(props, node) {\n  var div = document.createElement(\"div\");\n  var script = document.createElement(\"script\");\n  node.appendChild(div);\n  node.appendChild(script);\n}\n\n/**\n * Handle when a new output is added\n */\nfunction handle_add_output(event, handle) {\n  var output_area = handle.output_area;\n  var output = handle.output;\n  if ((output.data == undefined) || (!output.data.hasOwnProperty(EXEC_MIME_TYPE))) {\n    return\n  }\n  var id = output.metadata[EXEC_MIME_TYPE][\"id\"];\n  var toinsert = output_area.element.find(\".\" + CLASS_NAME.split(' ')[0]);\n  if (id !== undefined) {\n    var nchildren = toinsert.length;\n    var html_node = toinsert[nchildren-1].children[0];\n    html_node.innerHTML = output.data[HTML_MIME_TYPE];\n    var scripts = [];\n    var nodelist = html_node.querySelectorAll(\"script\");\n    for (var i in nodelist) {\n      if (nodelist.hasOwnProperty(i)) {\n        scripts.push(nodelist[i])\n      }\n    }\n\n    scripts.forEach( function (oldScript) {\n      var newScript = document.createElement(\"script\");\n      var attrs = [];\n      var nodemap = oldScript.attributes;\n      for (var j in nodemap) {\n        if (nodemap.hasOwnProperty(j)) {\n          attrs.push(nodemap[j])\n        }\n      }\n      attrs.forEach(function(attr) { newScript.setAttribute(attr.name, attr.value) });\n      newScript.appendChild(document.createTextNode(oldScript.innerHTML));\n      oldScript.parentNode.replaceChild(newScript, oldScript);\n    });\n    if (JS_MIME_TYPE in output.data) {\n      toinsert[nchildren-1].children[1].textContent = output.data[JS_MIME_TYPE];\n    }\n    output_area._hv_plot_id = id;\n    if ((window.Bokeh !== undefined) && (id in Bokeh.index)) {\n      window.PyViz.plot_index[id] = Bokeh.index[id];\n    } else {\n      window.PyViz.plot_index[id] = null;\n    }\n  } else if (output.metadata[EXEC_MIME_TYPE][\"server_id\"] !== undefined) {\n    var bk_div = document.createElement(\"div\");\n    bk_div.innerHTML = output.data[HTML_MIME_TYPE];\n    var script_attrs = bk_div.children[0].attributes;\n    for (var i = 0; i < script_attrs.length; i++) {\n      toinsert[toinsert.length - 1].childNodes[1].setAttribute(script_attrs[i].name, script_attrs[i].value);\n    }\n    // store reference to server id on output_area\n    output_area._bokeh_server_id = output.metadata[EXEC_MIME_TYPE][\"server_id\"];\n  }\n}\n\n/**\n * Handle when an output is cleared or removed\n */\nfunction handle_clear_output(event, handle) {\n  var id = handle.cell.output_area._hv_plot_id;\n  var server_id = handle.cell.output_area._bokeh_server_id;\n  if (((id === undefined) || !(id in PyViz.plot_index)) && (server_id !== undefined)) { return; }\n  var comm = window.PyViz.comm_manager.get_client_comm(\"hv-extension-comm\", \"hv-extension-comm\", function () {});\n  if (server_id !== null) {\n    comm.send({event_type: 'server_delete', 'id': server_id});\n    return;\n  } else if (comm !== null) {\n    comm.send({event_type: 'delete', 'id': id});\n  }\n  delete PyViz.plot_index[id];\n  if ((window.Bokeh !== undefined) & (id in window.Bokeh.index)) {\n    var doc = window.Bokeh.index[id].model.document\n    doc.clear();\n    const i = window.Bokeh.documents.indexOf(doc);\n    if (i > -1) {\n      window.Bokeh.documents.splice(i, 1);\n    }\n  }\n}\n\n/**\n * Handle kernel restart event\n */\nfunction handle_kernel_cleanup(event, handle) {\n  delete PyViz.comms[\"hv-extension-comm\"];\n  window.PyViz.plot_index = {}\n}\n\n/**\n * Handle update_display_data messages\n */\nfunction handle_update_output(event, handle) {\n  handle_clear_output(event, {cell: {output_area: handle.output_area}})\n  handle_add_output(event, handle)\n}\n\nfunction register_renderer(events, OutputArea) {\n  function append_mime(data, metadata, element) {\n    // create a DOM node to render to\n    var toinsert = this.create_output_subarea(\n    metadata,\n    CLASS_NAME,\n    EXEC_MIME_TYPE\n    );\n    this.keyboard_manager.register_events(toinsert);\n    // Render to node\n    var props = {data: data, metadata: metadata[EXEC_MIME_TYPE]};\n    render(props, toinsert[0]);\n    element.append(toinsert);\n    return toinsert\n  }\n\n  events.on('output_added.OutputArea', handle_add_output);\n  events.on('output_updated.OutputArea', handle_update_output);\n  events.on('clear_output.CodeCell', handle_clear_output);\n  events.on('delete.Cell', handle_clear_output);\n  events.on('kernel_ready.Kernel', handle_kernel_cleanup);\n\n  OutputArea.prototype.register_mime_type(EXEC_MIME_TYPE, append_mime, {\n    safe: true,\n    index: 0\n  });\n}\n\nif (window.Jupyter !== undefined) {\n  try {\n    var events = require('base/js/events');\n    var OutputArea = require('notebook/js/outputarea').OutputArea;\n    if (OutputArea.prototype.mime_types().indexOf(EXEC_MIME_TYPE) == -1) {\n      register_renderer(events, OutputArea);\n    }\n  } catch(err) {\n  }\n}\n"
+      "application/javascript": "\nif ((window.PyViz === undefined) || (window.PyViz instanceof HTMLElement)) {\n  window.PyViz = {comms: {}, comm_status:{}, kernels:{}, receivers: {}, plot_index: []}\n}\n\n\n    function JupyterCommManager() {\n    }\n\n    JupyterCommManager.prototype.register_target = function(plot_id, comm_id, msg_handler) {\n      if (window.comm_manager || ((window.Jupyter !== undefined) && (Jupyter.notebook.kernel != null))) {\n        var comm_manager = window.comm_manager || Jupyter.notebook.kernel.comm_manager;\n        comm_manager.register_target(comm_id, function(comm) {\n          comm.on_msg(msg_handler);\n        });\n      } else if ((plot_id in window.PyViz.kernels) && (window.PyViz.kernels[plot_id])) {\n        window.PyViz.kernels[plot_id].registerCommTarget(comm_id, function(comm) {\n          comm.onMsg = msg_handler;\n        });\n      } else if (typeof google != 'undefined' && google.colab.kernel != null) {\n        google.colab.kernel.comms.registerTarget(comm_id, (comm) => {\n          var messages = comm.messages[Symbol.asyncIterator]();\n          function processIteratorResult(result) {\n            var message = result.value;\n            console.log(message)\n            var content = {data: message.data, comm_id};\n            var buffers = []\n            for (var buffer of message.buffers || []) {\n              buffers.push(new DataView(buffer))\n            }\n            var metadata = message.metadata || {};\n            var msg = {content, buffers, metadata}\n            msg_handler(msg);\n            return messages.next().then(processIteratorResult);\n          }\n          return messages.next().then(processIteratorResult);\n        })\n      }\n    }\n\n    JupyterCommManager.prototype.get_client_comm = function(plot_id, comm_id, msg_handler) {\n      if (comm_id in window.PyViz.comms) {\n        return window.PyViz.comms[comm_id];\n      } else if (window.comm_manager || ((window.Jupyter !== undefined) && (Jupyter.notebook.kernel != null))) {\n        var comm_manager = window.comm_manager || Jupyter.notebook.kernel.comm_manager;\n        var comm = comm_manager.new_comm(comm_id, {}, {}, {}, comm_id);\n        if (msg_handler) {\n          comm.on_msg(msg_handler);\n        }\n      } else if ((plot_id in window.PyViz.kernels) && (window.PyViz.kernels[plot_id])) {\n        var comm = window.PyViz.kernels[plot_id].connectToComm(comm_id);\n        comm.open();\n        if (msg_handler) {\n          comm.onMsg = msg_handler;\n        }\n      } else if (typeof google != 'undefined' && google.colab.kernel != null) {\n        var comm_promise = google.colab.kernel.comms.open(comm_id)\n        comm_promise.then((comm) => {\n          window.PyViz.comms[comm_id] = comm;\n          if (msg_handler) {\n            var messages = comm.messages[Symbol.asyncIterator]();\n            function processIteratorResult(result) {\n              var message = result.value;\n              var content = {data: message.data};\n              var metadata = message.metadata || {comm_id};\n              var msg = {content, metadata}\n              msg_handler(msg);\n              return messages.next().then(processIteratorResult);\n            }\n            return messages.next().then(processIteratorResult);\n          }\n        }) \n        var sendClosure = (data, metadata, buffers, disposeOnDone) => {\n          return comm_promise.then((comm) => {\n            comm.send(data, metadata, buffers, disposeOnDone);\n          });\n        };\n        var comm = {\n          send: sendClosure\n        };\n      }\n      window.PyViz.comms[comm_id] = comm;\n      return comm;\n    }\n    window.PyViz.comm_manager = new JupyterCommManager();\n    \n\n\nvar JS_MIME_TYPE = 'application/javascript';\nvar HTML_MIME_TYPE = 'text/html';\nvar EXEC_MIME_TYPE = 'application/vnd.holoviews_exec.v0+json';\nvar CLASS_NAME = 'output';\n\n/**\n * Render data to the DOM node\n */\nfunction render(props, node) {\n  var div = document.createElement(\"div\");\n  var script = document.createElement(\"script\");\n  node.appendChild(div);\n  node.appendChild(script);\n}\n\n/**\n * Handle when a new output is added\n */\nfunction handle_add_output(event, handle) {\n  var output_area = handle.output_area;\n  var output = handle.output;\n  if ((output.data == undefined) || (!output.data.hasOwnProperty(EXEC_MIME_TYPE))) {\n    return\n  }\n  var id = output.metadata[EXEC_MIME_TYPE][\"id\"];\n  var toinsert = output_area.element.find(\".\" + CLASS_NAME.split(' ')[0]);\n  if (id !== undefined) {\n    var nchildren = toinsert.length;\n    var html_node = toinsert[nchildren-1].children[0];\n    html_node.innerHTML = output.data[HTML_MIME_TYPE];\n    var scripts = [];\n    var nodelist = html_node.querySelectorAll(\"script\");\n    for (var i in nodelist) {\n      if (nodelist.hasOwnProperty(i)) {\n        scripts.push(nodelist[i])\n      }\n    }\n\n    scripts.forEach( function (oldScript) {\n      var newScript = document.createElement(\"script\");\n      var attrs = [];\n      var nodemap = oldScript.attributes;\n      for (var j in nodemap) {\n        if (nodemap.hasOwnProperty(j)) {\n          attrs.push(nodemap[j])\n        }\n      }\n      attrs.forEach(function(attr) { newScript.setAttribute(attr.name, attr.value) });\n      newScript.appendChild(document.createTextNode(oldScript.innerHTML));\n      oldScript.parentNode.replaceChild(newScript, oldScript);\n    });\n    if (JS_MIME_TYPE in output.data) {\n      toinsert[nchildren-1].children[1].textContent = output.data[JS_MIME_TYPE];\n    }\n    output_area._hv_plot_id = id;\n    if ((window.Bokeh !== undefined) && (id in Bokeh.index)) {\n      window.PyViz.plot_index[id] = Bokeh.index[id];\n    } else {\n      window.PyViz.plot_index[id] = null;\n    }\n  } else if (output.metadata[EXEC_MIME_TYPE][\"server_id\"] !== undefined) {\n    var bk_div = document.createElement(\"div\");\n    bk_div.innerHTML = output.data[HTML_MIME_TYPE];\n    var script_attrs = bk_div.children[0].attributes;\n    for (var i = 0; i < script_attrs.length; i++) {\n      toinsert[toinsert.length - 1].childNodes[1].setAttribute(script_attrs[i].name, script_attrs[i].value);\n    }\n    // store reference to server id on output_area\n    output_area._bokeh_server_id = output.metadata[EXEC_MIME_TYPE][\"server_id\"];\n  }\n}\n\n/**\n * Handle when an output is cleared or removed\n */\nfunction handle_clear_output(event, handle) {\n  var id = handle.cell.output_area._hv_plot_id;\n  var server_id = handle.cell.output_area._bokeh_server_id;\n  if (((id === undefined) || !(id in PyViz.plot_index)) && (server_id !== undefined)) { return; }\n  var comm = window.PyViz.comm_manager.get_client_comm(\"hv-extension-comm\", \"hv-extension-comm\", function () {});\n  if (server_id !== null) {\n    comm.send({event_type: 'server_delete', 'id': server_id});\n    return;\n  } else if (comm !== null) {\n    comm.send({event_type: 'delete', 'id': id});\n  }\n  delete PyViz.plot_index[id];\n  if ((window.Bokeh !== undefined) & (id in window.Bokeh.index)) {\n    var doc = window.Bokeh.index[id].model.document\n    doc.clear();\n    const i = window.Bokeh.documents.indexOf(doc);\n    if (i > -1) {\n      window.Bokeh.documents.splice(i, 1);\n    }\n  }\n}\n\n/**\n * Handle kernel restart event\n */\nfunction handle_kernel_cleanup(event, handle) {\n  delete PyViz.comms[\"hv-extension-comm\"];\n  window.PyViz.plot_index = {}\n}\n\n/**\n * Handle update_display_data messages\n */\nfunction handle_update_output(event, handle) {\n  handle_clear_output(event, {cell: {output_area: handle.output_area}})\n  handle_add_output(event, handle)\n}\n\nfunction register_renderer(events, OutputArea) {\n  function append_mime(data, metadata, element) {\n    // create a DOM node to render to\n    var toinsert = this.create_output_subarea(\n    metadata,\n    CLASS_NAME,\n    EXEC_MIME_TYPE\n    );\n    this.keyboard_manager.register_events(toinsert);\n    // Render to node\n    var props = {data: data, metadata: metadata[EXEC_MIME_TYPE]};\n    render(props, toinsert[0]);\n    element.append(toinsert);\n    return toinsert\n  }\n\n  events.on('output_added.OutputArea', handle_add_output);\n  events.on('output_updated.OutputArea', handle_update_output);\n  events.on('clear_output.CodeCell', handle_clear_output);\n  events.on('delete.Cell', handle_clear_output);\n  events.on('kernel_ready.Kernel', handle_kernel_cleanup);\n\n  OutputArea.prototype.register_mime_type(EXEC_MIME_TYPE, append_mime, {\n    safe: true,\n    index: 0\n  });\n}\n\nif (window.Jupyter !== undefined) {\n  try {\n    var events = require('base/js/events');\n    var OutputArea = require('notebook/js/outputarea').OutputArea;\n    if (OutputArea.prototype.mime_types().indexOf(EXEC_MIME_TYPE) == -1) {\n      register_renderer(events, OutputArea);\n    }\n  } catch(err) {\n  }\n}\n",
+      "application/vnd.holoviews_load.v0+json": ""
      },
      "metadata": {},
      "output_type": "display_data"
@@ -712,11 +196,11 @@
    ],
    "source": [
     "## From GPU2\n",
-    "path = '/mnt/lingyu/nfs_share2/Python/'\n",
-    "os.chdir(str(path) + 'FineST/FineST/')\n",
-    "import FineST as fst\n",
-    "from FineST.datasets import dataset\n",
-    "import FineST.plottings as fstplt"
+    "# path = '/mnt/lingyu/nfs_share2/Python/'\n",
+    "# os.chdir(str(path) + 'FineST/FineST/')\n",
+    "# import FineST as fst\n",
+    "# from FineST.datasets import dataset\n",
+    "# import FineST.plottings as fstplt"
    ]
   },
   {
@@ -758,7 +242,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "/mnt/lingyu/nfs_share2/Python/FineST/FineST_local/Finetune/20241111211024695281\n"
+      "/mnt/lingyu/nfs_share2/Python/FineST/FineST_local/Finetune/20241111220901614764\n"
      ]
     }
    ],
@@ -800,7 +284,7 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[2024-11-11 21:10:24] INFO - Load parameters:\n",
+      "[2024-11-11 22:09:01] INFO - Load parameters:\n",
       "{\n",
       "  \"n_encoder_hidden_matrix\": 256,\n",
       "  \"n_encoder_hidden_image\": 128,\n",
@@ -1432,7 +916,8 @@
     "## ST spot position\n",
     "os.chdir(str(path)+'FineST/FineST/Dataset/NPC/patient1/')\n",
     "position = pd.read_csv('tissue_positions_list.csv', header=None)\n",
-    "position = position.rename(columns={position.columns[-2]: 'pixel_x', position.columns[-1]: 'pixel_y'})"
+    "position = position.rename(columns={position.columns[-2]: 'pixel_x', \n",
+    "                                    position.columns[-1]: 'pixel_y'})"
    ]
   },
   {
@@ -2113,10 +1598,10 @@
    "id": "bc20838f-0617-4605-8947-e54f2900dc26",
    "metadata": {},
    "source": [
-    "Input: three input file pathway: \n",
-    "- `image_embed_path`: image embedding from **Setp0** `HIPT_image_feature_extract.py`. \n",
-    "- `spatial_pos_path`: ordered ST spot coordinates, can be found in `FineST/Dataset/NPC/ContrastP1geneLR/position_order.csv`\n",
-    "- `reduced_mtx_path`: ordered gene expression profile, can be found in `FineST/Dataset/NPC/ContrastP1geneLR/harmony_matrix.np`\n",
+    "Input: three input file pathway: \\\n",
+    "    - `image_embed_path`: image embedding from **Setp0** `HIPT_image_feature_extract.py` \\\n",
+    "    - `spatial_pos_path`: ordered ST spot coordinates, can be found in `FineST/Dataset/NPC/ContrastP1geneLR/position_order.csv` \\\n",
+    "    - `reduced_mtx_path`: ordered gene expression profile, can be found in `FineST/Dataset/NPC/ContrastP1geneLR/harmony_matrix.np` \n",
     "\n",
     "For NPC dataset, the image embedding file can be downloaded [Goole Drive](https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo)."
    ]
@@ -2155,7 +1640,8 @@
     "train_loader, test_loader = fst.build_loaders(batch_size=params['batch_size'], \n",
     "                                              image_embed_path=image_embed_path_NPC, \n",
     "                                              spatial_pos_path=spatial_pos_path, \n",
-    "                                              reduced_mtx_path=reduced_mtx_path, dataset_class='Visium')"
+    "                                              reduced_mtx_path=reduced_mtx_path, \n",
+    "                                              dataset_class='Visium')"
    ]
   },
   {
@@ -2178,7 +1664,8 @@
     "all_dataset = fst.build_loaders_inference(batch_size=adata.shape[0], \n",
     "                                          image_embed_path=image_embed_path_NPC, \n",
     "                                          spatial_pos_path=spatial_pos_path, \n",
-    "                                          reduced_mtx_path=reduced_mtx_path, dataset_class='Visium') "
+    "                                          reduced_mtx_path=reduced_mtx_path, \n",
+    "                                          dataset_class='Visium') "
    ]
   },
   {
@@ -2191,14 +1678,14 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 23,
+   "execution_count": 54,
    "id": "7a28a198-9771-45d9-b4fc-71fd5b633880",
    "metadata": {
     "scrolled": true
    },
    "outputs": [],
    "source": [
-    "# ### load parameter settings\n",
+    "# ## load parameter settings\n",
     "# with open(parameter_file_path,\"r\") as json_file:\n",
     "#     params = json.load(json_file)\n",
     "\n",
@@ -2220,16 +1707,18 @@
     "# # print(model)\n",
     "\n",
     "# ## Set optimizer\n",
-    "# optimizer = torch.optim.SGD(model.parameters(), lr=params['inital_learning_rate'], momentum=0.9, weight_decay=5e-4)\n",
+    "# optimizer = torch.optim.SGD(model.parameters(), lr=params['inital_learning_rate'], \n",
+    "#                             momentum=0.9, weight_decay=5e-4)\n",
     "\n",
     "# ## Load the data\n",
     "# train_loader, test_loader = fst.build_loaders(batch_size=params['batch_size'], \n",
     "#                                               image_embed_path=image_embed_path_NPC, \n",
     "#                                               spatial_pos_path=spatial_pos_path, \n",
-    "#                                               reduced_mtx_path=reduced_mtx_path, dataset_class='Visium') \n",
+    "#                                               reduced_mtx_path=reduced_mtx_path, \n",
+    "#                                               dataset_class='Visium') \n",
     "\n",
     "\n",
-    "# # Train the model for a fixed number of epoch\n",
+    "# ## Train the model for a fixed number of epoch\n",
     "# logger.info('Begin Training ...')\n",
     "\n",
     "# start_time = time.time()\n",
@@ -2246,7 +1735,7 @@
     "#     model.train()\n",
     "#     start_time = time.time()\n",
     "#     train_loss = fst.train_model(params, model, train_loader, optimizer, epoch, l, \n",
-    "#                                  tree_type='KDTree', leaf_size=2, dataset_class='Visium')  # LOSS\n",
+    "#                                  tree_type='KDTree', leaf_size=2, dataset_class='Visium')   \n",
     "#     print(\"--- %s seconds ---\" % (time.time() - start_time))\n",
     "    \n",
     "#     ######################################################################################\n",
@@ -2262,7 +1751,6 @@
     "#         best_epoch = epoch\n",
     "\n",
     "#         fst.save_model(model, dir_name, params, optimizer, train_loss)\n",
-    "#         # torch.save(model.state_dict(), \"STFinetune/best.pt\")    # BLEEP\n",
     "#         print(\"Saved Best epoch & Best Model! Loss: [{}: {}]\".format(best_epoch, best_loss))\n",
     "#         logger.info(\"Saved Best epoch & Best Model! Loss: [{}: {}]\".format(best_epoch, best_loss))\n",
     "\n",
@@ -2315,7 +1803,7 @@
     {
      "data": {
       "text/plain": [
-       "'/mnt/lingyu/nfs_share2/Python/FineST/FineST_local/Finetune/20241111211024695281'"
+       "'/mnt/lingyu/nfs_share2/Python/FineST/FineST_local/Finetune/20241111220901614764'"
       ]
      },
      "execution_count": 24,
@@ -2362,7 +1850,7 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[2024-11-11 21:10:30] INFO - Running inference tesk...\n"
+      "[2024-11-11 22:09:37] INFO - Running inference tesk...\n"
      ]
     },
     {
@@ -2379,7 +1867,8 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  5.80it/s]"
+      "100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  9.09it/s]\n",
+      "[2024-11-11 22:09:37] INFO - Running inference tesk DONE!\n"
      ]
     },
     {
@@ -2393,22 +1882,8 @@
       "1\n",
       "1\n",
       "***** *****\n",
-      "Finished extractting test data\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "\n",
-      "[2024-11-11 21:10:31] INFO - Running inference tesk DONE!\n"
-     ]
-    },
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "--- 0.9612820148468018 seconds for inference within spots ---\n",
+      "Finished extractting test data\n",
+      "--- 0.1777350902557373 seconds for inference within spots ---\n",
       "reconstructed_matrix_reshaped shape:  torch.Size([21296, 596])\n"
      ]
     }
@@ -2466,7 +1941,7 @@
    "id": "ad5ae13a-8053-45a2-89c8-a3abadbdf59f",
    "metadata": {},
    "source": [
-    "We use `reshape_latent_image()` function to convert the super-resolved gene expression with 16$\\times$ relolution `reconstructed_matrix_reshaped` (torch.Size([21296, 596])) into tensor format `reconstructed_matrix_reshaped_tensor` (torch.Size([1331, 16, 596]))."
+    "We use `reshape_latent_image()` function to convert the super-resolved gene expression with 16X relolution `reconstructed_matrix_reshaped` (torch.Size([21296, 596])) into tensor format `reconstructed_matrix_reshaped_tensor` (torch.Size([1331, 16, 596]))."
    ]
   },
   {
@@ -2484,13 +1959,14 @@
     }
    ],
    "source": [
-    "reconstructed_matrix_reshaped_tensor, _ = fst.reshape_latent_image(reconstructed_matrix_reshaped, dataset_class='Visium')\n",
+    "reconstructed_matrix_reshaped_tensor, _ = fst.reshape_latent_image(reconstructed_matrix_reshaped, \n",
+    "                                                                   dataset_class='Visium')\n",
     "print(reconstructed_matrix_reshaped_tensor.shape)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 28,
+   "execution_count": null,
    "id": "4e17d44f-b504-49c4-8c67-2aad48d4a4cd",
    "metadata": {},
    "outputs": [
@@ -2514,14 +1990,16 @@
    ],
    "source": [
     "## plot the sub-spot level gene expression of the first gene in the first within spot\n",
-    "first_spot_first_variable, C, _, _, _ = fst.subspot_coord_expr_adata(reconstructed_matrix_reshaped_tensor, adata, gene_hv, p=0, q=0)\n",
+    "(first_spot_first_variable, C, \n",
+    " _, _, _) = fst.subspot_coord_expr_adata(reconstructed_matrix_reshaped_tensor, \n",
+    "                                         adata, gene_hv, p=0, q=0, dataset_class=\"Visium\")\n",
     "print(\"first_spot_first_variable shape:\", first_spot_first_variable.shape)\n",
     "fstplt.subspot_expr(C, first_spot_first_variable, save_path=None)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 29,
+   "execution_count": null,
    "id": "c47aa654-5828-45b7-9f8b-5632c0a3a660",
    "metadata": {},
    "outputs": [
@@ -2537,7 +2015,9 @@
    ],
    "source": [
     "## Get the sub-spot level gene expression of all genes in all within spots\n",
-    "_, _, all_spot_all_variable, C2, adata_spot = fst.subspot_coord_expr_adata(reconstructed_matrix_reshaped_tensor, adata, gene_hv)\n",
+    "(_, _, all_spot_all_variable, \n",
+    " C2, adata_spot) = fst.subspot_coord_expr_adata(reconstructed_matrix_reshaped_tensor, \n",
+    "                                                adata, gene_hv, dataset_class=\"Visium\")\n",
     "print(\"all_spot_all_variable shape:\", all_spot_all_variable.shape)\n",
     "print(adata_spot)"
    ]
@@ -2547,7 +2027,7 @@
    "id": "24d8cbce-25d4-4d0a-b98e-a5cb6640f417",
    "metadata": {},
    "source": [
-    "Here, `adata_spot` is the inferred super-resolved gene expression data with 16$\\times$ solution."
+    "Here, `adata_spot` is the inferred super-resolved gene expression data with 16X solution."
    ]
   },
   {
@@ -2563,14 +2043,14 @@
    "id": "3b2dedf8-d575-40a5-ae07-7f2f52a42d56",
    "metadata": {},
    "source": [
-    "Input: two input files: \n",
-    "- `adata`: original spot-level gene expression data (within spots). \n",
-    "- `adata_spot`: inferred super-resolved gene expression data (within spots). \n",
+    "Input: two input files: \\\n",
+    "    - `adata`: original spot-level gene expression data (within spots). \\\n",
+    "    - `adata_spot`: inferred super-resolved gene expression data (within spots). \n",
     "\n",
-    "Input: three input files: \n",
-    "- `sudo_adata`: Imputed data using the nearest `k` neighbors of within spots (here `k=6`). \n",
-    "- `adata_impt`: `= w*adata_spot + (1-w)*sudo_adata`, predicted super-resolved gene expression data (here ` w=0.5`).\n",
-    "- ` data_impt`: predicted super-resolved gene expression data in tensor form (within spots)."
+    "Input: three input files: \\\n",
+    "    - `sudo_adata`: Imputed data using the nearest `k` neighbors of within spots (here `k=6`). \\\n",
+    "    - `adata_impt`: `= w*adata_spot + (1-w)*sudo_adata`, predicted super-resolved gene expression data (here ` w=0.5`).\\\n",
+    "    - ` data_impt`: predicted super-resolved gene expression data in tensor form (within spots)."
    ]
   },
   {
@@ -2583,7 +2063,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "--- 4.5033488273620605 seconds ---\n",
+      "--- 4.314451217651367 seconds ---\n",
       "AnnData object with n_obs × n_vars = 21296 × 596\n",
       "    obs: 'x', 'y'\n",
       "    var: 'gene_ids', 'feature_types', 'genome', 'mt', 'n_cells_by_counts', 'mean_counts', 'log1p_mean_counts', 'pct_dropout_by_counts', 'total_counts', 'log1p_total_counts', 'n_cells'\n",
@@ -2669,10 +2149,10 @@
    "id": "21445334-5273-4f9a-bc2f-301582054cf9",
    "metadata": {},
    "source": [
-    "The correlation can be used as an measure to evalute the gene expression prediction performance. Here we provide three function:\n",
-    "- `sele_gene_cor`: show the selected gene correlation (Reconstructed by FineST vs. Original)\n",
-    "- `mean_cor`     : calculate the mean correlation of all spots or all genes.\n",
-    "- `mean_cor_box` : box plot of correlation for all spots or all genes."
+    "The correlation can be used as a measure to evaluate the gene expression prediction performance. Here we provide three functions: \\\n",
+    "    - `sele_gene_cor`: show the selected gene correlation (Reconstructed by FineST vs. Original). \\\n",
+    "    - `mean_cor`     : calculate the mean correlation of all spots or all genes. \\\n",
+    "    - `mean_cor_box` : box plot of correlation for all spots or all genes."
    ]
   },
   {
@@ -2709,7 +2189,7 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[2024-11-11 21:10:37] INFO - Running correlation task...\n"
+      "[2024-11-11 22:09:43] INFO - Running correlation task...\n"
      ]
     },
     {
@@ -2725,7 +2205,7 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[2024-11-11 21:10:39] INFO - Running correlation task DINE!\n"
+      "[2024-11-11 22:09:44] INFO - Running correlation task DINE!\n"
      ]
     },
     {
@@ -2757,7 +2237,7 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[2024-11-11 21:10:39] INFO - Running Gene Correlation task...\n"
+      "[2024-11-11 22:09:44] INFO - Running Gene Correlation task...\n"
      ]
     },
     {
@@ -2773,7 +2253,7 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[2024-11-11 21:10:39] INFO - Running Gene Correlation task DINE!\n"
+      "[2024-11-11 22:09:44] INFO - Running Gene Correlation task DINE!\n"
      ]
     },
     {
@@ -2870,9 +2350,9 @@
    "id": "b5d3c80a-b5d9-4ef7-840c-9255a9e6cace",
    "metadata": {},
    "source": [
-    "Input: two input file pathways: \n",
-    "- `file_paths_spot`: image embedding, of within spots, from **Setp0** `HIPT_image_feature_extract.py`. \n",
-    "- `file_paths_between_spot`: image embedding, of between spots,  from **Setp0** `HIPT_image_feature_extract.py`. \n",
+    "Input: two input file pathways: \\\n",
+    "    - `file_paths_spot`: image embedding, of within spots, from **Setp0** `HIPT_image_feature_extract.py`. \\\n",
+    "    - `file_paths_between_spot`: image embedding, of between spots,  from **Setp0** `HIPT_image_feature_extract.py`. \n",
     "\n",
     "For NPC dataset, the image embedding file can be downloaded [Goole Drive](https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo)."
    ]
@@ -3036,7 +2516,7 @@
     "**Note**\n",
     "The above two cells for `section 4.1` only need to be run once, aiming to generate the ordered ST spot coordinates `position_order_all.csv` according to image pixel coordinates.\n",
     "\n",
-    "</div>>iv>s."
+    "</div>"
    ]
   },
   {
@@ -3052,10 +2532,10 @@
    "id": "886d0cfd-1158-4c2c-96ae-6b80c2491529",
    "metadata": {},
    "source": [
-    "Input: three input file pathway: \n",
-    "- `file_paths_spot`: image embedding, of within spots, from **Setp0** `HIPT_image_feature_extract.py`. \n",
-    "- `file_paths_between_spot`: image embedding, of between spots,  from **Setp0** `HIPT_image_feature_extract.py`. \n",
-    "- `spatial_pos_path`: ordered all ST spot coordinates from above cell, can be found in `FineST/Dataset/NPC/ContrastP1geneLR/position_order_all.csv`\n",
+    "Input: three input file pathway: \\\n",
+    "    - `file_paths_spot`: image embedding, of within spots, from **Setp0** `HIPT_image_feature_extract.py`. \\\n",
+    "    - `file_paths_between_spot`: image embedding, of between spots,  from **Setp0** `HIPT_image_feature_extract.py`. \\\n",
+    "    - `spatial_pos_path`: ordered all ST spot coordinates from above cell, can be found in `FineST/Dataset/NPC/ContrastP1geneLR/position_order_all.csv`\n",
     "\n",
     "For NPC dataset, the image embedding file can be downloaded [Goole Drive](https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo)."
    ]
@@ -3098,7 +2578,7 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[2024-11-11 21:10:43] INFO - Running inference tesk between spot...\n"
+      "[2024-11-11 22:09:49] INFO - Running inference tesk between spot...\n"
      ]
     },
     {
@@ -3115,8 +2595,8 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  3.61it/s]\n",
-      "[2024-11-11 21:10:44] INFO - Running inference tesk between spot DONE!\n"
+      "100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  3.71it/s]\n",
+      "[2024-11-11 22:09:49] INFO - Running inference tesk between spot DONE!\n"
      ]
     },
     {
@@ -3128,17 +2608,17 @@
       "1\n",
       "***** *****\n",
       "Finished extractting image_between_spot data\n",
-      "--- 0.32469749450683594 seconds ---\n",
+      "--- 0.3137013912200928 seconds ---\n",
       "recon_ref_adata_image_f2: (5039, 596)\n"
      ]
     }
    ],
    "source": [
-    "# load params\n",
+    "## load params\n",
     "with open(parameter_file_path,\"r\") as json_file:\n",
     "    params = json.load(json_file)\n",
     "\n",
-    "# load models\n",
+    "## load models\n",
     "model = fst.load_model(dir_name, parameter_file_path, params, gene_hv)   \n",
     "model.to(device)\n",
     "# print(\"model\", model)\n",
@@ -3239,13 +2719,14 @@
     }
    ],
    "source": [
-    "reconstructed_matrix_reshaped_tensor, _ = fst.reshape_latent_image(reconstructed_matrix_reshaped, dataset_class='Visium')\n",
+    "reconstructed_matrix_reshaped_tensor, _ = fst.reshape_latent_image(reconstructed_matrix_reshaped, \n",
+    "                                                                   dataset_class='Visium')\n",
     "print(reconstructed_matrix_reshaped_tensor.shape)"
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 45,
+   "execution_count": null,
    "id": "4ffdacae-ae74-4533-b9dd-fb5b79a8a34e",
    "metadata": {},
    "outputs": [
@@ -3261,7 +2742,9 @@
    ],
    "source": [
     "## Get the sub-spot level gene expression of all genes in all spots\n",
-    "_, _, all_spot_all_variable, C2, adata_spot_all = fst.subspot_coord_expr_adata(reconstructed_matrix_reshaped_tensor, spatial_loc_all, gene_hv)\n",
+    "(_, _, all_spot_all_variable, \n",
+    " C2, adata_spot_all) = fst.subspot_coord_expr_adata(reconstructed_matrix_reshaped_tensor,\n",
+    "                                                    spatial_loc_all, gene_hv, dataset_class=\"Visium\")\n",
     "print(\"all_spot_all_variable shape:\", all_spot_all_variable.shape)\n",
     "print(adata_spot_all)"
    ]
@@ -3302,7 +2785,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "--- 16.962363719940186 seconds ---\n",
+      "--- 16.544437885284424 seconds ---\n",
       "AnnData object with n_obs × n_vars = 80624 × 596\n",
       "    obs: 'x', 'y'\n",
       "    var: 'gene_ids', 'feature_types', 'genome', 'mt', 'n_cells_by_counts', 'mean_counts', 'log1p_mean_counts', 'pct_dropout_by_counts', 'total_counts', 'log1p_total_counts', 'n_cells'\n",
@@ -3312,7 +2795,8 @@
     }
    ],
    "source": [
-    "sudo_adata_all, adata_impt_all, data_impt_all = fst.impute_adata(adata, adata_spot_all, C2, gene_hv, k=6, w=0.5)\n",
+    "sudo_adata_all, adata_impt_all, data_impt_all = fst.impute_adata(adata, adata_spot_all, C2, \n",
+    "                                                                 gene_hv, k=6, w=0.5)\n",
     "print(sudo_adata_all)\n",
     "print(adata_impt_all)"
    ]
@@ -3337,7 +2821,7 @@
     "<div class=\"alert alert-info\">\n",
     "\n",
     "**Note**\n",
-    "Here, `adata_impt_all` is the imputed aub-spot-level gene expression from FineST. `patient1_adata_all.h5ad` contains about 1331$\\times$4$\\times$16 sub-spots. (1331 within spots, 1331$\\times$3 between spots, 16$\\times$ resolution).\n",
+    "Here, `adata_impt_all` is the imputed sub-spot-level gene expression from FineST. `patient1_adata_all.h5ad` contains about 1331x4x16 sub-spots. (1331 within spots, 1331x3 between spots, 16x resolution).\n",
     "\n",
     "</div>"
    ]
@@ -3428,7 +2912,7 @@
     "<div class=\"alert alert-info\">\n",
     "\n",
     "**Note**\n",
-    "Here, `adata_impt_spot` is the imputed aub-spot-level gene expression from FineST. `patient1_adata_all_spot.h5ad` contains about 1331$\\times$4 spots. (1331 within spots, 1331$\\times$3 between spots), it is integrated from `patient1_adata_all.h5ad` using the `reshape_latent_image` function.\n",
+    "Here, `adata_impt_spot` is the imputed sub-spot-level gene expression from FineST. `patient1_adata_all_spot.h5ad` contains about 1331x4 spots. (1331 within spots, 1331x3 between spots), it is integrated from `patient1_adata_all.h5ad` using the `reshape_latent_image` function.\n",
     "\n",
     "</div>"
    ]
@@ -3474,7 +2958,8 @@
     }
    ],
    "source": [
-    "fstplt.gene_expr_allspots(\"CD70\", spatial_loc_all, adata_impt_all_reshape, gene_hv, 'FineST all spot', s=8, save_path=None)"
+    "fstplt.gene_expr_allspots(\"CD70\", spatial_loc_all, adata_impt_all_reshape, gene_hv, \n",
+    "                          'FineST all spot', s=8, save_path=None)"
    ]
   },
   {
@@ -3518,7 +3003,8 @@
     }
    ],
    "source": [
-    "fstplt.gene_expr_allspots(\"CD70\", C2, adata_impt_all.X, gene_hv, 'FineST all sub-spot', s=0.5, save_path=None)"
+    "fstplt.gene_expr_allspots(\"CD70\", C2, adata_impt_all.X, gene_hv, \n",
+    "                          'FineST all sub-spot', s=0.5, save_path=None)"
    ]
   },
   {
@@ -3526,32 +3012,8 @@
    "id": "9489da68-86a5-427d-bc79-d2bb1f66fc93",
    "metadata": {},
    "source": [
-    "For NPC dataset, the the above four `.h5ad` adata files can be downloaded [Goole Drive](https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo) ."
+    "For NPC dataset, the the above four `.h5ad` adata files can be downloaded from [Goole Drive](https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo)."
    ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "6bdd2011-af49-4625-b50f-e21133007ca4",
-   "metadata": {},
-   "outputs": [],
-   "source": []
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "4e08e1f0-c258-4330-ad53-a1e470f98286",
-   "metadata": {},
-   "outputs": [],
-   "source": []
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "38e3f5e3-2786-4ca4-8a44-ff83754139a1",
-   "metadata": {},
-   "outputs": [],
-   "source": []
   }
  ],
  "metadata": {

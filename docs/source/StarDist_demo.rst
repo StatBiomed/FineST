@@ -15,7 +15,6 @@ Step0: Image cropping and nuclei segmentation (for *Visium*)
 ------------------------------------------------------------
 
 .. code-block:: bash
-
     conda activate FineST
     python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
         --tissue NPC1_allspot_p075_test \
@@ -46,7 +45,6 @@ Step0: Image cropping and nuclei segmentation (for *Visium HD*)
 For *Visium HD*, crop the ROI image with corresponding adata, save them for nuclei-segmentation. 
 
 .. code-block:: bash
-
     conda activate FineST
     python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
         --tissue CRC16um_ROI_test \
@@ -64,13 +62,13 @@ So, the fillowing script provides the achievement of cropping the measured/whole
 where ``SelectedShapes.csv`` is the selected adata-measured region using `napari` package.
 
 .. code-block:: bash
-    conda activate FineST
-    python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
-        --tissue CRC_human_ROI \
-        --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
-        --roi_path ./VisiumHD/Dataset/Colon_Cancer/ResultsROIs/SelectedShapes.csv \
-        --adata_path ./VisiumHD/Dataset/Colon_Cancer_square_016um.h5ad \
-        --img_path ./VisiumHD/Dataset/Colon_Cancer/Visium_HD_Human_Colon_Cancer_tissue_image.btf
+   conda activate FineST
+   python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
+       --tissue CRC_human_ROI \
+       --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
+       --roi_path ./VisiumHD/Dataset/Colon_Cancer/ResultsROIs/SelectedShapes.csv \
+       --adata_path ./VisiumHD/Dataset/Colon_Cancer_square_016um.h5ad \
+       --img_path ./VisiumHD/Dataset/Colon_Cancer/Visium_HD_Human_Colon_Cancer_tissue_image.btf
 
 The 10x Visium HD dataset (CRC 16um-binned) can be downloaded from CRC16um in `Goole Drive <https://drive.google.com/drive/folders/1XQiRCyZv_xFrjjHMc3TrQ-R_srSwnGLE?dmr=1&ec=wgc-drive-globalnav-goto>`_ .
 

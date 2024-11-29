@@ -22,7 +22,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Release History" href="release.html" />
+    <link rel="next" title="Nuclei segmentation" href="StarDist_demo.html" />
     <link rel="prev" title="Home" href="index.html" /> 
 </head>
 
@@ -48,11 +48,17 @@
               <p class="caption" role="heading"><span class="caption-text">Main</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="StarDist_demo.html">Nuclei segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HIPT_demo.html">Geometric segmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="release.html">Release History</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="BRCA_Train2.html">FineST in NPC Visium data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Between_spot_demo.html">Interpolate between-spots</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Crop_ROI_image.html">Crop image of ROI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="NPC_Train_Impute.html">FineST in NPC Visium data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CRC16_Train_Impute.html">FineST in CRC Visium HD data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="NPC_LRI_CCC.html">LRI and CCC discovery in super-resolved NPC data</a></li>
 </ul>
 
         </div>
@@ -82,16 +88,37 @@
   <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h1>
 <p>FineST is available through <a class="reference external" href="https://pypi.org/project/FineST/">PyPI</a>.
-To install, type the following command line and add <code class="docutils literal notranslate"><span class="pre">-U</span></code> for updates:</p>
+To install, type the following command line, <code class="docutils literal notranslate"><span class="pre">-U</span></code> for updates.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-U<span class="w"> </span>FineST
 </pre></div>
 </div>
-<p>Alternatively, you can install from this GitHub repository for latest (often
-development) version by the following command line:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-U<span class="w"> </span>git+https://github.com/LingyuLi-math/FineST/FineST
+<p>Alternatively, install from this GitHub repository for latest (often
+development) version.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-U<span class="w"> </span>git+https://github.com/StatBiomed/FineST
 </pre></div>
 </div>
-<p>Installation time: &lt; 1 min</p>
+<section id="installation-using-conda">
+<h2>Installation using Conda<a class="headerlink" href="#installation-using-conda" title="Permalink to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/StatBiomed/FineST.git
+$<span class="w"> </span>conda<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>FineST<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.8
+$<span class="w"> </span>conda<span class="w"> </span>activate<span class="w"> </span>FineST
+$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>FineST
+$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</pre></div>
+</div>
+<p>Typically installation is completed within a few minutes.
+Then install pytorch, refer to <a class="reference external" href="https://pytorch.org/get-started/locally/">pytorch installation</a>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>conda<span class="w"> </span>install<span class="w"> </span><span class="nv">pytorch</span><span class="o">=</span><span class="m">1</span>.7.1<span class="w"> </span>torchvision<span class="w"> </span>torchaudio<span class="w"> </span><span class="nv">cudatoolkit</span><span class="o">=</span><span class="m">11</span>.0<span class="w"> </span>-c<span class="w"> </span>pytorch
+</pre></div>
+</div>
+<p>Verify the installation using the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python
+&gt;&gt;&gt;<span class="w"> </span>import<span class="w"> </span>torch
+&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>torch.__version__<span class="o">)</span>
+&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>torch.cuda.is_available<span class="o">())</span>
+</pre></div>
+</div>
+</section>
 </section>
 
 
@@ -99,7 +126,7 @@ development) version by the following command line:</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Home" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="release.html" class="btn btn-neutral float-right" title="Release History" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="StarDist_demo.html" class="btn btn-neutral float-right" title="Nuclei segmentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

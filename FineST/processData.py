@@ -196,7 +196,11 @@ def get_allspot_coors(input_coord_all):
 
 def adata_LR(adata, file_path):
     LRgene = pd.read_csv(file_path)
-    adata_matrix = pd.DataFrame(adata.X.A, index=adata.obs_names, columns=adata.var_names)
+    adata.var_names_make_unique()
+    if isinstance(adata.X, np.ndarray):
+        adata_matrix = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
+    else:
+        adata_matrix = pd.DataFrame(adata.X.A, index=adata.obs_names, columns=adata.var_names)
     available_genes = [gene for gene in LRgene['LR gene'].tolist() if gene in adata_matrix.columns]
     adataLR_matrix = adata_matrix[available_genes]
     adata._n_vars = adataLR_matrix.shape[1]
@@ -206,29 +210,53 @@ def adata_LR(adata, file_path):
     return adata
 
 
-def adata_preprocess(adata, min_cells=10, target_sum=None, n_top_genes=None): 
-    adata.var_names_make_unique()
+def adata_preprocess(adata, keep_raw=False, normalize=True, 
+                     min_cells=10, target_sum=None, n_top_genes=None):
+
+    """
+    Preprocesses AnnData object for single-cell RNA sequencing data.
+
+    Parameters:
+    adata (anndata.AnnData): The annotated data matrix of shape n_obs x n_vars. 
+    keep_raw (bool, optional): If True, a copy of the original data is saved. Default is False.
+    min_cells (int, optional): Minimum number of cells expressed. Default is 10.
+    target_sum (float, optional): If not None, normalize total counts per cell with this value. 
+                                  If None, after normalization, each cell has a total count 
+                                  equal to the median of the counts_per_cell before normalization. 
+                                  Default is None.
+    n_top_genes (int, optional): Number of highly-variable genes to keep. 
+                                 If n_top_genes is not None, this number is kept as 
+                                 highly-variable genes. Default is None.
+    Returns:
+    adata (anndata.AnnData): The processed annotated data matrix.
+    """
 
     adata.var["mt"] = adata.var_names.str.startswith("MT-")
     sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
     sc.pp.filter_genes(adata, min_cells=min_cells)
-    
-    if n_top_genes is not None:
-        sc.pp.normalize_total(adata, target_sum=target_sum)
-    else:
-        sc.pp.normalize_total(adata)
-        
-    sc.pp.log1p(adata)
-    
+
+    if keep_raw:
+        adata = adata.copy()     # del adata.raw   
+
+    if normalize:
+        if target_sum is not None:
+            sc.pp.normalize_total(adata, target_sum=target_sum)
+        else:
+            sc.pp.normalize_total(adata)
+
+        sc.pp.log1p(adata)
+
     if n_top_genes is not None:
         sc.pp.highly_variable_genes(adata, flavor="seurat", n_top_genes=n_top_genes)
-        
-    return adata
 
+    return adata
 
 def adata2matrix(adata, gene_hv):
     # Access the matrix and convert it to a dense matrix
-    matrix = pd.DataFrame(adata.X)
+    if isinstance(adata.X, np.ndarray):
+        matrix = pd.DataFrame(adata.X)
+    else:
+        matrix = pd.DataFrame(adata.X.todense())
     matrix.columns = gene_hv
     spotID = np.array(pd.DataFrame(adata.obs['in_tissue']).index)
     matrix.insert(0, '', spotID)   

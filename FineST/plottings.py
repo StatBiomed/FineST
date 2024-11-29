@@ -17,6 +17,7 @@ from bokeh.layouts import gridplot
 from scipy.sparse import csc_matrix
 from scipy import stats
 from matplotlib import gridspec
+from brokenaxes import brokenaxes
 
 hv.extension('bokeh')
 hv.output(size=200)
@@ -41,6 +42,156 @@ colors = ["#000003",  "#3b0f6f",  "#8c2980",   "#f66e5b", "#fd9f6c", "#fbfcbf"]
 cnt_color = clr.LinearSegmentedColormap.from_list('magma', colors, N=256)
 
 
+
+#################################################
+# 2024.11.28 add Sankey plot: Ligand-Receptor-TF 
+#################################################
+import plotly.graph_objects as go
+import plotly.io as pio
+import urllib, json
+
+
+
+def sankey_LR2TF(subdf, width=600, height=400, title='Pattern 0', save_path=None, fig_format='svg'):
+    """
+    Create a Sankey diagram from ligand-receptor-TF data and save as SVG.
+    Args:
+    subdf: a DataFrame with 'Ligand_symbol', 'Receptor_symbol', 'TF' and 'value' columns
+    save_path: the path to save the SVG file
+    """
+    
+    # Create lists of unique node labels and their indices
+    node_label = list(set(subdf['Ligand_symbol'].tolist() + subdf['Receptor_symbol'].tolist() + subdf['TF'].tolist()))
+    source = [node_label.index(i) for i in subdf['Ligand_symbol'].tolist()] + [node_label.index(i) for i in subdf['Receptor_symbol'].tolist()]
+    target = [node_label.index(i) for i in subdf['Receptor_symbol'].tolist()] + [node_label.index(i) for i in subdf['TF'].tolist()]
+    value = subdf['value'].tolist() * 2  # assuming the value for both edges is the same
+
+    # Load color data from online JSON file
+    url = 'https://raw.githubusercontent.com/plotly/plotly.js/master/test/image/mocks/sankey_energy.json'
+    response = urllib.request.urlopen(url)
+    data = json.loads(response.read())
+    # override gray link colors with 'source' colors
+    mycol_vector_list = ['rgba(255,0,255, 0.8)' if color == "magenta" else color for color in data['data'][0]['node']['color']]
+
+    # Create Sankey diagram
+    data_trace = go.Sankey(
+        node = dict(
+            pad = 15,
+            thickness = 20,
+            line = dict(color = "black", width = 0.5),
+            label = node_label,
+            color = mycol_vector_list
+        ),
+        link = dict(
+            source = source,
+            target = target,
+            value = value,
+            label = node_label,
+            color = mycol_vector_list 
+        )
+    )
+
+    fig = go.Figure(data=data_trace)
+
+    fig.update_layout(
+        autosize=False,
+        width=width,
+        height=height,
+        title=title, 
+        annotations=[
+            go.layout.Annotation(
+                text="Ligand",
+                align='center',
+                showarrow=False,
+                xref='paper',
+                yref='paper',
+                x=0.0,
+                y=-0.15,
+                font=dict(size=15)
+            ),
+            go.layout.Annotation(
+                text="Receptor",
+                align='center',
+                showarrow=False,
+                xref='paper',
+                yref='paper',
+                x=0.5,
+                y=-0.15,
+                font=dict(size=15)
+            ),
+            go.layout.Annotation(
+                text="TF",
+                align='center',
+                showarrow=False,
+                xref='paper',
+                yref='paper',
+                x=1.0,
+                y=-0.15,
+                font=dict(size=15)
+            )
+        ]
+    )
+
+    # Save SVG figure
+    if save_path is not None and fig_format != 'html':
+        pio.write_image(fig, save_path, format=fig_format)
+    else:
+        fig_obj = go.Figure(fig)
+        fig_obj.write_html(str(save_path) + 'sankey_diagram.html')
+
+        from IPython.display import display, HTML
+
+        with open(str(save_path) + 'sankey_diagram.html', 'r') as f:
+            html_string = f.read()
+
+        display(HTML(html_string))
+
+
+
+
+def plot_time_bars(time, bar_height=0.25, fig_size=(5, 4),
+                   inter_value_l=40, inter_value_r=90, end=180,
+                   trans=False, format='pdf', save_path=None):
+
+    # Set position of bar on Y axis
+    r = [np.arange(len(time)) + i*bar_height for i in range(len(time.columns[1:]))]
+
+    fig, ax = plt.subplots(figsize=fig_size)
+    colors = ['#80CA80', '#BFB0D5', '#D7DF04', '#F8BE82', '#ADD8E6', '#6F6F6F']
+
+    labels_added = []
+    methods = time.columns[1:]
+
+    for i, method in enumerate(methods):
+        ax.barh(r[i], time[method], color=colors[i], height=bar_height, edgecolor='grey', label=method)
+
+    # Add yticks on the middle of the group bars
+    ax.set_yticks([r[i][0] + 2.0*bar_height for i in range(len(time))])
+    ax.set_yticklabels(time['Task'], fontsize=12)
+    ax.invert_yaxis()
+
+    # Create legend & Show graphic
+    ax.legend(loc=4, fontsize=12)
+
+    # Add grid
+    ax.grid(True, linestyle='--', alpha=0.6)
+
+    # Add labels and title
+    ax.set_xlabel("Time", fontsize=12)
+    # ax.set_ylabel("Task", fontsize=12)
+    ax.set_title("Time Bar Plot", fontsize=12)
+
+    # Set xticks
+    ax.set_xticks(np.arange(0, end+1, 20))
+    ax.set_xticklabels(np.arange(0, end+1, 20), fontsize=12)
+
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format,
+                    dpi=300, bbox_inches='tight')
+        
+    plt.rcParams['svg.fonttype'] = 'none'
+    plt.tick_params(axis='both', which='both', bottom=True, left=True, labelbottom=True)
+    plt.show()
 
 
 
@@ -85,7 +236,7 @@ def compute_pathway(sample=None, all_interactions=None, interaction_ls=None, nam
     return result
 
 
-def dot(pathway_res, figsize, markersize, pdf):
+def dot(pathway_res, figsize, markersize, pdf, step=4):
     for i, name in enumerate(pathway_res.name.unique()):
         fig, legend_gs = make_grid_spec(figsize,
                                         nrows=2, ncols=1,
@@ -104,15 +255,15 @@ def dot(pathway_res, figsize, markersize, pdf):
 
         # Set the x-axis tick positions and labels
         # Display a label every 2 ticks
-        xticks_positions = np.arange(0, max(result1.selected.values) + 2, 4)  
+        xticks_positions = np.arange(0, max(result1.selected.values) + 2, step)  
         dotplot.set_xticks(xticks_positions)
         dotplot.set_xticklabels(xticks_positions)
 
         dotplot.tick_params(axis='y', labelsize=10)
         dotplot.set_title(name)
-        plt.colorbar(im, location='bottom', label='percentage of pairs out of CellChatDB')
+        plt.colorbar(im, location='bottom', label='Percentage of pairs out of CellChatDB')
         #                 dotplot.tight_layout()
-        plt.gcf().set_dpi(600)
+        plt.gcf().set_dpi(300)
 
         # plot size bar
         size_uniq = np.quantile(size, np.arange(1, 0, -0.1))
@@ -147,7 +298,7 @@ def dot(pathway_res, figsize, markersize, pdf):
         size_legend_ax.grid(False)
 
         ymax = size_legend_ax.get_ylim()[1]
-        size_legend_ax.set_title('fisher exact p-value (right tile)', y=ymax + 0.9, size='small')
+        size_legend_ax.set_title('Fisher exact p-value (right tile)', y=ymax + 0.9, size='small')
 
         xmin, xmax = size_legend_ax.get_xlim()
         size_legend_ax.set_xlim(xmin - 0.15, xmax + 0.5)
@@ -183,7 +334,7 @@ def make_grid_spec(
 
 
 def dot_path(adata, uns_key=None, dic=None, cut_off=1, groups=None, markersize=50,
-             figsize=(6, 8), pdf=None,
+             step=4, figsize=(6, 8), pdf=None,
              **kwargs):
     """
     Either input a dict containing lists of interactions, or specify a dict key in adata.uns
@@ -211,11 +362,11 @@ def dot_path(adata, uns_key=None, dic=None, cut_off=1, groups=None, markersize=5
     n_subplot = len(pathway_res.name.unique())
     if pdf != None:
         with PdfPages(pdf + '.pdf') as pdf:
-            dot(pathway_res, figsize, markersize, pdf)
+            dot(pathway_res, figsize, markersize, pdf, step)
             plt.show()
             plt.close()
     else:
-        dot(pathway_res, figsize, markersize, pdf)
+        dot(pathway_res, figsize, markersize, pdf, step)
 
 
 
@@ -250,15 +401,16 @@ def plot_conf_mat(result_pattern_all, pattern_name='Pattern_0', pathway_name='WN
 ###################################
 # 2024.11.12 adjust for spatialDM
 ###################################
-def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, s=10, save_path=None):
-    plt.figure(figsize=(21,5))
+def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, marker='s', s=10,
+                       figsize=(21,5), trans=False, format='pdf', save_path=None):
+    plt.figure(figsize=figsize)
     for i in range(w):
         plt.subplot(1, w, i + 1)
         if isinstance(patterns.columns, pd.RangeIndex):
-            scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = 's', 
+            scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = marker, 
                                   c=patterns[i], cmap="viridis", s=s)
         else:
-            scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = 's', 
+            scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = marker, 
                                   c=patterns[str(i)], cmap="viridis", s=s)
         plt.colorbar(scatter)  
         plt.axis('equal')
@@ -268,7 +420,7 @@ def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, s=10, sav
         plt.gcf().set_dpi(300)
 
     if save_path is not None:
-        plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
 
     plt.show()
 
@@ -277,7 +429,8 @@ def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, s=10, sav
 # 2024.11.12 adjust for sparseAEH
 ###################################
 # def plot_clusters(gaussian_subspot:MixedGaussian, label='counts', w=None, s=None, save_path=None):
-def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None, save_path=None):
+def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None, 
+                       save_path=None, format='pdf'):
     k = gaussian_subspot.K
     h = np.ceil(k / w).astype(int)  # Calculate the number of rows
     
@@ -303,7 +456,7 @@ def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None, save_pa
             plt.title('{}'.format(gaussian_subspot.pi[i]))
 
     if save_path is not None:
-        plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
+        plt.savefig(save_path, format=format, dpi=300, bbox_inches='tight')
 
     plt.show()
 
@@ -346,7 +499,36 @@ def plt_util_invert(title):
     plt.colorbar()
 
 
-def plot_pairs_dot(sample, pairs_to_plot, pdf=None, figsize=(56, 8),
+# def plot_pairs_dot(sample, pairs_to_plot, save_path=None, trans=False,
+#                     figsize=(56, 8), format='pdf',
+#                     cmap='Greens', cmap_l='Purples', cmap_r='Purples', 
+#                     marker='o', marker_size=5, **kwargs):
+#     if sample.uns['local_stat']['local_method'] == 'z-score':
+#         selected_ind = sample.uns['local_z_p'].index
+#         spots = 1 - sample.uns['local_z_p']
+#     if sample.uns['local_stat']['local_method'] == 'permutation':
+#         selected_ind = sample.uns['local_perm_p'].index
+#         spots = 1 - sample.uns['local_perm_p']
+#     if save_path != None:
+#         for pair in pairs_to_plot:
+#             plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap=cmap,
+#                                    cmap_l=cmap_l, cmap_r=cmap_r, 
+#                                    marker=marker, marker_size=marker_size, **kwargs)
+#             plt.savefig(save_path, transparent=trans,
+#                         format=format, dpi=300, bbox_inches='tight')
+#             plt.show()
+#             plt.close()
+
+#     else:
+#         for pair in pairs_to_plot:
+#             plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap=cmap,
+#                                cmap_l=cmap_l, cmap_r=cmap_r, 
+#                                marker=marker, marker_size=marker_size, **kwargs)
+#             plt.show()
+#             plt.close()
+
+
+def plot_pairs_dot(sample, pairs_to_plot, pdf=None, trans=False, figsize=(56, 8),
                cmap='Greens', cmap_l='Purples', cmap_r='Purples', 
                marker='o', marker_size=5, **kwargs):
                # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', marker_size=5, **kwargs):
@@ -362,7 +544,7 @@ def plot_pairs_dot(sample, pairs_to_plot, pdf=None, figsize=(56, 8),
                 plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap=cmap,
                                    cmap_l=cmap_l, cmap_r=cmap_r, 
                                    marker=marker, marker_size=marker_size, **kwargs)
-                pdf.savefig()
+                pdf.savefig(transparent=trans)
                 plt.show()
                 plt.close()
 
@@ -379,30 +561,55 @@ def plot_pairs_dot(sample, pairs_to_plot, pdf=None, figsize=(56, 8),
 ###########################################
 # 2024.11.11 For all spot gene expression
 ###########################################
-def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, gene_hv, 
-                       label, s=8, save_path=None):
+# def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, gene_hv, 
+#                        label, s=8, save_path=None):
+#     def plot_gene_data_dot(spatial_loc, genedata, title, ax, s):
+#         normalized_data = genedata
+#         scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=normalized_data, 
+#                              cmap=cnt_color, s=s)   
+#         ax.invert_yaxis()
+#         ax.set_title(title)
+#         return scatter
+
+#     fig, ax = plt.subplots(figsize=(9, 7))
+
+#     reconstruction_f2_reshape_pd_all = pd.DataFrame(recon_ref_adata_image_f2)
+#     reconstruction_f2_reshape_pd_all.columns = gene_hv
+#     genedata3 = reconstruction_f2_reshape_pd_all[[gene]].to_numpy()
+#     print(str(gene)+" gene expression dim: ", genedata3.shape)
+#     print(str(gene)+" gene expression: \n", genedata3)
+#     scatter3 = plot_gene_data_dot(spatial_loc_all, genedata3, 
+#                                   str(gene)+' expression: '+str(label), ax, s) 
+#     fig.colorbar(scatter3, ax=ax)
+
+#     # Save the figure if a save path is provided
+#     if save_path is not None:
+#         fig.savefig(save_path, save_path, format='pdf', dpi=300, bbox_inches='tight')
+
+#     plt.show()
+
+def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, gene_hv, label, s=8, save_path=None):
     def plot_gene_data_dot(spatial_loc, genedata, title, ax, s):
-        normalized_data = genedata
-        scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=normalized_data, 
-                             cmap=cnt_color, s=s)   
+        scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=genedata, cmap=cnt_color, s=s)   
         ax.invert_yaxis()
         ax.set_title(title)
         return scatter
 
     fig, ax = plt.subplots(figsize=(9, 7))
 
-    reconstruction_f2_reshape_pd_all = pd.DataFrame(recon_ref_adata_image_f2)
-    reconstruction_f2_reshape_pd_all.columns = gene_hv
-    genedata3 = reconstruction_f2_reshape_pd_all[[gene]].to_numpy()
-    print(str(gene)+" gene expression dim: ", genedata3.shape)
-    print(str(gene)+" gene expression: \n", genedata3)
-    scatter3 = plot_gene_data_dot(spatial_loc_all, genedata3, 
-                                  str(gene)+' expression: '+str(label), ax, s) 
+    if isinstance(recon_ref_adata_image_f2, anndata.AnnData):
+        genedata3 = recon_ref_adata_image_f2.to_df()[[gene]].to_numpy()
+    else:
+        genedata3 = pd.DataFrame(recon_ref_adata_image_f2, columns=gene_hv)[[gene]].to_numpy()
+
+    print(f"{gene} gene expression dim: {genedata3.shape}")
+    print(f"{gene} gene expression: \n {genedata3}")
+    scatter3 = plot_gene_data_dot(spatial_loc_all, genedata3, f'{gene} expression: {label}', ax, s) 
     fig.colorbar(scatter3, ax=ax)
 
     # Save the figure if a save path is provided
     if save_path is not None:
-        fig.savefig(save_path, save_path, format='pdf', dpi=300, bbox_inches='tight')
+        fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
     plt.show()
 

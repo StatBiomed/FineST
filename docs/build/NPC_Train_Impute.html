@@ -24,7 +24,9 @@
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="FineST in CRC Visium HD data" href="CRC16_Train_Impute.html" />
+    <link rel="prev" title="Crop image of ROI" href="Crop_ROI_image.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,7 +51,17 @@
               <p class="caption" role="heading"><span class="caption-text">Main</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="StarDist_demo.html">Nuclei segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="HIPT_demo.html">Geometric segmentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="release.html">Release History</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Between_spot_demo.html">Interpolate between-spots</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Crop_ROI_image.html">Crop image of ROI</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">FineST in NPC Visium data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CRC16_Train_Impute.html">FineST in CRC Visium HD data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="NPC_LRI_CCC.html">LRI and CCC discovery in super-resolved NPC data</a></li>
 </ul>
 
         </div>
@@ -81,13 +93,13 @@
 <section id="Main-steps">
 <h2>Main steps<a class="headerlink" href="#Main-steps" title="Permalink to this heading"></a></h2>
 <ul class="simple">
-<li><p>Step1: Prepare the paired image patch and expression data: Align image pixels with spot coordinates.</p></li>
-<li><p>Step2:Train FineST model oOn within spost: Train the model on 80% data and test on 20% data</p></li>
-<li><p>Step3:Infer on between spots:Iinfer gene expression of between spo using trained model</p></li>
-<li><p>Step4: Impute on all sub-spots: Impute gene expression using measured gene expressiont</p></li>
+<li><p>Step1: Prepare paired image patch and ST spot: Align image pixels with spot coordinates</p></li>
+<li><p>Step2: Train model on within spots: Train the model on 80% data and test on 20% data</p></li>
+<li><p>Step3: Infer on between spots: Infer gene expression of between spot using trained model</p></li>
+<li><p>Step4: Impute on all sub-spots: Impute gene expression using measured gene expression</p></li>
 </ul>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
@@ -104,11 +116,11 @@
 <span class="kn">import</span> <span class="nn">matplotlib.colors</span> <span class="k">as</span> <span class="nn">clr</span>
 <span class="kn">import</span> <span class="nn">json</span>
 
-<span class="c1"># import FineST as fst</span>
-<span class="c1"># from FineST.datasets import dataset</span>
-<span class="c1"># import FineST.plottings as fstplt</span>
+<span class="kn">import</span> <span class="nn">FineST</span> <span class="k">as</span> <span class="nn">fst</span>
+<span class="kn">from</span> <span class="nn">FineST.datasets</span> <span class="kn">import</span> <span class="n">dataset</span>
+<span class="kn">import</span> <span class="nn">FineST.plottings</span> <span class="k">as</span> <span class="nn">fstplt</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
-<span class="c1"># print(&quot;FineST version: %s&quot; %fst.__version__)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;FineST version: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span><span class="k">fst</span>.__version__)
 </pre></div>
 </div>
 </div>
@@ -121,15 +133,15 @@
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## From GPU2</span>
-<span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/mnt/lingyu/nfs_share2/Python/&#39;</span>
-<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;FineST/FineST/&#39;</span><span class="p">)</span>
-<span class="kn">import</span> <span class="nn">FineST</span> <span class="k">as</span> <span class="nn">fst</span>
-<span class="kn">from</span> <span class="nn">FineST.datasets</span> <span class="kn">import</span> <span class="n">dataset</span>
-<span class="kn">import</span> <span class="nn">FineST.plottings</span> <span class="k">as</span> <span class="nn">fstplt</span>
+<span class="c1"># path = &#39;/mnt/lingyu/nfs_share2/Python/&#39;</span>
+<span class="c1"># os.chdir(str(path) + &#39;FineST/FineST/&#39;)</span>
+<span class="c1"># import FineST as fst</span>
+<span class="c1"># from FineST.datasets import dataset</span>
+<span class="c1"># import FineST.plottings as fstplt</span>
 </pre></div>
 </div>
 </div>
@@ -814,7 +826,7 @@ roTBs2RqAAAAAElFTkSuQmCC'
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-/mnt/lingyu/nfs_share2/Python/FineST/FineST_local/Finetune/20241111211024695281
+/mnt/lingyu/nfs_share2/Python/FineST/FineST_local/Finetune/20241111220901614764
 </pre></div></div>
 </div>
 <p>0.2 Load parameter settings</p>
@@ -836,7 +848,7 @@ roTBs2RqAAAAAElFTkSuQmCC'
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-[2024-11-11 21:10:24] INFO - Load parameters:
+[2024-11-11 22:09:01] INFO - Load parameters:
 {
   &#34;n_encoder_hidden_matrix&#34;: 256,
   &#34;n_encoder_hidden_image&#34;: 128,
@@ -1323,7 +1335,8 @@ Image embedding file: [&#39;AH_Patient1_10014_10023.pth&#39;, &#39;AH_Patient1_1
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## ST spot position</span>
 <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;FineST/FineST/Dataset/NPC/patient1/&#39;</span><span class="p">)</span>
 <span class="n">position</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;tissue_positions_list.csv&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-<span class="n">position</span> <span class="o">=</span> <span class="n">position</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="n">position</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span> <span class="s1">&#39;pixel_x&#39;</span><span class="p">,</span> <span class="n">position</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span> <span class="s1">&#39;pixel_y&#39;</span><span class="p">})</span>
+<span class="n">position</span> <span class="o">=</span> <span class="n">position</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="n">position</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span> <span class="s1">&#39;pixel_x&#39;</span><span class="p">,</span>
+                                    <span class="n">position</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span> <span class="s1">&#39;pixel_y&#39;</span><span class="p">})</span>
 </pre></div>
 </div>
 </div>
@@ -1872,7 +1885,12 @@ AnnData object with n_obs × n_vars = 1331 × 596
 <section id="2-Train-and-Test-model">
 <h2>2 Train and Test model<a class="headerlink" href="#2-Train-and-Test-model" title="Permalink to this heading"></a></h2>
 <p>2.1 Data loader and splitting: 80% for train and 20% for test</p>
-<p>Input: three input file pathway: - <code class="docutils literal notranslate"><span class="pre">image_embed_path</span></code>: image embedding from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>. - <code class="docutils literal notranslate"><span class="pre">spatial_pos_path</span></code>: ordered ST spot coordinates, can be found in <code class="docutils literal notranslate"><span class="pre">FineST/Dataset/NPC/ContrastP1geneLR/position_order.csv</span></code> - <code class="docutils literal notranslate"><span class="pre">reduced_mtx_path</span></code>: ordered gene expression profile, can be found in <code class="docutils literal notranslate"><span class="pre">FineST/Dataset/NPC/ContrastP1geneLR/harmony_matrix.np</span></code></p>
+<div class="line-block">
+<div class="line">Input: three input file pathway:</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">image_embed_path</span></code>: image embedding from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code></div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">spatial_pos_path</span></code>: ordered ST spot coordinates, can be found in <code class="docutils literal notranslate"><span class="pre">FineST/Dataset/NPC/ContrastP1geneLR/position_order.csv</span></code></div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">reduced_mtx_path</span></code>: ordered gene expression profile, can be found in <code class="docutils literal notranslate"><span class="pre">FineST/Dataset/NPC/ContrastP1geneLR/harmony_matrix.np</span></code></div>
+</div>
 <p>For NPC dataset, the image embedding file can be downloaded <a class="reference external" href="https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo">Goole Drive</a>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
@@ -1891,7 +1909,8 @@ AnnData object with n_obs × n_vars = 1331 × 596
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">build_loaders</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">],</span>
                                               <span class="n">image_embed_path</span><span class="o">=</span><span class="n">image_embed_path_NPC</span><span class="p">,</span>
                                               <span class="n">spatial_pos_path</span><span class="o">=</span><span class="n">spatial_pos_path</span><span class="p">,</span>
-                                              <span class="n">reduced_mtx_path</span><span class="o">=</span><span class="n">reduced_mtx_path</span><span class="p">,</span> <span class="n">dataset_class</span><span class="o">=</span><span class="s1">&#39;Visium&#39;</span><span class="p">)</span>
+                                              <span class="n">reduced_mtx_path</span><span class="o">=</span><span class="n">reduced_mtx_path</span><span class="p">,</span>
+                                              <span class="n">dataset_class</span><span class="o">=</span><span class="s1">&#39;Visium&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1914,7 +1933,8 @@ train/test split completed
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">all_dataset</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">build_loaders_inference</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">adata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                           <span class="n">image_embed_path</span><span class="o">=</span><span class="n">image_embed_path_NPC</span><span class="p">,</span>
                                           <span class="n">spatial_pos_path</span><span class="o">=</span><span class="n">spatial_pos_path</span><span class="p">,</span>
-                                          <span class="n">reduced_mtx_path</span><span class="o">=</span><span class="n">reduced_mtx_path</span><span class="p">,</span> <span class="n">dataset_class</span><span class="o">=</span><span class="s1">&#39;Visium&#39;</span><span class="p">)</span>
+                                          <span class="n">reduced_mtx_path</span><span class="o">=</span><span class="n">reduced_mtx_path</span><span class="p">,</span>
+                                          <span class="n">dataset_class</span><span class="o">=</span><span class="s1">&#39;Visium&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1930,10 +1950,10 @@ Finished loading all files
 </div>
 <p>2.2 Train and test model on within spot</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[54]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># ### load parameter settings</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># ## load parameter settings</span>
 <span class="c1"># with open(parameter_file_path,&quot;r&quot;) as json_file:</span>
 <span class="c1">#     params = json.load(json_file)</span>
 
@@ -1955,16 +1975,18 @@ Finished loading all files
 <span class="c1"># # print(model)</span>
 
 <span class="c1"># ## Set optimizer</span>
-<span class="c1"># optimizer = torch.optim.SGD(model.parameters(), lr=params[&#39;inital_learning_rate&#39;], momentum=0.9, weight_decay=5e-4)</span>
+<span class="c1"># optimizer = torch.optim.SGD(model.parameters(), lr=params[&#39;inital_learning_rate&#39;],</span>
+<span class="c1">#                             momentum=0.9, weight_decay=5e-4)</span>
 
 <span class="c1"># ## Load the data</span>
 <span class="c1"># train_loader, test_loader = fst.build_loaders(batch_size=params[&#39;batch_size&#39;],</span>
 <span class="c1">#                                               image_embed_path=image_embed_path_NPC,</span>
 <span class="c1">#                                               spatial_pos_path=spatial_pos_path,</span>
-<span class="c1">#                                               reduced_mtx_path=reduced_mtx_path, dataset_class=&#39;Visium&#39;)</span>
+<span class="c1">#                                               reduced_mtx_path=reduced_mtx_path,</span>
+<span class="c1">#                                               dataset_class=&#39;Visium&#39;)</span>
 
 
-<span class="c1"># # Train the model for a fixed number of epoch</span>
+<span class="c1"># ## Train the model for a fixed number of epoch</span>
 <span class="c1"># logger.info(&#39;Begin Training ...&#39;)</span>
 
 <span class="c1"># start_time = time.time()</span>
@@ -1981,7 +2003,7 @@ Finished loading all files
 <span class="c1">#     model.train()</span>
 <span class="c1">#     start_time = time.time()</span>
 <span class="c1">#     train_loss = fst.train_model(params, model, train_loader, optimizer, epoch, l,</span>
-<span class="c1">#                                  tree_type=&#39;KDTree&#39;, leaf_size=2, dataset_class=&#39;Visium&#39;)  # LOSS</span>
+<span class="c1">#                                  tree_type=&#39;KDTree&#39;, leaf_size=2, dataset_class=&#39;Visium&#39;)</span>
 <span class="c1">#     print(&quot;--- %s seconds ---&quot; % (time.time() - start_time))</span>
 
 <span class="c1">#     ######################################################################################</span>
@@ -1997,7 +2019,6 @@ Finished loading all files
 <span class="c1">#         best_epoch = epoch</span>
 
 <span class="c1">#         fst.save_model(model, dir_name, params, optimizer, train_loss)</span>
-<span class="c1">#         # torch.save(model.state_dict(), &quot;STFinetune/best.pt&quot;)    # BLEEP</span>
 <span class="c1">#         print(&quot;Saved Best epoch &amp; Best Model! Loss: [{}: {}]&quot;.format(best_epoch, best_loss))</span>
 <span class="c1">#         logger.info(&quot;Saved Best epoch &amp; Best Model! Loss: [{}: {}]&quot;.format(best_epoch, best_loss))</span>
 
@@ -2033,7 +2054,7 @@ Finished loading all files
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&#39;/mnt/lingyu/nfs_share2/Python/FineST/FineST_local/Finetune/20241111211024695281&#39;
+&#39;/mnt/lingyu/nfs_share2/Python/FineST/FineST_local/Finetune/20241111220901614764&#39;
 </pre></div></div>
 </div>
 <p>You can use the <code class="docutils literal notranslate"><span class="pre">dir_name</span></code> just obtained from the above cell, but here we use our trained <code class="docutils literal notranslate"><span class="pre">dir_name</span></code> for paper results repeated (saved in <code class="docutils literal notranslate"><span class="pre">FineST/FineST/Finetune/20240125140443830148</span></code>).</p>
@@ -2102,7 +2123,7 @@ Finished loading all files
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-[2024-11-11 21:10:30] INFO - Running inference tesk...
+[2024-11-11 22:09:37] INFO - Running inference tesk...
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -2121,10 +2142,11 @@ device cuda:0
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00,  5.80it/s]
+100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00,  9.09it/s]
+[2024-11-11 22:09:37] INFO - Running inference tesk DONE!
 </pre></div></div>
 </div>
-<div class="nboutput docutils container">
+<div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
@@ -2137,33 +2159,18 @@ torch.Size([1331, 16, 384])
 1
 ***** *****
 Finished extractting test data
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-
-[2024-11-11 21:10:31] INFO - Running inference tesk DONE!
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
---- 0.9612820148468018 seconds for inference within spots ---
+--- 0.1777350902557373 seconds for inference within spots ---
 reconstructed_matrix_reshaped shape:  torch.Size([21296, 596])
 </pre></div></div>
 </div>
 <p>3.2 Get coordinates of sub-spots from within spots</p>
-<p>We use <code class="docutils literal notranslate"><span class="pre">reshape_latent_image()</span></code> function to convert the super-resolved gene expression with 16<span class="math notranslate nohighlight">\(\times\)</span> relolution <code class="docutils literal notranslate"><span class="pre">reconstructed_matrix_reshaped</span></code> (torch.Size([21296, 596])) into tensor format <code class="docutils literal notranslate"><span class="pre">reconstructed_matrix_reshaped_tensor</span></code> (torch.Size([1331, 16, 596])).</p>
+<p>We use <code class="docutils literal notranslate"><span class="pre">reshape_latent_image()</span></code> function to convert the super-resolved gene expression with 16X relolution <code class="docutils literal notranslate"><span class="pre">reconstructed_matrix_reshaped</span></code> (torch.Size([21296, 596])) into tensor format <code class="docutils literal notranslate"><span class="pre">reconstructed_matrix_reshaped_tensor</span></code> (torch.Size([1331, 16, 596])).</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">reshape_latent_image</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped</span><span class="p">,</span> <span class="n">dataset_class</span><span class="o">=</span><span class="s1">&#39;Visium&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">reshape_latent_image</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped</span><span class="p">,</span>
+                                                                   <span class="n">dataset_class</span><span class="o">=</span><span class="s1">&#39;Visium&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -2177,11 +2184,13 @@ torch.Size([1331, 16, 596])
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## plot the sub-spot level gene expression of the first gene in the first within spot</span>
-<span class="n">first_spot_first_variable</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">subspot_coord_expr_adata</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span> <span class="n">adata</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="p">(</span><span class="n">first_spot_first_variable</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span>
+ <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">subspot_coord_expr_adata</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span>
+                                         <span class="n">adata</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dataset_class</span><span class="o">=</span><span class="s2">&quot;Visium&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;first_spot_first_variable shape:&quot;</span><span class="p">,</span> <span class="n">first_spot_first_variable</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="n">fstplt</span><span class="o">.</span><span class="n">subspot_expr</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">first_spot_first_variable</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </pre></div>
@@ -2203,11 +2212,13 @@ first_spot_first_variable shape: (16,)
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Get the sub-spot level gene expression of all genes in all within spots</span>
-<span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">all_spot_all_variable</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">adata_spot</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">subspot_coord_expr_adata</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span> <span class="n">adata</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">)</span>
+<span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">all_spot_all_variable</span><span class="p">,</span>
+ <span class="n">C2</span><span class="p">,</span> <span class="n">adata_spot</span><span class="p">)</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">subspot_coord_expr_adata</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span>
+                                                <span class="n">adata</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span> <span class="n">dataset_class</span><span class="o">=</span><span class="s2">&quot;Visium&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;all_spot_all_variable shape:&quot;</span><span class="p">,</span> <span class="n">all_spot_all_variable</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">adata_spot</span><span class="p">)</span>
 </pre></div>
@@ -2223,10 +2234,19 @@ AnnData object with n_obs × n_vars = 21296 × 596
     obs: &#39;x&#39;, &#39;y&#39;
 </pre></div></div>
 </div>
-<p>Here, <code class="docutils literal notranslate"><span class="pre">adata_spot</span></code> is the inferred super-resolved gene expression data with 16<span class="math notranslate nohighlight">\(\times\)</span> solution.</p>
+<p>Here, <code class="docutils literal notranslate"><span class="pre">adata_spot</span></code> is the inferred super-resolved gene expression data with 16X solution.</p>
 <p>3.3 Impute the gene expression of sub-spots</p>
-<p>Input: two input files: - <code class="docutils literal notranslate"><span class="pre">adata</span></code>: original spot-level gene expression data (within spots). - <code class="docutils literal notranslate"><span class="pre">adata_spot</span></code>: inferred super-resolved gene expression data (within spots).</p>
-<p>Input: three input files: - <code class="docutils literal notranslate"><span class="pre">sudo_adata</span></code>: Imputed data using the nearest <code class="docutils literal notranslate"><span class="pre">k</span></code> neighbors of within spots (here <code class="docutils literal notranslate"><span class="pre">k=6</span></code>). - <code class="docutils literal notranslate"><span class="pre">adata_impt</span></code>: <code class="docutils literal notranslate"><span class="pre">=</span> <span class="pre">w*adata_spot</span> <span class="pre">+</span> <span class="pre">(1-w)*sudo_adata</span></code>, predicted super-resolved gene expression data (here <code class="docutils literal notranslate"><span class="pre">w=0.5</span></code>). - <code class="docutils literal notranslate"><span class="pre">data_impt</span></code>: predicted super-resolved gene expression data in tensor form (within spots).</p>
+<div class="line-block">
+<div class="line">Input: two input files:</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">adata</span></code>: original spot-level gene expression data (within spots).</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">adata_spot</span></code>: inferred super-resolved gene expression data (within spots).</div>
+</div>
+<div class="line-block">
+<div class="line">Input: three input files:</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">sudo_adata</span></code>: Imputed data using the nearest <code class="docutils literal notranslate"><span class="pre">k</span></code> neighbors of within spots (here <code class="docutils literal notranslate"><span class="pre">k=6</span></code>).</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">adata_impt</span></code>: <code class="docutils literal notranslate"><span class="pre">=</span> <span class="pre">w*adata_spot</span> <span class="pre">+</span> <span class="pre">(1-w)*sudo_adata</span></code>, predicted super-resolved gene expression data (here <code class="docutils literal notranslate"><span class="pre">w=0.5</span></code>).</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">data_impt</span></code>: predicted super-resolved gene expression data in tensor form (within spots).</div>
+</div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
 </pre></div>
@@ -2242,7 +2262,7 @@ AnnData object with n_obs × n_vars = 21296 × 596
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
---- 4.5033488273620605 seconds ---
+--- 4.314451217651367 seconds ---
 AnnData object with n_obs × n_vars = 21296 × 596
     obs: &#39;x&#39;, &#39;y&#39;
     var: &#39;gene_ids&#39;, &#39;feature_types&#39;, &#39;genome&#39;, &#39;mt&#39;, &#39;n_cells_by_counts&#39;, &#39;mean_counts&#39;, &#39;log1p_mean_counts&#39;, &#39;pct_dropout_by_counts&#39;, &#39;total_counts&#39;, &#39;log1p_total_counts&#39;, &#39;n_cells&#39;
@@ -2287,7 +2307,12 @@ data_impt_reshape shape: torch.Size([1331, 596])
 </div>
 </div>
 <p>3.4 Correlation: Selected gene、all spots and all genes、mean correlation box</p>
-<p>The correlation can be used as an measure to evalute the gene expression prediction performance. Here we provide three function: - <code class="docutils literal notranslate"><span class="pre">sele_gene_cor</span></code>: show the selected gene correlation (Reconstructed by FineST vs. Original) - <code class="docutils literal notranslate"><span class="pre">mean_cor</span></code> : calculate the mean correlation of all spots or all genes. - <code class="docutils literal notranslate"><span class="pre">mean_cor_box</span></code> : box plot of correlation for all spots or all genes.</p>
+<div class="line-block">
+<div class="line">The correlation can be used as a measure to evaluate the gene expression prediction performance. Here we provide three functions:</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">sele_gene_cor</span></code>: show the selected gene correlation (Reconstructed by FineST vs. Original).</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">mean_cor</span></code> : calculate the mean correlation of all spots or all genes.</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">mean_cor_box</span></code> : box plot of correlation for all spots or all genes.</div>
+</div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
 </pre></div>
@@ -2325,7 +2350,7 @@ data_impt_reshape shape: torch.Size([1331, 596])
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-[2024-11-11 21:10:37] INFO - Running correlation task...
+[2024-11-11 22:09:43] INFO - Running correlation task...
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -2343,7 +2368,7 @@ Mean Pearson correlation coefficient--reconf2: 0.8535
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-[2024-11-11 21:10:39] INFO - Running correlation task DINE!
+[2024-11-11 22:09:44] INFO - Running correlation task DINE!
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -2374,7 +2399,7 @@ Mean cosine similarity--reconf2: 0.6075
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-[2024-11-11 21:10:39] INFO - Running Gene Correlation task...
+[2024-11-11 22:09:44] INFO - Running Gene Correlation task...
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -2392,7 +2417,7 @@ Mean Pearson correlation coefficient--reconf2: 0.8845
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-[2024-11-11 21:10:39] INFO - Running Gene Correlation task DINE!
+[2024-11-11 22:09:44] INFO - Running Gene Correlation task DINE!
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -2445,7 +2470,11 @@ Mean cosine similarity--reconf2: 0.6075
 <section id="4.-Infer-gene-expression-of-%22within-spot%22-and-%22between-spot%22">
 <h2>4. Infer gene expression of “within spot” and “between spot”<a class="headerlink" href="#4.-Infer-gene-expression-of-%22within-spot%22-and-%22between-spot%22" title="Permalink to this heading"></a></h2>
 <p>4.1 Get all spot coordinates (within spot &amp; between spot) of image embeddings</p>
-<p>Input: two input file pathways: - <code class="docutils literal notranslate"><span class="pre">file_paths_spot</span></code>: image embedding, of within spots, from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>. - <code class="docutils literal notranslate"><span class="pre">file_paths_between_spot</span></code>: image embedding, of between spots, from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>.</p>
+<div class="line-block">
+<div class="line">Input: two input file pathways:</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">file_paths_spot</span></code>: image embedding, of within spots, from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>.</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">file_paths_between_spot</span></code>: image embedding, of between spots, from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>.</div>
+</div>
 <p>For NPC dataset, the image embedding file can be downloaded <a class="reference external" href="https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo">Goole Drive</a>.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
@@ -2576,11 +2605,13 @@ file_paths_all number: 5039
 <div class="admonition note">
 <p><strong>Note</strong> The above two cells for <code class="docutils literal notranslate"><span class="pre">section</span> <span class="pre">4.1</span></code> only need to be run once, aiming to generate the ordered ST spot coordinates <code class="docutils literal notranslate"><span class="pre">position_order_all.csv</span></code> according to image pixel coordinates.</p>
 </div>
-<blockquote>
-<div><p>iv&gt;s.</p>
-</div></blockquote>
 <p>4.2 Load all spot image embeddings with their coordinates</p>
-<p>Input: three input file pathway: - <code class="docutils literal notranslate"><span class="pre">file_paths_spot</span></code>: image embedding, of within spots, from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>. - <code class="docutils literal notranslate"><span class="pre">file_paths_between_spot</span></code>: image embedding, of between spots, from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>. - <code class="docutils literal notranslate"><span class="pre">spatial_pos_path</span></code>: ordered all ST spot coordinates from above cell, can be found in <code class="docutils literal notranslate"><span class="pre">FineST/Dataset/NPC/ContrastP1geneLR/position_order_all.csv</span></code></p>
+<div class="line-block">
+<div class="line">Input: three input file pathway:</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">file_paths_spot</span></code>: image embedding, of within spots, from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>.</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">file_paths_between_spot</span></code>: image embedding, of between spots, from <strong>Setp0</strong> <code class="docutils literal notranslate"><span class="pre">HIPT_image_feature_extract.py</span></code>.</div>
+<div class="line">- <code class="docutils literal notranslate"><span class="pre">spatial_pos_path</span></code>: ordered all ST spot coordinates from above cell, can be found in <code class="docutils literal notranslate"><span class="pre">FineST/Dataset/NPC/ContrastP1geneLR/position_order_all.csv</span></code></div>
+</div>
 <p>For NPC dataset, the image embedding file can be downloaded <a class="reference external" href="https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo">Goole Drive</a>.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
@@ -2598,11 +2629,11 @@ file_paths_all number: 5039
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># load params</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## load params</span>
 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">parameter_file_path</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
     <span class="n">params</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">json_file</span><span class="p">)</span>
 
-<span class="c1"># load models</span>
+<span class="c1">## load models</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">dir_name</span><span class="p">,</span> <span class="n">parameter_file_path</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">)</span>
 <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 <span class="c1"># print(&quot;model&quot;, model)</span>
@@ -2649,7 +2680,7 @@ file_paths_all number: 5039
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-[2024-11-11 21:10:43] INFO - Running inference tesk between spot...
+[2024-11-11 22:09:49] INFO - Running inference tesk between spot...
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -2668,8 +2699,8 @@ device cuda:0
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00,  3.61it/s]
-[2024-11-11 21:10:44] INFO - Running inference tesk between spot DONE!
+100%|█████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00,  3.71it/s]
+[2024-11-11 22:09:49] INFO - Running inference tesk between spot DONE!
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -2682,7 +2713,7 @@ torch.Size([5039, 16, 384])
 1
 ***** *****
 Finished extractting image_between_spot data
---- 0.32469749450683594 seconds ---
+--- 0.3137013912200928 seconds ---
 recon_ref_adata_image_f2: (5039, 596)
 </pre></div></div>
 </div>
@@ -2725,7 +2756,8 @@ Are there any duplicate rows? : False
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">reshape_latent_image</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped</span><span class="p">,</span> <span class="n">dataset_class</span><span class="o">=</span><span class="s1">&#39;Visium&#39;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">reshape_latent_image</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped</span><span class="p">,</span>
+                                                                   <span class="n">dataset_class</span><span class="o">=</span><span class="s1">&#39;Visium&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -2739,11 +2771,13 @@ torch.Size([5039, 16, 596])
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Get the sub-spot level gene expression of all genes in all spots</span>
-<span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">all_spot_all_variable</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">adata_spot_all</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">subspot_coord_expr_adata</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span> <span class="n">spatial_loc_all</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">)</span>
+<span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">all_spot_all_variable</span><span class="p">,</span>
+ <span class="n">C2</span><span class="p">,</span> <span class="n">adata_spot_all</span><span class="p">)</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">subspot_coord_expr_adata</span><span class="p">(</span><span class="n">reconstructed_matrix_reshaped_tensor</span><span class="p">,</span>
+                                                    <span class="n">spatial_loc_all</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span> <span class="n">dataset_class</span><span class="o">=</span><span class="s2">&quot;Visium&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;all_spot_all_variable shape:&quot;</span><span class="p">,</span> <span class="n">all_spot_all_variable</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">adata_spot_all</span><span class="p">)</span>
 </pre></div>
@@ -2775,7 +2809,8 @@ AnnData object with n_obs × n_vars = 80624 × 596
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sudo_adata_all</span><span class="p">,</span> <span class="n">adata_impt_all</span><span class="p">,</span> <span class="n">data_impt_all</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">impute_adata</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">adata_spot_all</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sudo_adata_all</span><span class="p">,</span> <span class="n">adata_impt_all</span><span class="p">,</span> <span class="n">data_impt_all</span> <span class="o">=</span> <span class="n">fst</span><span class="o">.</span><span class="n">impute_adata</span><span class="p">(</span><span class="n">adata</span><span class="p">,</span> <span class="n">adata_spot_all</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span>
+                                                                 <span class="n">gene_hv</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">sudo_adata_all</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">adata_impt_all</span><span class="p">)</span>
 </pre></div>
@@ -2786,7 +2821,7 @@ AnnData object with n_obs × n_vars = 80624 × 596
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
---- 16.962363719940186 seconds ---
+--- 16.544437885284424 seconds ---
 AnnData object with n_obs × n_vars = 80624 × 596
     obs: &#39;x&#39;, &#39;y&#39;
     var: &#39;gene_ids&#39;, &#39;feature_types&#39;, &#39;genome&#39;, &#39;mt&#39;, &#39;n_cells_by_counts&#39;, &#39;mean_counts&#39;, &#39;log1p_mean_counts&#39;, &#39;pct_dropout_by_counts&#39;, &#39;total_counts&#39;, &#39;log1p_total_counts&#39;, &#39;n_cells&#39;
@@ -2805,7 +2840,7 @@ AnnData object with n_obs × n_vars = 80624 × 596
 </div>
 </div>
 <div class="admonition note">
-<p><strong>Note</strong> Here, <code class="docutils literal notranslate"><span class="pre">adata_impt_all</span></code> is the imputed aub-spot-level gene expression from FineST. <code class="docutils literal notranslate"><span class="pre">patient1_adata_all.h5ad</span></code> contains about 1331$:nbsphinx-math:<cite>times</cite><span class="math notranslate nohighlight">\(4\)</span><span class="math">\times</span><span class="math notranslate nohighlight">\(16 sub-spots. (1331 within spots, 1331\)</span><span class="math">\times</span><span class="math notranslate nohighlight">\(3 between spots, 16\)</span>:nbsphinx-math:<a href="#id1"><span class="problematic" id="id2">`</span></a>times`$ resolution).</p>
+<p><strong>Note</strong> Here, <code class="docutils literal notranslate"><span class="pre">adata_impt_all</span></code> is the imputed sub-spot-level gene expression from FineST. <code class="docutils literal notranslate"><span class="pre">patient1_adata_all.h5ad</span></code> contains about 1331x4x16 sub-spots. (1331 within spots, 1331x3 between spots, 16x resolution).</p>
 </div>
 <p>5.2 Convert super-resolved gene expression to spot-level and save the imputated spot-level adata</p>
 <div class="nbinput docutils container">
@@ -2873,14 +2908,15 @@ Name: x, Length: 5039, dtype: float64
 </div>
 </div>
 <div class="admonition note">
-<p><strong>Note</strong> Here, <code class="docutils literal notranslate"><span class="pre">adata_impt_spot</span></code> is the imputed aub-spot-level gene expression from FineST. <code class="docutils literal notranslate"><span class="pre">patient1_adata_all_spot.h5ad</span></code> contains about 1331$:nbsphinx-math:<cite>times</cite><span class="math notranslate nohighlight">\(4 spots. (1331 within spots, 1331\)</span><span class="math">\times`$3 between spots), it is integrated from ``patient1_adata_all.h5ad`</span> using the <code class="docutils literal notranslate"><span class="pre">reshape_latent_image</span></code> function.</p>
+<p><strong>Note</strong> Here, <code class="docutils literal notranslate"><span class="pre">adata_impt_spot</span></code> is the imputed sub-spot-level gene expression from FineST. <code class="docutils literal notranslate"><span class="pre">patient1_adata_all_spot.h5ad</span></code> contains about 1331x4 spots. (1331 within spots, 1331x3 between spots), it is integrated from <code class="docutils literal notranslate"><span class="pre">patient1_adata_all.h5ad</span></code> using the <code class="docutils literal notranslate"><span class="pre">reshape_latent_image</span></code> function.</p>
 </div>
 <p>5.3 Visualization: gene at all spot</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fstplt</span><span class="o">.</span><span class="n">gene_expr_allspots</span><span class="p">(</span><span class="s2">&quot;CD70&quot;</span><span class="p">,</span> <span class="n">spatial_loc_all</span><span class="p">,</span> <span class="n">adata_impt_all_reshape</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span> <span class="s1">&#39;FineST all spot&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fstplt</span><span class="o">.</span><span class="n">gene_expr_allspots</span><span class="p">(</span><span class="s2">&quot;CD70&quot;</span><span class="p">,</span> <span class="n">spatial_loc_all</span><span class="p">,</span> <span class="n">adata_impt_all_reshape</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span>
+                          <span class="s1">&#39;FineST all spot&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -2912,7 +2948,8 @@ CD70 gene expression:
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fstplt</span><span class="o">.</span><span class="n">gene_expr_allspots</span><span class="p">(</span><span class="s2">&quot;CD70&quot;</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">adata_impt_all</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span> <span class="s1">&#39;FineST all sub-spot&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fstplt</span><span class="o">.</span><span class="n">gene_expr_allspots</span><span class="p">(</span><span class="s2">&quot;CD70&quot;</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">adata_impt_all</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">gene_hv</span><span class="p">,</span>
+                          <span class="s1">&#39;FineST all sub-spot&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -2939,38 +2976,17 @@ CD70 gene expression:
 <img alt="_images/NPC_Train_Impute_102_1.png" src="_images/NPC_Train_Impute_102_1.png" />
 </div>
 </div>
-<p>For NPC dataset, the the above four <code class="docutils literal notranslate"><span class="pre">.h5ad</span></code> adata files can be downloaded <a class="reference external" href="https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo">Goole Drive</a> .</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
-</pre></div>
-</div>
-</div>
+<p>For NPC dataset, the the above four <code class="docutils literal notranslate"><span class="pre">.h5ad</span></code> adata files can be downloaded from <a class="reference external" href="https://drive.google.com/drive/folders/1ypaTohLM2lP4EnKeYTS6QUvv-ymcRVZo">Goole Drive</a>.</p>
 </section>
 </section>
 
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Crop_ROI_image.html" class="btn btn-neutral float-left" title="Crop image of ROI" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="CRC16_Train_Impute.html" class="btn btn-neutral float-right" title="FineST in CRC Visium HD data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

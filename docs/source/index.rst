@@ -14,7 +14,7 @@ Home
 About FineST
 ============
 
-**FineST** (**Fine**-grained **S**patial **T**ranscriptomic) is a computational method and toolbox 
+**FineST** (**Fine** -grained **S** patial **T** ranscriptomic) is a computational method and toolbox 
 to identify the super-resolved spatial co-expression (i.e., spatial association) 
 between a pair of ligand and receptor.
 
