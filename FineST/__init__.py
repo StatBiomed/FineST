@@ -11,7 +11,6 @@ from .train import *
 from .inference import *
 from .evaluation import * 
 from .downloadData import * 
-# from .HIPT_image_feature_extract import * 
 from .SparseAEH import *
 from .SpatialDM import *
 from .plottings import *

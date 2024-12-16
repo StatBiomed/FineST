@@ -2,8 +2,7 @@
 FineST: Fine-grained Spatial Transcriptomic
 ===========================================
 
-
-A tatistical model and toolbox to identify the super-resolved ligand-receptor interaction 
+A statistical model and toolbox to identify the super-resolved ligand-receptor interaction 
 with spatial co-expression (i.e., spatial association). 
 Uniquely, FineST can distinguish co-expressed ligand-receptor pairs (LR pairs) 
 from spatially separating pairs at sub-spot level or single-cell level, 
@@ -62,7 +61,7 @@ Then install pytorch, refer to `pytorch installation <https://pytorch.org/get-st
 
 Verify the installation using the following command:
 
-.. code-block:: bash
+.. code-block:: text
 
    python
    >>> import torch
@@ -103,8 +102,9 @@ using ``Spot_interpolate.py``.
 .. * The spots feature interpolation time is: 2.549 seconds
 .. * # of interpolated between-spots are: 2.786 times vs. original within-spots
 .. * # 0f final all spots are: 3.786 times vs. original within-spots
-with **Input: ** ``tissue_positions_list.csv`` - Locations of ``within spots`` (n),  
-and **Output: **  ``_position_add_tissue.csv``- Locations of ``between spots`` (m ~= 3n)
+   
+with **Input:**  ``tissue_positions_list.csv`` - Locations of ``within spots`` (n), 
+and **Output:**  ``_position_add_tissue.csv``- Locations of ``between spots`` (m ~= 3n).
 
 
 .. **Input file:**

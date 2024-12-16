@@ -1051,7 +1051,7 @@ def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, marker='o', s=2,
 
     # Save the figure if a save path is provided
     if save_path is not None:
-        fig.savefig(save_path, save_path, format='pdf', dpi=300, bbox_inches='tight')
+        fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
 
 def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22, 
@@ -1067,7 +1067,7 @@ def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22,
 
     # Save the figure if a save path is provided
     if save_path is not None:
-        fig.savefig(save_path, save_path, format='pdf', dpi=300, bbox_inches='tight')
+        fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
 
 def subspot_expr(C, value, marker='o', s=1800, save_path=None):
@@ -1079,7 +1079,7 @@ def subspot_expr(C, value, marker='o', s=1800, save_path=None):
 
     # Save the figure if a save path is provided
     if save_path is not None:
-        fig.savefig(save_path, save_path, format='pdf', dpi=300, bbox_inches='tight')
+        fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
 
 ###########################################
@@ -1180,11 +1180,6 @@ def mean_cor_box(adata, data_impt_reshape, gene_only=False, save_path=None):
     if save_path is not None:
         plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
     plt.show()
-
-
-
-
-
 
 
 def generate_colormap(number_of_distinct_colors, number_of_shades = 7):
@@ -1477,71 +1472,3 @@ def chord_celltype_allpairs(adata, color_dic=None,
             export_png(grid, filename=save)
     show(grid)
     return grid
-
-
-
-
-
-# def plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r, **kwargs):
-#     i = pd.Series(selected_ind == pair).idxmax()
-#     L = sample.uns['ligand'].loc[pair].dropna().values
-#     R = sample.uns['receptor'].loc[pair].dropna().values
-#     l1, l2 = len(L), len(R)
-    
-#     if isinstance(sample.obsm['spatial'], pd.DataFrame):
-#         spatial_loc = sample.obsm['spatial'].values
-#     else:
-#         spatial_loc = sample.obsm['spatial']
-    
-#     plt.figure(figsize=figsize)
-#     plt.subplot(1, 5, 1)
-#     plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=spots.loc[pair], cmap=cmap,
-#                 vmax=1, **kwargs)
-#     plt_util('Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots')
-    
-#     for l in range(l1):
-#         plt.subplot(1, 5, 2 + l)
-#         plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,L[l]].X.toarray(),
-#                     cmap=cmap_l, **kwargs)
-#         plt_util('Ligand: ' + L[l])
-#     for l in range(l2):
-#         plt.subplot(1, 5, 2 + l1 + l)
-#         plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,R[l]].X.toarray(),
-#                     cmap=cmap_r, **kwargs)
-#         plt_util('Receptor: ' + R[l])
-
-# def plot_pairs(sample, pairs_to_plot, pdf=None, figsize=(35, 5),
-#                cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', **kwargs):
-#     """
-#     plot selected spots as well as LR expression.
-#     :param sample: AnnData object.
-#     :param pairs_to_plot: list or arrays. pair name(s), should be from spatialdm_local pairs .
-#     :param pdf: str. pdf file prefix. save plots in a pdf file.
-#     :param figsize: figsize for each pair. Default to (35, 5).
-#     :param markersize: markersize for each spot. Default
-#     :param cmap: cmap for selected local spots.
-#     :param cmap_l: cmap for selected ligand. If None, no subplot for ligand expression.
-#     :param cmap_r: cmap for selected receptor. If None, no subplot for receptor expression
-#     :return: subplots of spatial scatter plots, 1 for local Moran p-values, others for the original expression values
-#     """
-#     if sample.uns['local_stat']['local_method'] == 'z-score':
-#         selected_ind = sample.uns['local_z_p'].index
-#         spots = 1 - sample.uns['local_z_p']
-#     if sample.uns['local_stat']['local_method'] == 'permutation':
-#         selected_ind = sample.uns['local_perm_p'].index
-#         spots = 1 - sample.uns['local_perm_p']
-#     if pdf != None:
-#         with PdfPages(pdf + '.pdf') as pdf:
-#             for pair in pairs_to_plot:
-#                 plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap=cmap,
-#                                    cmap_l=cmap_l, cmap_r=cmap_r, **kwargs)
-#                 pdf.savefig()
-#                 plt.show()
-#                 plt.close()
-
-#     else:
-#         for pair in pairs_to_plot:
-#             plot_selected_pair(sample, pair, spots, selected_ind, figsize, cmap=cmap,
-#                                cmap_l=cmap_l, cmap_r=cmap_r, **kwargs)
-#             plt.show()
-#             plt.close()
