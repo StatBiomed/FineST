@@ -4,9 +4,13 @@ from .utils import *
 from matplotlib.path import Path
 import numpy as np
 from skimage import draw, measure, io
+import squidpy as sq
+import matplotlib.pyplot as plt
 from PIL import Image
 import scanpy as sc
 Image.MAX_IMAGE_PIXELS = None
+
+
 
 def create_mask(polygon, shape):
     """Create a mask for the given shape
@@ -114,3 +118,43 @@ def crop_img_adata(roi_path, img_path, adata_path, crop_img_path, crop_adata_pat
         adata_roi.write(crop_adata_path)
 
     return cropped_img, adata_roi
+
+
+def adata_nuclei_filter(adata_sp, img_path, whole_path, roi_path):
+    coord_cell = adata_sp.uns['cell_locations']
+    coord_cell = coord_cell.dropna()
+    coord_cell.columns = ['pxl_row_in_fullres', 'pxl_col_in_fullres', 
+                          'spot_index', 'cell_index', 'cell_nums']
+    
+    image = plt.imread(img_path)
+    img = sq.im.ImageContainer(image)
+    coord_image = pd.read_csv(whole_path)
+    print("Coordinates from napari package: \n", coord_image)
+    _, coord_image = create_mask(coord_image, img.shape[:2])
+
+    ## adjust adata_sp.obsm["spatial"] using the cropped whole image coords
+    if coord_image[2][0] == 0: 
+        adata_sp.obsm["spatial"] = adata_sp.obsm["spatial"] + \
+                                    np.array([coord_image[0][1], 0])
+        coord_cell[['pxl_row_in_fullres', 'pxl_col_in_fullres']] += np.array([coord_image[0][1], 0])
+    else: 
+        adata_sp.obsm["spatial"] = adata_sp.obsm["spatial"] + \
+                                    np.array([coord_image[0][1], coord_image[0][0]])
+        coord_cell[['pxl_row_in_fullres', 'pxl_col_in_fullres']] += np.array([coord_image[0][1], coord_image[0][0]])
+    print("adata_sp.obsm: spatial: \n", adata_sp.obsm["spatial"])
+
+    ## select adata_sp.obsm["spatial"] using the cropped ROI image coords
+    roi_coords = pd.read_csv(roi_path)
+    print("ROI coordinates from napari package: \n", roi_coords)
+    _, roi_coords = create_mask(roi_coords, img.shape[:2])
+    roi_yx = roi_coords[:, [1, 0]]   
+    ad_sp_crop = adata_sp[Path(roi_yx).contains_points(adata_sp.obsm["spatial"]), :].copy()
+
+    ## filter
+    ad_sp_crop.uns['cell_locations'] = (
+        ad_sp_crop.uns['cell_locations']
+        .loc[ad_sp_crop.uns['cell_locations'].spot_index.isin(ad_sp_crop.obs.index)]
+        .reset_index(drop=True)
+    )
+    
+    return ad_sp_crop, coord_image, coord_cell

@@ -15,6 +15,7 @@ Step0: Image cropping and nuclei segmentation (for *Visium*)
 ------------------------------------------------------------
 
 .. code-block:: bash
+
     conda activate FineST
     python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
         --tissue NPC1_allspot_p075_test \
@@ -45,6 +46,7 @@ Step0: Image cropping and nuclei segmentation (for *Visium HD*)
 For *Visium HD*, crop the ROI image with corresponding adata, save them for nuclei-segmentation. 
 
 .. code-block:: bash
+
     conda activate FineST
     python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
         --tissue CRC16um_ROI_test \
@@ -62,6 +64,7 @@ So, the fillowing script provides the achievement of cropping the measured/whole
 where ``SelectedShapes.csv`` is the selected adata-measured region using `napari` package.
 
 .. code-block:: bash
+
    conda activate FineST
    python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
        --tissue CRC_human_ROI \
@@ -72,7 +75,7 @@ where ``SelectedShapes.csv`` is the selected adata-measured region using `napari
 
 The 10x Visium HD dataset (CRC 16um-binned) can be downloaded from CRC16um in `Goole Drive <https://drive.google.com/drive/folders/1XQiRCyZv_xFrjjHMc3TrQ-R_srSwnGLE?dmr=1&ec=wgc-drive-globalnav-goto>`_ .
 
-* where ``ROI4.csv`` and ```SelectedShapes.csv``` are two coordinate files used in this illustration.
+* where ``ROI4.csv`` and ``SelectedShapes.csv`` are two coordinate files used in this illustration.
 * `ROI1.csv`, `ROI2.csv` and `ROI3.csv` are other three ROIs in paper, 
 * `Rec1.csv`, `Rec2.csv` and `Rec3.csv` are rectangular regions inpaper. 
 * `Colon_Cancer_square_016um.h5ad` can be found at `figshare <https://figshare.com/articles/dataset/FineST_supplementary_data/26763241>`_ .

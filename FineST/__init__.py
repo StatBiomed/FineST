@@ -16,4 +16,5 @@ from .SparseAEH import *
 from .SpatialDM import *
 from .plottings import *
 from .cropping import *
+from .celltype import *
 

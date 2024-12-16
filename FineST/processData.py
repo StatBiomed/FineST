@@ -1,18 +1,44 @@
 import pandas as pd
 import scanpy as sc
-import numpy as np
-from anndata import AnnData
 import time
 from scipy.sparse import csr_matrix
 from .utils import *
 from .inference import *
 import pickle
+import json
+from pathlib import Path
 
 
-def parquet2csv(path):
+########################################
+# 2024.12.2 add json file
+########################################
+def json_load(json_path):
+    """
+    This function loads the scale factors from a Visium dataset.
 
-    os.chdir(str(path))
-    positions = pd.read_parquet("tissue_positions.parquet")
+    Parameters:
+    path (str): The base path to the dataset.
+    json_path (str): The relative path from the base path to the JSON file.
+
+    Returns:
+    dict: A dictionary containing the scale factors.
+    """
+    # Combine the base path and the relative path
+    path_to_visium_bundle = Path(str(json_path)).expanduser()
+
+    # Open the JSON file and load the scale factors
+    with open(path_to_visium_bundle / "scalefactors_json.json") as file:
+        visium_scale_factors = json.load(file)
+
+    return visium_scale_factors
+
+
+def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
+
+    os.chdir(str(parquet_path))
+    positions = pd.read_parquet(parquet_name)
+
+    # positions = pd.read_parquet(parquet_path)
     
     positions.set_index('barcode', inplace=True)
     positions.columns = ['in_tissue', 'array_row', 'array_col', 'pxl_col_in_fullres', 'pxl_row_in_fullres']
@@ -311,6 +337,10 @@ def image_coord_merge(df, position, dataset):
         return merged_df.rename(columns={col_x: 'x', col_y: 'y'})
 
     # Define merge_dfs_HD function within the new function
+
+    #######################################################
+    # 2024.12.04 postion doesn't match image
+    #######################################################
     def merge_dfs_HD(df, position):
         position['pxl_col_in_fullres'] = pd.to_numeric(position['pxl_col_in_fullres'], errors='coerce').round(6)
         position['pxl_row_in_fullres'] = pd.to_numeric(position['pxl_row_in_fullres'], errors='coerce').round(6)
@@ -319,10 +349,19 @@ def image_coord_merge(df, position, dataset):
         df['pixel_x'] = df['pixel_x'].astype('float64').round(6)
         df['pixel_y'] = df['pixel_y'].astype('float64').round(6)
 
-        in_df = position['pixel_x'].isin(df['pixel_x']) & position['pixel_y'].isin(df['pixel_y'])
-        merged_df = position[in_df].reset_index(drop=True)
-        merged_df = merged_df.rename(columns={'array_row': 'x', 'array_col': 'y'})
-        return merged_df
+        merged_df = pd.merge(df, position, on=['pixel_x', 'pixel_y'], how='left')
+        cols = merged_df.columns.tolist()
+        cols.remove('pixel_x')
+        cols.remove('pixel_y')
+        merged_df = merged_df[cols + ['pixel_x', 'pixel_y']]
+        col_x = merged_df.columns[-4]
+        col_y = merged_df.columns[-3]
+        return merged_df.rename(columns={col_x: 'x', col_y: 'y'})
+
+    #     in_df = position['pixel_x'].isin(df['pixel_x']) & position['pixel_y'].isin(df['pixel_y'])
+    #     merged_df = position[in_df].reset_index(drop=True)
+    #     merged_df = merged_df.rename(columns={'array_row': 'x', 'array_col': 'y'})
+    #     return merged_df
 
     # Use dataset to decide which function to call
     if dataset == 'Visium':
@@ -388,7 +427,7 @@ def update_adata_coord_HD(matrix_order, spotID_order, gene_hv, position_image):
 
 
 
-def impute_adata(adata, adata_spot, C2, gene_hv, k=None, w=0.5):
+def impute_adata(adata, adata_spot, C2, gene_hv, k=None):
     ## Prepare impute_adata
     # adata_know: adata (original) 1331 × 596
     # adata_spot: all subspot 21296 × 596
@@ -398,7 +437,7 @@ def impute_adata(adata, adata_spot, C2, gene_hv, k=None, w=0.5):
     adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
 
     sudo = pd.DataFrame(C2, columns=["x", "y"])
-    sudo_adata = anndata.AnnData(np.zeros((sudo.shape[0], len(gene_hv))), obs=sudo, var=adata.var)
+    sudo_adata = sc.AnnData(np.zeros((sudo.shape[0], len(gene_hv))), obs=sudo, var=adata.var)
 
     ## Impute_adata
     start_time = time.time()
@@ -415,7 +454,9 @@ def impute_adata(adata, adata_spot, C2, gene_hv, k=None, w=0.5):
         sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
 
     print("--- %s seconds ---" % (time.time() - start_time))
+    return sudo_adata
 
+def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5):
     # sudo_adata: Imputed data using k neighbours of within spots
     # adata_spot: Inferred super-resolved gene expression data with 16x solution
     # adata_impt: Add inference data `adata_spot` and imputed data ``, with weight `w` and `1-w`
@@ -425,5 +466,4 @@ def impute_adata(adata, adata_spot, C2, gene_hv, k=None, w=0.5):
     adata_impt = sc.AnnData(X = pd.DataFrame(weight_impt_data))
     adata_impt.var_names = gene_hv
     adata_impt.obs = adata_spot.obs
-
-    return sudo_adata, adata_impt, data_impt
+    return adata_impt, data_impt

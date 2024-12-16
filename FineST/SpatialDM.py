@@ -118,7 +118,74 @@ def top_pattern_LR2TF(tmp, ligand_list, receptor_list, top_num=20):
     return subdf
 
 
+def pattern_LR2TF2TG(histology_results, pattern_num, R_TFdatabase, TF_TGdatabase):
+    """
+    The function takes in a DataFrame, checks if column 'g' contains two '_', if so, it splits the 'g' column value into two new rows
+    Args:
+    histology_results : a DataFrame to process
+    pattern_num : the pattern number to filter on, defaults to 0
+    R_TFdatabase : the DataFrame containing receptor to TF mapping
 
+    Returns:
+    tmp : a DataFrame after processing
+    """
+    rows = []
+
+    for i, row in histology_results.iterrows():
+        # check if column 'g' contains two '_'
+        if row['g'].count('_') == 2:
+            # split the 'g' column value into three parts
+            gene1, gene2, gene3 = row['g'].split('_')
+
+            # create two new rows, gene1_gene2 and gene1_gene3 respectively
+            new_row1 = row.copy()
+            new_row1['g'] = gene1 + '_' + gene2
+            new_row2 = row.copy()
+            new_row2['g'] = gene1 + '_' + gene3
+
+            # add the new rows to the result DataFrame
+            rows.append(new_row1)
+            rows.append(new_row2)
+        else:
+            # if column 'g' does not contain two '_', add the original row to the result DataFrame directly
+            rows.append(row)
+
+    # after the loop, create DataFrame at once
+    p0_results = pd.DataFrame(rows, columns=histology_results.columns)
+    
+    LRp0 = p0_results[p0_results['pattern']==pattern_num]['g']
+
+    Lp0 = [gene for pair in LRp0 for gene in pair.split('_')[0:1]]
+    print("This pattern contain %s unique ligand", len(set(Lp0)))
+
+    Rp0 = [gene for pair in LRp0 for gene in pair.split('_')[1:]]
+    print("This pattern contain %s unique receptor", len(set(Rp0)))
+
+    R_TFdata_df = R_TFdatabase[R_TFdatabase['receptor'].isin(Rp0)]
+    ligand = Lp0
+    receptor = Rp0
+
+    result = pd.concat([pd.DataFrame(ligand), pd.DataFrame(receptor)], axis=1)
+    result.columns = ['ligand', 'receptor']
+    result = result.dropna()
+
+    comm = result.merge(R_TFdata_df, on='receptor', how='left')
+    comm = comm.dropna()
+
+    tf_comm = [gene for gene in comm['tf']]
+    print("This pattern contain %s unique tf", len(set(tf_comm)))
+    
+    R_TFdata_TG_df = TF_TGdatabase[TF_TGdatabase['tf'].isin(tf_comm)]
+    R_TFdata_TG_df
+    comm_all = comm.merge(R_TFdata_TG_df, on='tf', how='right')
+    comm_all = comm_all.dropna().drop_duplicates()
+    comm_all
+    
+    tmp = comm_all[["ligand","receptor","tf", "target", "tf_PPR"]]
+    tmp = tmp.rename(columns={"ligand": "Ligand", "receptor": "Receptor", "tf": "tf", "target": "Target", "tf_PPR": "value"})
+    tmp = tmp.drop_duplicates()
+    
+    return tmp
 
 
 def pattern_LR2TF(histology_results, pattern_num, R_TFdatabase):

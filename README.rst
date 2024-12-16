@@ -183,7 +183,7 @@ Step0: HE image feature extraction (for *Visium HD*)
 
 .. code-block:: bash
 
-   python .FineST/HIPT_image_feature_extract.py \
+   python ./FineST/HIPT_image_feature_extract.py \
       --dataset HD_CRC_16um \
       --position ./Dataset/CRC/square_016um/tissue_positions.parquet \
       --image ./Dataset/CRC/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \

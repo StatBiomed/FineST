@@ -1,23 +1,21 @@
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import pandas as pd
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
-from sklearn import linear_model
 import scipy.stats as stats
 import seaborn as sns
-#from utils import compute_pathway
 from .utils import *
-# from .sparseAEH import *
 import holoviews as hv
 from holoviews import opts, dim
-from bokeh.io import output_file, show
-from bokeh.plotting import figure
+from bokeh.io import show
 from bokeh.io import export_svg, export_png
 from bokeh.layouts import gridplot
 from scipy.sparse import csc_matrix
 from scipy import stats
 from matplotlib import gridspec
-from brokenaxes import brokenaxes
+from scipy.spatial.distance import jensenshannon
+from matplotlib.ticker import MultipleLocator
 
 hv.extension('bokeh')
 hv.output(size=200)
@@ -34,14 +32,277 @@ from scipy.stats import pearsonr
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 
-sns.set(style="white", font_scale=1.2)
-plt.rcParams["figure.figsize"] = (5, 5)
+# sns.set(style="white", font_scale=1.2)
+# plt.rcParams["figure.figsize"] = (5, 5)
 
 import matplotlib.colors as clr
 colors = ["#000003",  "#3b0f6f",  "#8c2980",   "#f66e5b", "#fd9f6c", "#fbfcbf"]
 cnt_color = clr.LinearSegmentedColormap.from_list('magma', colors, N=256)
 
 
+from scipy.stats import gaussian_kde
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
+
+
+
+#################################################
+# 2024.12.12 add PlotCell from SpatialScope: 
+#################################################
+def NucleiMap(adata, coords, annotation_list, size=0.8, alpha_img=0.3, lw=1, 
+              subset=None, palette='tab20', 
+              show_square=False, show_circle=False, legend=True, ax=None, **kwargs):
+    """
+    Plot cells with spatial coordinates.
+
+    Parameters:
+    adata : AnnData
+        Annotated data matrix.
+    annotation_list : list
+        List of annotations to color the plot.
+    size : float, optional
+        Size of the spots, by default 0.8.
+    alpha_img : float, optional
+        Alpha value for the background image, by default 0.3.
+    lw : int, optional
+        Line width for the square around spots, by default 1.
+    subset : list, optional
+        Subset of annotations to plot, by default None.
+    palette : str, optional
+        Color palette, by default 'tab20'.
+    show_square : bool, optional
+        Whether to show squares around spots, by default True.
+    legend : bool, optional
+        Whether to show the legend, by default True.
+    ax : matplotlib.axes.Axes, optional
+        Axes object to draw the plot onto, by default None.
+    kwargs : dict
+        Additional keyword arguments for sc.pl.spatial.
+
+    Returns:
+    None
+    """
+    ## Prepare data
+    merged_df = adata.uns['cell_locations'].copy()
+    test = sc.AnnData(np.zeros(merged_df.shape), obs=merged_df)
+    test.obsm['spatial'] = merged_df[["x", "y"]].to_numpy()
+    
+    ## Adjust tissue image coordinates
+    if coords[2][0] == 0: 
+        test.obsm["spatial"] += np.array([coords[0][1], 0])
+    else: 
+        test.obsm["spatial"] += np.array([coords[0][1], coords[0][0]])
+
+    test.uns = adata.uns
+
+    if subset is not None:
+        test.obs.loc[~test.obs[annotation_list].isin(subset), annotation_list] = None
+        
+    ## Plot spatial data
+    sc.pl.spatial(
+        test,
+        color=annotation_list,
+        size=size,
+        frameon=False,
+        alpha_img=alpha_img,
+        show=False,
+        palette=palette,
+        na_in_legend=False,
+        ax=ax,
+        title='',
+        sort_order=True,
+        **kwargs
+    )
+    
+    ## Add squares around spots if show_square is True
+    if show_square:
+        sf = adata.uns['spatial'][list(adata.uns['spatial'].keys())[0]]['scalefactors']['tissue_hires_scalef']
+        spot_radius = adata.uns['spatial'][list(adata.uns['spatial'].keys())[0]]['scalefactors']['spot_diameter_fullres'] / 2
+        for sloc in adata.obsm['spatial']:
+            square = mpl.patches.Rectangle(
+                (sloc[0] * sf - spot_radius * sf, sloc[1] * sf - spot_radius * sf),
+                2 * spot_radius * sf,
+                2 * spot_radius * sf,
+                ec="grey",
+                lw=lw,
+                fill=False
+            )
+            ax.add_patch(square)
+
+    
+    ## Add circles around spots if show_circle is True
+    if show_circle:
+        sf = adata.uns['spatial'][list(adata.uns['spatial'].keys())[0]]['scalefactors']['tissue_hires_scalef']
+        spot_radius = adata.uns['spatial'][list(adata.uns['spatial'].keys())[0]]['scalefactors']['spot_diameter_fullres'] / 2
+        for sloc in adata.obsm['spatial']:
+            rect = mpl.patches.Circle(
+                (sloc[0] * sf, sloc[1] * sf),
+                spot_radius * sf,
+                ec="grey",
+                lw=lw,
+                fill=False
+            )
+            ax.add_patch(rect)
+
+    
+    ## Hide axis labels
+    ax.axes.xaxis.label.set_visible(False)
+    ax.axes.yaxis.label.set_visible(False)
+    
+    ## Remove legend if not needed
+    if not legend:
+        ax.get_legend().remove()
+    
+    ## Make frame visible
+    for _, spine in ax.spines.items(): 
+        spine.set_visible(True)
+        
+    ax.set_aspect('equal', adjustable='box') 
+    ax.grid(False) 
+    ax.set_xticks([]) 
+    ax.set_yticks([])
+    
+    ax.set_title('Nuclei detection') 
+    ax.set_xlabel('X Coordinate') 
+    ax.set_ylabel('Y Coordinate')
+        
+    plt.tight_layout()
+    plt.show()
+
+
+
+#################################################
+# 2024.12.06 add PCC calculate: 
+#################################################
+def PCC(shared_visium_df, shared_xenium_df):
+    """
+    Calculates the Pearson correlation coefficient and p-value
+
+    Parameters:
+    shared_visium_df (DataFrame): The first dataframe to compute correlations.
+    shared_xenium_df (DataFrame): The second dataframe to compute correlations.
+
+    Returns:
+    columns_result_df (DataFrame): correlation coefficient and p-value for each column.
+    rows_result_df (DataFrame): correlation coefficient and p-value for each row.
+    """
+
+    # Calculate Pearson correlation coefficient and p-value for each column
+    columns_corr = []
+    columns_p_value = []
+    for column in shared_visium_df.columns:
+        corr, p_value = pearsonr(shared_visium_df[column], shared_xenium_df[column])
+        columns_corr.append(corr)
+        columns_p_value.append(p_value)
+
+    # Calculate Pearson correlation coefficient and p-value for each row
+    rows_corr = []
+    rows_p_value = []
+    for idx, row in shared_visium_df.iterrows():
+        corr, p_value = pearsonr(row, shared_xenium_df.loc[idx])
+        rows_corr.append(corr)
+        rows_p_value.append(p_value)
+
+    # Save results to dataframes
+    columns_result_df = pd.DataFrame({'Gene': shared_visium_df.columns, 
+                                      'correlation_coefficient': columns_corr, 
+                                      'p_value': columns_p_value})
+    rows_result_df = pd.DataFrame({'Sample': shared_visium_df.index, 
+                                   'correlation_coefficient': rows_corr, 
+                                   'p_value': rows_p_value})
+
+    return columns_result_df, rows_result_df
+
+#################################################
+# 2024.12.06 add PCC plot: 
+#################################################
+def compute_jsd_between_matrices(matrix1, matrix2, axis=0):
+    probabilities1 = matrix1 / np.sum(matrix1, axis=axis, keepdims=True)
+    probabilities2 = matrix2 / np.sum(matrix2, axis=axis, keepdims=True)
+    jsd = np.zeros(matrix1.shape[1 - axis])
+    for i in range(matrix1.shape[1 - axis]):
+        p, q = (probabilities1[:, i], probabilities2[:, i]) \
+            if axis == 0 else (probabilities1[i, :], probabilities2[i, :])
+        jsd[i] = jensenshannon(p, q)
+    return jsd
+
+def rmse(y_pred, y_mean_pred):
+    mse = ((y_mean_pred - y_pred)**2).mean()
+    return mse**0.5
+
+
+def plot_correlation_revised(df1, df2, column_name, x_label, y_label, title=None, 
+                             trans=False, format='pdf', save_path=None):
+    
+    merged_df = pd.merge(df1, df2, on=column_name)
+    merged_df = merged_df[np.isfinite(merged_df[x_label]) & np.isfinite(merged_df[y_label])]
+    print("merged_df:", merged_df.shape)
+
+    ## Create a main plot and two subplots for the histograms
+    fig = plt.figure(figsize=(6, 5))  
+    grid = plt.GridSpec(6, 6, hspace=0.1, wspace=0.1)  
+    x_hist = fig.add_subplot(grid[0, :-2])  
+    main_ax = fig.add_subplot(grid[1:, :-2], sharex=x_hist)  
+    y_hist = fig.add_subplot(grid[1:, -2], sharey=main_ax)  
+    # Add a subplot for the colorbar
+    cax = fig.add_subplot(grid[1:, -1])  
+
+    ## Create a scatter plot in the main plot
+    xy = np.vstack([merged_df[x_label], merged_df[y_label]])
+    density = gaussian_kde(xy)(xy)
+    norm = mcolors.Normalize(vmin=density.min(), vmax=density.max())
+    colors = cm.viridis(norm(density))
+    scatter = main_ax.scatter(merged_df[x_label], merged_df[y_label], 
+                              c=colors, alpha=0.7, label='Data points')
+
+    # created automatically.
+    main_ax.xaxis.set_major_locator(MultipleLocator(0.2))
+    main_ax.xaxis.set_major_formatter('{x:.2f}')
+    main_ax.xaxis.set_minor_locator(MultipleLocator(0.05))
+    main_ax.yaxis.set_major_locator(MultipleLocator(0.2))
+    main_ax.yaxis.set_major_formatter('{x:.2f}')
+    main_ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+
+    ## Add a colorbar
+    cb = plt.colorbar(cm.ScalarMappable(norm=norm, cmap='viridis'), cax=cax, shrink=0.5)
+    # cb.set_label('Density')
+
+    ## Add histograms for x and y data
+    sns.histplot(x=merged_df[x_label], ax=x_hist, kde=True, color='gray', 
+                 legend=False, bins=30, alpha=0.6)
+    sns.histplot(y=merged_df[y_label], ax=y_hist, kde=True, color='gray', 
+                 legend=False, bins=30, alpha=0.6, orientation='horizontal')
+    # Remove x-axis tick labels for the x_hist
+    plt.setp(x_hist.get_xticklabels(), visible=False)
+    plt.setp(y_hist.get_yticklabels(), visible=False)
+    ## Remove x-axis tick labels
+    x_hist.set_xlabel("")
+    y_hist.set_ylabel("")
+
+    ## mark genes
+    genes_to_annotate = ['TGFB1', 'BMP2']
+    for gene in genes_to_annotate:
+        gene_data = merged_df.loc[merged_df[column_name] == gene, [x_label, y_label]]
+        if not gene_data.empty:
+            main_ax.scatter(*gene_data.values[0], c='red', alpha=0.7)
+            main_ax.annotate(gene, gene_data.values[0], textcoords="offset points", 
+                             xytext=(0, 5), ha='center', fontsize=14, color='red')
+
+    ## setting
+    main_ax.set_xlabel(x_label, fontsize=12)
+    main_ax.set_ylabel(y_label, fontsize=12)
+
+    ## add Diagonal line
+    min_value = min(merged_df[x_label].min(), merged_df[y_label].min())
+    max_value = max(merged_df[x_label].max(), merged_df[y_label].max())
+    main_ax.axline((min_value, min_value), (max_value, max_value), linestyle='--', 
+                   color='gray', label='Diagonal line')
+    
+    sns.despine()
+    plt.gcf().set_dpi(300)
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
+    plt.show
 
 #################################################
 # 2024.11.28 add Sankey plot: Ligand-Receptor-TF 
@@ -50,7 +311,140 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import urllib, json
 
+def sankey_LR2TF2TG(subdf, width=600, height=400, title='Pattern 0', 
+                    save_path=None, fig_format='svg'):
+    """
+    Create a Sankey diagram from ligand-receptor-TF data and save as SVG.
+    Args:
+    subdf: a DataFrame with 'Ligand_symbol', 'Receptor_symbol', 'TF' and 'value' columns
+    save_path: the path to save the SVG file
+    """
+    
+    # # Create lists of unique node labels and their indices
+    # node_label = list(set(subdf['Ligand_symbol'].tolist() + subdf['Receptor_symbol'].tolist() + subdf['TF'].tolist()))
+    # source = [node_label.index(i) for i in subdf['Ligand_symbol'].tolist()] + [node_label.index(i) for i in subdf['Receptor_symbol'].tolist()]
+    # target = [node_label.index(i) for i in subdf['Receptor_symbol'].tolist()] + [node_label.index(i) for i in subdf['TF'].tolist()]
+    # value = subdf['value'].tolist() * 2  # assuming the value for both edges is the same
 
+
+    # Create lists of unique node labels and their indices
+    node_label = list(set(subdf['Ligand_symbol'].tolist() + 
+                          subdf['Receptor_symbol'].tolist() + 
+                          subdf['TF'].tolist()+ 
+                          subdf['Target'].tolist()))
+    
+    source = ([node_label.index(i) for i in subdf['Ligand_symbol'].tolist()] + 
+              [node_label.index(i) for i in subdf['Receptor_symbol'].tolist()] + 
+              [node_label.index(i) for i in subdf['TF'].tolist()])
+    
+    target = ([node_label.index(i) for i in subdf['Receptor_symbol'].tolist()] + 
+              [node_label.index(i) for i in subdf['TF'].tolist()] + 
+              [node_label.index(i) for i in subdf['Target'].tolist()])
+    
+    value = subdf['value'].tolist() * 3  # adjust the multiplication factor
+    
+
+    # Load color data from online JSON file
+    url = 'https://raw.githubusercontent.com/plotly/plotly.js/master/test/image/mocks/sankey_energy.json'
+    response = urllib.request.urlopen(url)
+    data = json.loads(response.read())
+    # override gray link colors with 'source' colors
+    mycol_vector_list = ['rgba(255,0,255, 0.8)' if color == "magenta" else color for color in data['data'][0]['node']['color']]
+
+
+    # # Set the number of colors you want
+    # num_colors = len(node_label)*4  # for example, use the number of nodes as the number of colors
+    # # Generate a colormap
+    # cmap = plt.get_cmap('nipy_spectral', num_colors)  # 'nipy_spectral' is a rich colorful colormap scheme
+    # # Convert colormap to a list of colors
+    # mycol_vector_list = [cmap(i) for i in range(cmap.N)]
+    # # The colors are in RGBA format ranged from 0 to 1, if you want them to be in range 0-255, use the following line
+    # mycol_vector_list = ['rgba({},{},{},{})'.format(int(r*255), int(g*255), int(b*255), a) for r, g, b, a in mycol_vector_list]
+
+
+    # Create Sankey diagram
+    data_trace = go.Sankey(
+        node = dict(
+            pad = 15,
+            thickness = 20,
+            line = dict(color = "black", width = 0.5),
+            label = node_label,
+            color = mycol_vector_list
+        ),
+        link = dict(
+            source = source,
+            target = target,
+            value = value,
+            label = node_label,
+            color = mycol_vector_list 
+        )
+    )
+
+    fig = go.Figure(data=data_trace)
+
+    fig.update_layout(
+        autosize=False,
+        width=width,
+        height=height,
+        title=title, 
+        annotations=[
+            go.layout.Annotation(
+                text="Ligand",
+                align='center',
+                showarrow=False,
+                xref='paper',
+                yref='paper',
+                x=0.0,
+                y=-0.15,
+                font=dict(size=15)
+            ),
+            go.layout.Annotation(
+                text="Receptor",
+                align='center',
+                showarrow=False,
+                xref='paper',
+                yref='paper',
+                x=0.25,
+                y=-0.15,
+                font=dict(size=15)
+            ),
+            go.layout.Annotation(
+                text="TF",
+                align='center',
+                showarrow=False,
+                xref='paper',
+                yref='paper',
+                x=0.68,
+                y=-0.15,
+                font=dict(size=15)
+            ),
+            go.layout.Annotation(
+                text="Target",
+                align='center',
+                showarrow=False,
+                xref='paper',
+                yref='paper',
+                x=1.0,
+                y=-0.15,
+                font=dict(size=15)
+            )
+        ]
+    )
+
+    # Save SVG figure
+    if save_path is not None and fig_format != 'html':
+        pio.write_image(fig, save_path, format=fig_format)
+    else:
+        fig_obj = go.Figure(fig)
+        fig_obj.write_html(str(save_path) + 'sankey_diagram.html')
+
+        from IPython.display import display, HTML
+
+        with open(str(save_path) + 'sankey_diagram.html', 'r') as f:
+            html_string = f.read()
+
+        display(HTML(html_string))
+        
 
 def sankey_LR2TF(subdf, width=600, height=400, title='Pattern 0', save_path=None, fig_format='svg'):
     """

@@ -139,7 +139,8 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
     
 
 
-def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, p=None, q=None, dataset_class=None):
+def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, pixel_step=8, 
+                             p=None, q=None, dataset_class=None):
     def get_x_y(adata, p):
         if isinstance(adata, AnnData):
             return adata.obsm['spatial'][p][0], adata.obsm['spatial'][p][1]
@@ -180,8 +181,8 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, p=None, q
                 # C[k - 1, 0] = x - 7 - 7 * 14 + (i - 1) * 14
                 # C[k - 1, 1] = y - 7 - 7 * 14 + (j - 1) * 14
                 ## 64  -- h=64/4=16 --  x-(h/2) - (4/2-1)*h
-                C[k - 1, 0] = x - 8 - 1 * 16 + (i - 1) * 16
-                C[k - 1, 1] = y - 8 - 1 * 16 + (j - 1) * 16
+                C[k - 1, 0] = x - pixel_step - 1 * (2*pixel_step) + (i - 1) * (2*pixel_step)
+                C[k - 1, 1] = y - pixel_step - 1 * (2*pixel_step) + (j - 1) * (2*pixel_step)
 
             C2[p_ * split_num:(p_ + 1) * split_num, :] = C
 
@@ -208,8 +209,8 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, p=None, q
                 j = (k - i) // N + 1
 
             # 64-16
-            C[k - 1, 0] = x - 8 - 1 * 16 + (i - 1) * 16
-            C[k - 1, 1] = y - 8 - 1 * 16 + (j - 1) * 16
+            C[k - 1, 0] = x - pixel_step - 1 * (2*pixel_step) + (i - 1) * (2*pixel_step)
+            C[k - 1, 1] = y - pixel_step - 1 * (2*pixel_step) + (j - 1) * (2*pixel_step)
 
 
     ## Establish new anndata in sub-spot level
