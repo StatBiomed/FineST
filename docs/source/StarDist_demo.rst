@@ -17,7 +17,7 @@ Step0: Image cropping and nuclei segmentation (for *Visium*)
 .. code-block:: bash
 
     conda activate FineST
-    python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
+    python ./FineST/FineST/FineST/demo/StarDist_nuclei_segmente.py \
         --tissue NPC1_allspot_p075_test \
         --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
         --adata_path ./NPC/ScanpyDataP1/V1_Human_NPC1_spatial_allspot.h5ad \
@@ -48,7 +48,7 @@ For *Visium HD*, crop the ROI image with corresponding adata, save them for nucl
 .. code-block:: bash
 
     conda activate FineST
-    python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
+    python ./FineST/FineST/FineST/demo/StarDist_nuclei_segmente.py \
         --tissue CRC16um_ROI_test \
         --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
         --roi_path ./VisiumHD/Dataset/Colon_Cancer/ResultsROIs/ROI4_shape.csv \
@@ -66,7 +66,7 @@ where ``SelectedShapes.csv`` is the selected adata-measured region using `napari
 .. code-block:: bash
 
    conda activate FineST
-   python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
+   python ./FineST/FineST/FineST/demo/StarDist_nuclei_segmente.py \
        --tissue CRC_human_ROI \
        --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
        --roi_path ./VisiumHD/Dataset/Colon_Cancer/ResultsROIs/SelectedShapes.csv \

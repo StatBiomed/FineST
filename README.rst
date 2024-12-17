@@ -92,7 +92,7 @@ using ``Spot_interpolate.py``.
 
 .. code-block:: bash
 
-   python ./FineST/Spot_interpolate.py \
+   python ./FineST/demo/Spot_interpolate.py \
       --data_path ./Dataset/NPC/ \
       --position_list tissue_positions_list.csv \
       --dataset patient1 
@@ -120,7 +120,7 @@ Then extracte the ``within spots`` HE image feature embeddings using ``HIPT_imag
 
 .. code-block:: bash
 
-   python ./FineST/HIPT_image_feature_extract.py \
+   python ./FineST/demo/HIPT_image_feature_extract.py \
       --dataset AH_Patient1 \
       --position ./Dataset/NPC/patient1/tissue_positions_list.csv \
       --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
@@ -150,7 +150,7 @@ Similarlly, extracte the ``between spots`` HE image feature embeddings using ``H
 
 .. code-block:: bash
 
-   python ./FineST/HIPT_image_feature_extract.py \
+   python ./FineST/demo/HIPT_image_feature_extract.py \
       --dataset AH_Patient1 \
       --position ./Dataset/NPC/patient1/patient1_position_add_tissue.csv \
       --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
@@ -183,7 +183,7 @@ Step0: HE image feature extraction (for *Visium HD*)
 
 .. code-block:: bash
 
-   python ./FineST/HIPT_image_feature_extract.py \
+   python ./FineST/demo/HIPT_image_feature_extract.py \
       --dataset HD_CRC_16um \
       --position ./Dataset/CRC/square_016um/tissue_positions.parquet \
       --image ./Dataset/CRC/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
@@ -210,6 +210,47 @@ Step0: HE image feature extraction (for *Visium HD*)
 
 Step1: Training FineST on the within spots
 ------------------------------------------
+
+On *Visium* dataset, if the trained weights (i.e. **weight_save_path**) have been obtained, 
+just run the following command.
+Otherwise, if you want to newly train a model, 
+you can omit **weight_save_path** from the following command.
+
+.. code-block:: bash
+
+   python ./FineST/FineST/demo/FineST_train_infer.py \
+      --system_path '/mnt/lingyu/nfs_share2/Python/' \
+      --weight_path 'FineST/FineST_local/Finetune/' \
+      --parame_path 'FineST/FineST/parameter/parameters_NPC_P10125.json' \
+      --dataset_class 'Visium' \
+      --gene_selected 'CD70' \
+      --LRgene_path 'FineST/FineST/Dataset/LRgene/LRgene_CellChatDB_baseline.csv' \
+      --visium_path 'FineST/FineST/Dataset/NPC/patient1/tissue_positions_list.csv' \
+      --image_embed_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_64_16/' \
+      --spatial_pos_path 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/position_order.csv' \
+      --reduced_mtx_path 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/harmony_matrix.npy' \
+      --weight_save_path 'FineST/FineST_local/Finetune/20240125140443830148' \
+      --figure_save_path 'FineST/FineST_local/Dataset/NPC/Figures/' 
+
+``FineST_train_infer.py`` is used to train and evaluate the FineST model using Pearson Correlation, it outputs:
+
+* Average correlation of all spots: 0.8534651812923978
+* Average correlation of all genes: 0.8845136777311445
+
+**Input files:**
+
+* ``parameters_NPC_P10125.json``: The model parameters.
+* ``LRgene_CellChatDB_baseline.csv``: The genes involved in Ligand or Receptor from CellChatDB.
+* ``tissue_positions_list.csv``: It can be found in the spatial folder of 10x Visium outputs.
+* ``AH_Patient1_pth_64_16``: Image feature folder from HIPT ``HIPT_image_feature_extract.py``.
+* ``position_order.csv``: Ordered tissue positions list, according to image patches' coordinates.
+* ``harmony_matrix.npy``: Ordered gene expression matrix, according to image patches' coordinates.
+* ``20240125140443830148``: The trained weights. Just omit it if you want to newly train a model.
+
+**Output files:**
+
+* ``Finetune``: The logging results ``model.log`` and trained weights ``epoch_50.pt`` (.log and .pt)
+* ``Figures``: The visualization plots, used to see whether the model trained well or not (.pdf)
 
 
 Step2: Super-resolution spatial RNA-seq imputation

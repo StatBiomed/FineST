@@ -81,6 +81,7 @@ Please refer to our tutorials for details:
    install
    StarDist_demo
    HIPT_demo
+   FineST_demo
    release
 
 .. toctree::

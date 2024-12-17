@@ -1,11 +1,20 @@
 Release History
 ===============
 
-
-Version 0.0.6 (xx/11/2024)
+Version 0.0.8 (xx/12/2024)
 --------------------------
 
-- Add position inerpolation for Visium data
+- Adjust plotting errors and demo for train and inder
+
+Version 0.0.7 (17/12/2024)
+--------------------------
+
+- Adjust plotting errors and demo for train and inder
+
+Version 0.0.6 (16/12/2024)
+--------------------------
+
+- Add plot and process function for VisiumHD data 
 
 Version 0.0.5 (14/11/2024)
 --------------------------

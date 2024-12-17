@@ -24,7 +24,7 @@ using ``Spot_interpolate.py``.
 
 .. code-block:: bash
 
-   python ./FineST/Spot_interpolate.py \
+   python ./FineST/demo/Spot_interpolate.py \
       --data_path ./Dataset/NPC/ \
       --position_list tissue_positions_list.csv \
       --dataset patient1 
@@ -50,7 +50,7 @@ using ``Spot_interpolate.py``.
 
 .. code-block:: bash
 
-   python ./FineST/HIPT_image_feature_extract.py \
+   python ./FineST/demo/HIPT_image_feature_extract.py \
       --dataset AH_Patient1 \
       --position ./Dataset/NPC/patient1/tissue_positions_list.csv \
       --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
@@ -80,7 +80,7 @@ using ``Spot_interpolate.py``.
 
 .. code-block:: bash
 
-   python ./FineST/HIPT_image_feature_extract.py \
+   python ./FineST/demo/HIPT_image_feature_extract.py \
       --dataset AH_Patient1 \
       --position ./Dataset/NPC/patient1/patient1_position_add_tissue.csv \
       --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
@@ -113,7 +113,7 @@ Step0: HE image feature extraction (for *Visium HD*)
 
 .. code-block:: bash
 
-   python .FineST/HIPT_image_feature_extract.py \
+   python .FineST/demo/HIPT_image_feature_extract.py \
       --dataset HD_CRC_16um \
       --position ./Dataset/CRC/square_016um/tissue_positions.parquet \
       --image ./Dataset/CRC/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
