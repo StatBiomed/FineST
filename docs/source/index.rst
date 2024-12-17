@@ -82,6 +82,7 @@ Please refer to our tutorials for details:
    StarDist_demo
    HIPT_demo
    FineST_demo
+   Impute_demo
    release
 
 .. toctree::

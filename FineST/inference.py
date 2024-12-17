@@ -112,8 +112,6 @@ def perform_inference_image_between_spot(model, test_loader, dataset_class='Visi
             input_image_exp,
             input_coord_all)
 
-
-
 ##################################################################################
 # imputation.py
 ##################################################################################

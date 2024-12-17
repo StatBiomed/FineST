@@ -68,47 +68,6 @@ def extract_test_data_image_between_spot(data_loader):
     
     print("Finished extractting image_between_spot data")    
     return input_image_test, input_coord_test
-
-
-# ###############################################
-# # 2024.11.02 adjusted: add parameter： dataset
-# ###############################################
-# class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
-#     def __init__(self, image_paths, spatial_pos_path, dataset_class):
-#         self.spatial_pos_csv = pd.read_csv(spatial_pos_path, sep=",", header=None)
-        
-#         ## Load .pth file
-#         self.images = []
-#         for image_path in image_paths:
-#             if image_path.endswith('.pth'):
-#                 image_tensor = torch.load(image_path)
-#                 self.images.extend(image_tensor)
-#         self.image_data = torch.stack(self.images)
-#         self.image_tensor = self.image_data.view(self.image_data.size(0), -1)  
-
-#         # set ‘split_num’, according 'dataset_class'
-#         if dataset_class == 'Visium':
-#             self.split_num = 16
-#         elif dataset_class == 'VisiumHD':
-#             self.split_num = 4
-#         else:
-#             raise ValueError('Invalid dataset_class. Only "Visium" and "VisiumHD" are supported.')
-                
-#         print("Finished loading all files")
-
-#     def __getitem__(self, idx):
-#         item = {}
-#         v1 = self.spatial_pos_csv.loc[idx, 0]   
-#         v2 = self.spatial_pos_csv.loc[idx, 1]  
-    
-#         # Stack the tensors in the list along a new dimension  
-#         item['image'] = self.image_tensor[idx * self.split_num : (idx + 1) * self.split_num]    
-#         item['spatial_coords'] = [v1, v2]  
-
-#         return item
-
-#     def __len__(self):
-#         return len(self.spatial_pos_csv)
     
 
 def loadBatchData(train_image_mat, train_matrix_mat, train_coors_mat, batch_size, pos_info):

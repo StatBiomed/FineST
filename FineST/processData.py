@@ -218,7 +218,7 @@ def get_allspot_coors(input_coord_all):
     duplicate_rows = (counts > 1).any()
     print("Are there any duplicate rows? :", duplicate_rows)
     return spatial_loc
-
+    
 
 def adata_LR(adata, file_path):
     LRgene = pd.read_csv(file_path)

@@ -209,7 +209,7 @@ Step0: HE image feature extraction (for *Visium HD*)
 
 
 Step1: Training FineST on the within spots
-------------------------------------------
+==========================================
 
 On *Visium* dataset, if the trained weights (i.e. **weight_save_path**) have been obtained, 
 just run the following command.
@@ -254,11 +254,60 @@ you can omit **weight_save_path** from the following command.
 
 
 Step2: Super-resolution spatial RNA-seq imputation
---------------------------------------------------
+==================================================
+
+For *sub-spot* resolution
+-------------------------
+
+Suppose that the trained weights (i.e. **weight_save_path**) have been obtained, just run the following.
+
+.. code-block:: bash
+
+   python ./FineST/FineST/demo/High_resolution_imputation.py \
+      --system_path '/mnt/lingyu/nfs_share2/Python/' \
+      --weight_path 'FineST/FineST_local/Finetune/' \
+      --parame_path 'FineST/FineST/parameter/parameters_NPC_P10125.json' \
+      --dataset_class 'Visium' \
+      --gene_selected 'CD70' \
+      --LRgene_path 'FineST/FineST/Dataset/LRgene/LRgene_CellChatDB_baseline.csv' \
+      --visium_path 'FineST/FineST/Dataset/NPC/patient1/tissue_positions_list.csv' \
+      --imag_within_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_64_16/' \
+      --imag_betwen_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/NEW_AH_Patient1_pth_64_16/' \
+      --spatial_pos_path 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/position_order_all.csv' \
+      --weight_save_path 'FineST/FineST_local/Finetune/20240125140443830148' \
+      --figure_save_path 'FineST/FineST_local/Dataset/NPC/Figures/' \
+      --adata_all_supr_path 'FineST/FineST_local/Dataset/ImputData/patient1/patient1_adata_all.h5ad' \
+      --adata_all_spot_path 'FineST/FineST_local/Dataset/ImputData/patient1/patient1_adata_all_spot.h5ad' 
+
+``High_resolution_imputation.py`` is used to predict super-resolved gene expression 
+based on the image segmentation (Geometric ``sub-spot level`` or Nuclei ``single-cell level``).
+
+**Input files:**
+
+* ``parameters_NPC_P10125.json``: The model parameters.
+* ``LRgene_CellChatDB_baseline.csv``: The genes involved in Ligand or Receptor from CellChatDB.
+* ``tissue_positions_list.csv``: It can be found in the spatial folder of 10x Visium outputs.
+* ``AH_Patient1_pth_64_16``: Image feature of within-spots from ``HIPT_image_feature_extract.py``.
+* ``NEW_AH_Patient1_pth_64_16``: Image feature of between-spots from ``HIPT_image_feature_extract.py``.
+* ``position_order_all.csv``: Ordered tissue positions list, of both within spots and between spots.
+* ``20240125140443830148``: The trained weights. Just omit it if you want to newly train a model.
+
+**Output files:**
+
+* ``Finetune``: The logging results ``model.log`` and trained weights ``epoch_50.pt`` (.log and .pt)
+* ``Figures``: The visualization plots, used to see whether the model trained well or not (.pdf)
+* ``patient1_adata_all.h5ad``: High-resolution gene expression, at sub-spot level (16x3x resolution).
+* ``patient1_adata_all_spot.h5ad``: High-resolution gene expression, at spot level (3x resolution).
+
+For *single-cell* resolution
+----------------------------
+
+Replace ``AH_Patient1_pth_64_16`` and ``NEW_AH_Patient1_pth_64_16`` using ``sc Patient1 pth 16 16``, i.e.,   
+the image feature of single-nuclei from ``HIPT_image_feature_extract.py``. The details will be here soon.
 
 
 Step3: Fine-grained LR pair and CCC pattern discovery
------------------------------------------------------
+=====================================================
 
 
 

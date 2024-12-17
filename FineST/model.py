@@ -81,27 +81,94 @@ def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, redu
     return all_dataset
 
 
-def build_loaders_inference_allimage(batch_size, file_paths_spot, file_paths_between_spot, spatial_pos_path, 
-                                     dataset_class='Visium'):
+# def build_loaders_inference_allimage(batch_size, file_paths_spot, file_paths_between_spot, spatial_pos_path, 
+#                                      dataset_class='Visium'):
 
+#     setup_seed(666)
+
+#     if dataset_class == 'Visium':
+    
+#         print("***** Building loaders_inference between spot *****")
+
+#         file_paths_spot = glob.glob(file_paths_spot)
+#         file_paths_between_spot = glob.glob(file_paths_between_spot)
+#         image_paths = file_paths_spot + file_paths_between_spot
+#         image_paths.sort()
+
+#     elif dataset_class == 'VisiumSC':
+
+#         print("***** Building loaders_inference sc image *****")
+
+#         image_paths = glob.glob(file_paths_spot)
+#         image_paths.sort()
+
+#     dataset = DatasetCreatImageBetweenSpot(
+#         image_paths=image_paths,
+#         spatial_pos_path=spatial_pos_path,
+#         dataset_class=dataset_class
+#     )
+    
+#     all_dataset = DataLoader(dataset, batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=False)
+#     print("***** Finished building loaders_inference *****")
+#     return all_dataset
+
+
+def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_path, 
+                                     dataset_class='Visium', file_paths_between_spot=None):
+    
     setup_seed(666)
-    
-    print("***** Building loaders_inference between spot *****")
 
-    file_paths_spot = glob.glob(file_paths_spot)
-    file_paths_between_spot = glob.glob(file_paths_between_spot)
-    image_paths = file_paths_spot + file_paths_between_spot
-    image_paths.sort()
-    
+    if dataset_class == 'Visium':
+        if file_paths_between_spot is None:
+            raise ValueError("file_paths_between_spot must be provided for Visium dataset class")
+
+        print("***** Building loaders_inference between spot *****")
+        file_paths_spot = glob.glob(file_paths_spot)
+        file_paths_between_spot = glob.glob(file_paths_between_spot)
+        image_paths = file_paths_spot + file_paths_between_spot
+        image_paths.sort()
+
+    elif dataset_class == 'VisiumSC':
+        print("***** Building loaders_inference sc image *****")
+
+        image_paths = glob.glob(file_paths_spot)
+        image_paths.sort()
+
+    else:
+        raise ValueError("Unknown dataset_class: {}".format(dataset_class))
+
     dataset = DatasetCreatImageBetweenSpot(
         image_paths=image_paths,
         spatial_pos_path=spatial_pos_path,
         dataset_class=dataset_class
     )
     
-    all_dataset = DataLoader(dataset, batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=False)
-    print("***** Finished building loaders_inference between spot *****")
+    all_dataset = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=False)
+    print("***** Finished building loaders_inference *****")
     return all_dataset
+
+
+####################################
+# 2024.12.17 add function for sc
+####################################
+# def build_loaders_inference_scimage(batch_size, file_paths_spot, spatial_pos_path, dataset_class='VisiumSC'):
+
+#     setup_seed(666)
+
+#     print("***** Building loaders_inference sc image *****")
+
+#     image_paths = glob.glob(file_paths_spot)
+#     image_paths.sort()
+    
+#     dataset = DatasetCreatImageBetweenSpot(
+#         image_paths=image_paths,
+#         spatial_pos_path=spatial_pos_path,
+#         dataset_class=dataset_class
+#     )
+    
+#     all_dataset = DataLoader(dataset, batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=False)
+#     print("***** Finished building loaders_inference sc image *****")
+#     return all_dataset
 
 
 # class DatasetCreat(torch.utils.data.Dataset):

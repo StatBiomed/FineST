@@ -33,6 +33,7 @@ def check_file_exists(file_path):
     return True
 
 def load_and_process_data(args):
+    
     adata = datasets.NPC()
     print(" **** Load the original NPC patient1 adata: **** \n", adata)
     adata = adata_LR(adata, args.LRgene_path)

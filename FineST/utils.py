@@ -84,6 +84,8 @@ def reshape_latent_image(inputdata, dataset_class='Visium'):
     # set ‘split_num’, according 'dataset_class'
     if dataset_class == 'Visium':
         split_num = 16
+    elif dataset_class == 'VisiumSC':
+        split_num = 1
     elif dataset_class == 'VisiumHD':
         split_num = 4
     else:
@@ -116,6 +118,8 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
         # set ‘split_num’, according 'dataset_class'
         if dataset_class == 'Visium':
             self.split_num = 16
+        elif dataset_class == 'VisiumSC':
+            self.split_num = 1
         elif dataset_class == 'VisiumHD':
             self.split_num = 4
         else:
@@ -138,7 +142,6 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
         return len(self.spatial_pos_csv)
     
 
-
 def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, pixel_step=8, 
                              p=None, q=None, dataset_class=None):
     def get_x_y(adata, p):
@@ -157,6 +160,8 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, pixel_ste
     # set ‘split_num’, according 'dataset_class'
     if dataset_class == 'Visium':
         split_num = 16
+    elif dataset_class == 'VisiumSC':
+        split_num = 1
     elif dataset_class == 'VisiumHD':
         split_num = 4
     else:
