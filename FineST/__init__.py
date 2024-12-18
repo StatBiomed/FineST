@@ -10,7 +10,6 @@ from .model import *
 from .train import *
 from .inference import *
 from .evaluation import * 
-from .downloadData import * 
 from .SparseAEH import *
 from .SpatialDM import *
 from .plottings import *

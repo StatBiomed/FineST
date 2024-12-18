@@ -49,7 +49,7 @@ def load_and_process_data(args):
     position_image = get_image_coord(file_paths, dataset_class=args.dataset_class)
     position = pd.read_csv(os.path.join(args.system_path, args.visium_path), header=None)
     position = position.rename(columns={position.columns[-2]: 'pixel_x', position.columns[-1]: 'pixel_y'})
-    position_image = image_coord_merge(position_image, position, dataset=args.dataset_class)
+    position_image = image_coord_merge(position_image, position, dataset_class=args.dataset_class)
     position_order = update_st_coord(position_image)
     print(" **** The coords of image patch: **** \n", position_order.shape)
     print(position_order.head())
@@ -184,7 +184,7 @@ def main(args):
     params['n_input_matrix'] = len(gene_hv)
     params['n_input_image'] = 384
 
-    model = CellContrastModel(
+    model = FineSTModel(
         n_input_matrix=params['n_input_matrix'],
         n_input_image=params['n_input_image'],
         n_encoder_hidden_matrix=params["n_encoder_hidden_matrix"],

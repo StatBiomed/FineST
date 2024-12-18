@@ -1,9 +1,22 @@
 Release History
 ===============
 
-Version 0.0.8 (xx/12/2024)
+
+Version 0.1.0 (xx/12/2024)
 --------------------------
 
+- xx
+
+Version 0.0.9 (19/12/2024)
+--------------------------
+
+- delete 'from .downloadData import *'
+
+Version 0.0.8 (18/12/2024)
+--------------------------
+
+- Replace 'CellContrastModel' with 'FineSTModel' in FineST/model.py and demo/FineST_train_infer.py
+- Adjust 'dataset_class' with 'dataset' in image_coord_merge function
 - Add imputation for single-nuclei level gene epxr
 - Adjust the title size in README.rst 
 - Especially adjust Section 6 for NPC_Train_Impute.ipynb

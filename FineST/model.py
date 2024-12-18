@@ -392,9 +392,9 @@ class Autoencoder_image(nn.Module):
     
 
 ########################
-# CellContrastModel    
+# FineSTModel    
 ########################
-class CellContrastModel(nn.Module):
+class FineSTModel(nn.Module):
     def __init__(
         self, 
         n_input_matrix=578, 
@@ -409,7 +409,7 @@ class CellContrastModel(nn.Module):
         dropout_rate=0, 
         negative_slope=0.01
     ):
-        super(CellContrastModel,self).__init__()     
+        super(FineSTModel,self).__init__()     
         self.Autoencoder_matrix = Autoencoder_matrix(n_input_matrix, n_encoder_latent, n_encoder_hidden_matrix) 
         self.matrix_encoder = self.Autoencoder_matrix.encoder
         self.matrix_decoder = self.Autoencoder_matrix.decoder
@@ -446,7 +446,7 @@ def load_model(dir_name, parameter_file_path, params, gene_hv):
     params['n_input_image'] = 384
     
     # init the model
-    model = CellContrastModel(n_input_matrix=params['n_input_matrix'],
+    model = FineSTModel(n_input_matrix=params['n_input_matrix'],
                               n_input_image=params['n_input_image'],
                               n_encoder_hidden_matrix=params["n_encoder_hidden_matrix"],
                               n_encoder_hidden_image=params["n_encoder_hidden_image"],

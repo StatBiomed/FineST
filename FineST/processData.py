@@ -294,37 +294,38 @@ def adata2matrix(adata, gene_hv):
 
 ###############################################
 # 2024.11.02 update 
+# 2024.12.18 add VisiumSC
 ###############################################
-def get_image_coord(file_paths, dataset_class="Visium"):
+def get_image_coord(file_paths, dataset_class):
     data = []
     file_paths.sort() 
     for file_path in file_paths:
         parts = file_path.split('_')
-        if dataset_class == "Visium":
+        if dataset_class == 'Visium' or dataset_class == 'VisiumSC':
             part_3 = int(parts[-2])
             part_4 = int(parts[-1].split('.')[0])
         elif dataset_class == "VisiumHD":
             part_3 = parts[-2]
             part_4 = parts[-1].split('.pth')[0]
         else:
-            print("Invalid dataset_class. Please use 'Visium' or 'VisiumHD'")
+            print("Invalid dataset_class. Please use 'Visium', 'VisiumSC' or 'VisiumHD'")
             return
         data.append([part_3, part_4])
     df = pd.DataFrame(data, columns=['pixel_y', 'pixel_x'])
     return df[['pixel_x', 'pixel_y']]
     
 
-def get_image_coord_all(file_paths, dataset_class="Visium"):
+def get_image_coord_all(file_paths, dataset_class):
     file_paths.sort()
     data = []
     for file_path in file_paths:
         parts = file_path.split('_')
-        if dataset_class == 'Visium':
+        if dataset_class == 'Visium' or dataset_class == 'VisiumSC':
             data.append([parts[-2], parts[-1].split('.pth')[0]])
     return data
 
 
-def image_coord_merge(df, position, dataset):
+def image_coord_merge(df, position, dataset_class):
     # Define merge_dfs function within the new function
     def merge_dfs(df, position):
         merged_df = pd.merge(df, position, on=['pixel_x', 'pixel_y'], how='left')
@@ -336,11 +337,10 @@ def image_coord_merge(df, position, dataset):
         col_y = merged_df.columns[-3]
         return merged_df.rename(columns={col_x: 'x', col_y: 'y'})
 
-    # Define merge_dfs_HD function within the new function
-
     #######################################################
     # 2024.12.04 postion doesn't match image
     #######################################################
+    # Define merge_dfs_HD function within the new function
     def merge_dfs_HD(df, position):
         position['pxl_col_in_fullres'] = pd.to_numeric(position['pxl_col_in_fullres'], errors='coerce').round(6)
         position['pxl_row_in_fullres'] = pd.to_numeric(position['pxl_row_in_fullres'], errors='coerce').round(6)
@@ -363,13 +363,19 @@ def image_coord_merge(df, position, dataset):
     #     merged_df = merged_df.rename(columns={'array_row': 'x', 'array_col': 'y'})
     #     return merged_df
 
-    # Use dataset to decide which function to call
-    if dataset == 'Visium':
-        return merge_dfs(df, position)
-    elif dataset == 'VisiumHD':
-        return merge_dfs_HD(df, position)
+    # Use dataset_class to decide which function to call
+    if dataset_class == 'Visium' or dataset_class=='VisiumSC':
+        result = merge_dfs(df, position)
+    elif dataset_class == 'VisiumHD':
+        result = merge_dfs_HD(df, position)
     else:
-        raise ValueError(f"Unknown dataset: {dataset}")
+        raise ValueError(f"Unknown dataset_class: {dataset_class}")
+
+    # Check if the merge was successful
+    if result.empty:
+        raise ValueError("The merging resulted in an empty DataFrame. Please check your input data.")
+
+    return result
 
 
 def sort_matrix(matrix, position_image, spotID_order, gene_hv):

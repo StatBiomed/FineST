@@ -58,5 +58,23 @@ based on the image segmentation (Geometric ``sub-spot level`` or Nuclei ``single
 Step2: Super-resolution spatial RNA-seq imputation (for *single-cell*)
 ----------------------------------------------------------------------
 
-Replace ``AH_Patient1_pth_64_16`` and ``NEW_AH_Patient1_pth_64_16`` using ``sc Patient1 pth 16 16``, i.e.,   
-the image feature of single-nuclei from ``HIPT_image_feature_extract.py``. The details will be here soon.
+Using ``sc Patient1 pth 16 16`` 
+(saved in `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8>`_), i.e.,   
+the image feature of single-nuclei from ``HIPT_image_feature_extract.py``, just run the following.
+
+.. code-block:: bash
+
+   python ./FineST/FineST/demo/High_resolution_imputation.py \
+      --system_path '/mnt/lingyu/nfs_share2/Python/' \
+      --weight_path 'FineST/FineST_local/Finetune/' \
+      --parame_path 'FineST/FineST/parameter/parameters_NPC_P10125.json' \
+      --dataset_class 'VisiumSC' \
+      --gene_selected 'CD70' \
+      --LRgene_path 'FineST/FineST/Dataset/LRgene/LRgene_CellChatDB_baseline.csv' \
+      --visium_path 'FineST/FineST/Dataset/NPC/patient1/tissue_positions_list.csv' \
+      --imag_within_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_64_16/' \
+      --image_embed_path_sc 'NPC/Data/stdata/ZhuoLiang/LLYtest/sc_Patient1_pth_16_16/' \
+      --spatial_pos_path_sc 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/position_order_sc.csv' \
+      --adata_super_path_sc 'FineST/FineST_local/Dataset/ImputData/patient1/patient1_adata_all_sc.h5ad' \
+      --weight_save_path 'FineST/FineST_local/Finetune/20240125140443830148' \
+      --figure_save_path 'FineST/FineST_local/Dataset/NPC/Figures/'
