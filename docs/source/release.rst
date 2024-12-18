@@ -5,6 +5,7 @@ Version 0.0.8 (xx/12/2024)
 --------------------------
 
 - Add imputation for single-nuclei level gene epxr
+- Adjust the title size in README.rst 
 - Especially adjust Section 6 for NPC_Train_Impute.ipynb
 
 Version 0.0.7 (17/12/2024)

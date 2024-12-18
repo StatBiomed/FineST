@@ -74,6 +74,10 @@ Get Started for *Visium* or *Visium HD* data
 
 **Usage illustrations**: 
 
+The source codes for reproducing the FineST analysis in this work are provided (see `demo` directory).
+All relevant materials involved in the reproducing codes are available 
+from `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8>`_.
+
 * For *Visium*, using a single slice of 10x Visium human nasopharyngeal carcinoma (NPC) data.
 
 * For *Visium HD*, using a single slice of 10x Visium HD human colorectal cancer (CRC) data with 16-um bin.
@@ -82,7 +86,7 @@ Get Started for *Visium* or *Visium HD* data
 Step0: HE image feature extraction (for *Visium*)
 -------------------------------------------------
 
-*Visium (v2)* measures about 5k spots across the entire tissue area. 
+*Visium* measures about 5k spots across the entire tissue area. 
 The diameter of each individual spot is roughly 55 micrometers (um), 
 while the center-to-center distance between two adjacent spots is about 100 um.
 In order to capture the gene expression profile across the whole tissue ASSP, 
@@ -211,10 +215,8 @@ Step0: HE image feature extraction (for *Visium HD*)
 Step1: Training FineST on the within spots
 ==========================================
 
-On *Visium* dataset, if the trained weights (i.e. **weight_save_path**) have been obtained, 
-just run the following command.
-Otherwise, if you want to newly train a model, 
-you can omit **weight_save_path** from the following command.
+On *Visium* dataset, if trained weights (i.e. **weight_save_path**) have been obtained, just run the following command.
+Otherwise, if you want to re-train a model, just omit **weight_save_path** line.
 
 .. code-block:: bash
 
@@ -259,7 +261,7 @@ Step2: Super-resolution spatial RNA-seq imputation
 For *sub-spot* resolution
 -------------------------
 
-Suppose that the trained weights (i.e. **weight_save_path**) have been obtained, just run the following.
+This step supposes that the trained weights (i.e. **weight_save_path**) have been obtained, just run the following.
 
 .. code-block:: bash
 
@@ -302,7 +304,8 @@ based on the image segmentation (Geometric ``sub-spot level`` or Nuclei ``single
 For *single-cell* resolution
 ----------------------------
 
-Replace ``AH_Patient1_pth_64_16`` and ``NEW_AH_Patient1_pth_64_16`` using ``sc Patient1 pth 16 16``, i.e.,   
+Replace ``AH_Patient1_pth_64_16`` and ``NEW_AH_Patient1_pth_64_16`` using ``sc Patient1 pth 16 16`` 
+(saved in `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8>`_), i.e.,   
 the image feature of single-nuclei from ``HIPT_image_feature_extract.py``. The details will be here soon.
 
 
@@ -321,7 +324,7 @@ Step3: Fine-grained LR pair and CCC pattern discovery
 Detailed Manual
 ===============
 
-The full manual is at `finest-rtd-tutorial <https://finest-rtd-tutorial.readthedocs.io>`_ for installation, tutorials and examples. 
+The full manual is at `FineST tutorial <https://finest-rtd-tutorial.readthedocs.io>`_ for installation, tutorials and examples. 
 
 * `Interpolate between-spots among within-spots by FineST (For Visium dataset)`_.
 
@@ -342,4 +345,10 @@ The full manual is at `finest-rtd-tutorial <https://finest-rtd-tutorial.readthed
 .. _Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset): docs/source/CRC16_Train_Impute.ipynb
 
 .. _Super-resolved ligand-receptor interavtion discovery by FineST: docs/source/NPC_LRI_CCC.ipynb
+
+
+Contact Information
+===================
+
+Please contact Lingyu Li (`lingyuli@hku.hk <mailto:lingyuli@hku.hk>`_) or Yuanhua Huang (`yuanhua@hku.hk <mailto:yuanhua@hku.hk>`_) if any enquiry.
 

@@ -81,38 +81,6 @@ def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, redu
     return all_dataset
 
 
-# def build_loaders_inference_allimage(batch_size, file_paths_spot, file_paths_between_spot, spatial_pos_path, 
-#                                      dataset_class='Visium'):
-
-#     setup_seed(666)
-
-#     if dataset_class == 'Visium':
-    
-#         print("***** Building loaders_inference between spot *****")
-
-#         file_paths_spot = glob.glob(file_paths_spot)
-#         file_paths_between_spot = glob.glob(file_paths_between_spot)
-#         image_paths = file_paths_spot + file_paths_between_spot
-#         image_paths.sort()
-
-#     elif dataset_class == 'VisiumSC':
-
-#         print("***** Building loaders_inference sc image *****")
-
-#         image_paths = glob.glob(file_paths_spot)
-#         image_paths.sort()
-
-#     dataset = DatasetCreatImageBetweenSpot(
-#         image_paths=image_paths,
-#         spatial_pos_path=spatial_pos_path,
-#         dataset_class=dataset_class
-#     )
-    
-#     all_dataset = DataLoader(dataset, batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=False)
-#     print("***** Finished building loaders_inference *****")
-#     return all_dataset
-
-
 def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_path, 
                                      dataset_class='Visium', file_paths_between_spot=None):
     
@@ -146,57 +114,6 @@ def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_pa
     all_dataset = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=False)
     print("***** Finished building loaders_inference *****")
     return all_dataset
-
-
-####################################
-# 2024.12.17 add function for sc
-####################################
-# def build_loaders_inference_scimage(batch_size, file_paths_spot, spatial_pos_path, dataset_class='VisiumSC'):
-
-#     setup_seed(666)
-
-#     print("***** Building loaders_inference sc image *****")
-
-#     image_paths = glob.glob(file_paths_spot)
-#     image_paths.sort()
-    
-#     dataset = DatasetCreatImageBetweenSpot(
-#         image_paths=image_paths,
-#         spatial_pos_path=spatial_pos_path,
-#         dataset_class=dataset_class
-#     )
-    
-#     all_dataset = DataLoader(dataset, batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=False)
-#     print("***** Finished building loaders_inference sc image *****")
-#     return all_dataset
-
-
-# class DatasetCreat(torch.utils.data.Dataset):
-#     def __init__(self, image_paths, spatial_pos_path, reduced_mtx_path, dataset_class):
-#         self.spatial_pos_csv = pd.read_csv(spatial_pos_path, sep=",", header=None)
-#         # Load expression matrix:（Transport to: cell x features）
-#         # if exits colnames and rownames，use 'allow_pickle=True'
-
-#         # set ‘split_num’, according 'dataset_class'
-#         if dataset_class == 'Visium':
-#             self.reduced_matrix = np.load(reduced_mtx_path, allow_pickle=True).T   
-#             self.split_num = 16
-#         elif dataset_class == 'VisiumHD':
-#             self.reduced_matrix = np.load(reduced_mtx_path).T    
-#             self.split_num = 4
-#         else:
-#             raise ValueError('Invalid dataset_class. Only "Visium" and "VisiumHD" are supported.') 
-                       
-#         print("Finished loading all files")
-        
-#         # Load .pth files
-#         self.images = []
-#         for image_path in image_paths:
-#             if image_path.endswith('.pth'):
-#                 image_tensor = torch.load(image_path)
-#                 self.images.extend(image_tensor)
-#         self.image_data = torch.stack(self.images)
-#         self.image_tensor = self.image_data.view(self.image_data.size(0), -1)  
 
 
 ###############################################
@@ -357,19 +274,13 @@ class ContrastiveLoss(nn.Module):
         w1=1, w2=1, w3=1, w4=1
     ): 
 
-        # 对嵌入向量进行 L2 范数归一化
         embeddings_iamge = F.normalize(embeddings_iamge, p=2, dim=1)
         embeddings_matrix = F.normalize(embeddings_matrix, p=2, dim=1)
-        
-        # 计算嵌入向量之间的相似性矩阵（使用指数除以 temperature 参数）
         sim_matrix = torch.exp(torch.matmul(embeddings_iamge, embeddings_matrix.T) / self.temperature)
         
-        # 创建正向相似性掩码（对应标签为 1 的位置）
         pos_mask = (labels == 1).type(torch.bool)
-        # 创建负向相似性掩码（对应标签不为 1 的位置）
         neg_mask = ~pos_mask
-        # neg_mask.fill_diagonal_(False)  # 移除对角线元素
-
+        # neg_mask.fill_diagonal_(False)  
 
         pos_similarities = (sim_matrix * pos_mask).sum(dim=1)
         neg_similarities = (sim_matrix * neg_mask).sum(dim=1)
@@ -377,7 +288,6 @@ class ContrastiveLoss(nn.Module):
         #################################################################################################
         ## 2023.12.20 adjust loss 
 
-        # ## 计算最终损失值，取负对数似然
         # loss = (-w1*torch.mean(torch.log(pos_similarities / neg_similarities))    # contrast loss
         #         + w2*PearsonCorrelationLoss(reconstruction_iamge, input_image_exp)          # image loss
         #         + w3*PearsonCorrelationLoss(reconstruction_iamge_reshapef2, reconstructed_matrix_all)   # cross loss
@@ -385,14 +295,13 @@ class ContrastiveLoss(nn.Module):
         #################################################################################################
         ## 2023.12.15 adjust loss 
 
-        ## 计算最终损失值，取负对数似然
         loss = (-w1*torch.mean(torch.log(pos_similarities / neg_similarities))    # contrast loss
                 + w2*CoSimLoss(reconstruction_iamge, input_image_exp)          # image loss
                 + w3*CoSimLoss(reconstruction_iamge_reshapef2, reconstructed_matrix_all)   # cross loss
                 + w4*CoSimLoss(input_matrix_exp, reconstructed_matrix_all))    # matirx loss
         #################################################################################################
         
-        # 计算最终损失值，取负对数似然
+        ## 2023.12.15 adjust loss 
         # loss = (-w1*torch.mean(torch.log(pos_similarities / neg_similarities))    # contrast loss
         #         + w2*nn.MSELoss()(reconstruction_iamge, input_image_exp)          # image loss
         #         + w3*nn.MSELoss()(reconstruction_iamge_reshapef2, reconstructed_matrix_all)   # cross loss
@@ -419,7 +328,6 @@ class ProjectionHead(nn.Module):
         x = self.fc2(x)   
         return x
       
-    
 
 class ELU(nn.Module):
 
@@ -430,6 +338,7 @@ class ELU(nn.Module):
 
     def forward(self, x):
         return self.activation(x) + self.beta
+
 
 ##############################
 # Spatial data embedding  
@@ -548,13 +457,3 @@ def load_model(dir_name, parameter_file_path, params, gene_hv):
     # load model states
     model.load_state_dict(model_state_dict)    
     return model
-
-
-
-# if __name__ == '__main__':
-    
-#     model = CellContrastModel(n_input=351, n_encoder_hidden=1024,n_encoder_latent=512,n_encoder_layers=2,n_projection_hidden=256,n_projection_output=128)
-#     print(model)
-    
-#     pass
-

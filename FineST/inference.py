@@ -6,9 +6,6 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 
-
-
-
 def perform_inference_image(model, test_loader, dataset_class='Visium'):
     print("device",device)    
 
@@ -161,54 +158,3 @@ def calculate_euclidean_distances(adata_spot, nbs):
         distances.append(dist)
     return np.array(distances)
 
-
-
-
-
-
-# def main():
-    
-    
-#     parser = ArgumentParser(description="Inference with cellContrast model")
-    
-#     parser.add_argument('--query_data_path', type=str,
-#                         help="The path of querying data with h5ad format (annData object)")
-#     parser.add_argument('--model_folder', type=str,
-#                         help="Save folder of model related files, default:'./cellContrast_models'",default="./cellContrast_models")
-#     parser.add_argument('--parameter_file_path', type=str,
-#                         help="Path of parameter settings, default:'./parameters.json'",default="./parameters.json")
-#     parser.add_argument('--ref_data_path',type=str, help="reference ST data, used in generating the coordinates of SC data as the reference, usually should be the training data of the model")
-    
-#     # whether to enable de novo coordinates inference
-#     parser.add_argument('--enable_denovo', action="store_true",help="(Optional) generate the coordinates de novo by MDS algorithm",default=False)
-#     parser.add_argument('--save_path',type=str,help="Save path of the spatial reconstructed SC data",default="./reconstructed_sc.h5ad")
-    
-    
-#     args = parser.parse_args()
-    
-#     # load params
-#     with open(args.parameter_file_path,"r") as json_file:
-#         params = json.load(json_file)
-    
-#     # load models
-#     model, train_genes = load_model(args,params)
-#     model.to(device)
-#     print("model",model)
-   
-#     query_adata = sc.read_h5ad(args.query_data_path)
-#     ref_adata =  sc.read_h5ad(args.ref_data_path)
-    
-#     ## check if the train genes exists 
-#     query_adata = format_query(query_adata,train_genes)
-#     ref_adata = format_query(ref_adata,train_genes) 
-    
-#     reconstructed_query_adata = perform_inference(query_adata,ref_adata,model,args.enable_denovo)
-    
-#     # save the inferred data
-#     reconstructed_query_adata.write(args.save_path)
-   
-
-
-# if __name__ == '__main__':
-    
-#     pass
