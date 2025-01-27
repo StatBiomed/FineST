@@ -179,7 +179,8 @@ def checkNeighbors(cur_adata, neighbor_k, tree_type='KDTree', leaf_size=2):
 #################################################################
 # 2024.9.16 NameError: name 'loadTrainTestData' is not defined
 #################################################################
-def loadTrainTestData(train_loader, neighbor_k, tree_type='KDTree', leaf_size=2, dataset_class='Visium'):
+def loadTrainTestData(train_loader, neighbor_k, tree_type='KDTree', 
+                      leaf_size=2, dataset_class='Visium16'):
     
     tqdm_object = tqdm(train_loader, total=len(train_loader))
 

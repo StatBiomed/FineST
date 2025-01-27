@@ -56,7 +56,7 @@ if __name__ == '__main__':
     main(args.data_path, args.dataset, args.position_list)
 
 
-# python .FineST/Spot_interpolate.py \
+# python ./FineST/demo/Spot_interpolate.py \
 #     --data_path ./Dataset/NPC/ \
 #     --position_list tissue_positions_list.csv \
 #     --dataset patient1 

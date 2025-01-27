@@ -1,20 +1,20 @@
 Geometric segmentation
 ======================
 
-Image feature/embedding extraction: for *Visium* or *Visium HD* data
+Image embedding extraction: for *Visium* or *Visium HD*
 --------------------------------------------------------------------
 
 **Usage illustrations**: 
 
-* For *Visium*, using a single slice of 10x Visium human nasopharyngeal carcinoma (NPC) data.
+* For *Visium*, use slice of 10x Visium human nasopharyngeal carcinoma (NPC) data.
 
-* For *Visium HD*, using a single slice of 10x Visium HD human colorectal cancer (CRC) data with 16-um bin.
+* For *Visium HD*, use slice of 10x Visium HD human colorectal cancer (CRC) data with 16-um bin.
 
 
 Step0: HE image feature extraction (for *Visium*)
 -------------------------------------------------
 
-*Visium (v2)* measures about 5k spots across the entire tissue area. 
+*Visium* measures about 5k spots across the entire tissue area. 
 The diameter of each individual spot is roughly 55 micrometers (um), 
 while the center-to-center distance between two adjacent spots is about 100 um.
 In order to capture the gene expression profile across the whole tissue ASSP, 
@@ -103,29 +103,34 @@ using ``Spot_interpolate.py``.
 **Output files:**
 
 * ``NEW_AH_Patient1_pth_64_16_image``: Segmeted "Between spot" histology image patches (.png)
-* ``NEW_AH_Patient1_pth_64_16``: Extracted "Between spot" image feature embeddiings for each patche (.pth)
+* ``NEW_AH_Patient1_pth_64_16``: Extracted "Between spot" image embeddiings for each patche (.pth)
 
 
 Step0: HE image feature extraction (for *Visium HD*)
 ----------------------------------------------------
 
 *Visium HD* captures continuous squares without gaps, it measures the whole tissue area.
+For CRC dataset, the ``spot_diameter_fullres`` is 58.417 or 29.208 pixels, corresponding to 16-um and 8-um data. 
+Here we use  ``scale_image`` with ``scale=0.5`` to re-scale image,
+then split each 28-pixels patch_image to 14-pixels tile_image. 
 
 .. code-block:: bash
 
    python .FineST/demo/HIPT_image_feature_extract.py \
       --dataset HD_CRC_16um \
       --position ./Dataset/CRC/square_016um/tissue_positions.parquet \
-      --image ./Dataset/CRC/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
-      --output_path_img ./Dataset/CRC/HIPT/HD_CRC_16um_pth_32_16_image \
-      --output_path_pth ./Dataset/CRC/HIPT/HD_CRC_16um_pth_32_16 \
-      --patch_size 32 \
+      --imagefile ./Dataset/CRC/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
+      --scale_image True \
+      --method Virchow2 \
+      --output_path_img ./Dataset/CRC/HIPT/HD_CRC_16um_pth_28_14_image \
+      --output_path_pth ./Dataset/CRC/HIPT/HD_CRC_16um_pth_28_14 \
+      --patch_size 28 \
       --logging_folder ./Logging/HIPT_HD_CRC_16um/
 
 ``HIPT_image_feature_extract.py`` also output the execution time:
 
-* The image segment execution time for the loop is: 62.491 seconds
-* The image feature extract time for the loop is: 1717.818 seconds
+* The image segment execution time for the loop is: 125.442 seconds
+* The image feature extract time for the loop is: 2486.118 seconds
 
 **Input files:**
 
@@ -134,5 +139,5 @@ Step0: HE image feature extraction (for *Visium HD*)
 
 **Output files:**
 
-* ``HD_CRC_16um_pth_32_16_image``: Segmeted histology image patches (.png)
-* ``HD_CRC_16um_pth_32_16``: Extracted image feature embeddiings for each patche (.pth)
+* ``HD_CRC_16um_pth_28_14_image``: Segmeted histology image patches (.png)
+* ``HD_CRC_16um_pth_28_14``: Extracted image feature embeddiings for each patche (.pth)

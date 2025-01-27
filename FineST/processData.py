@@ -9,6 +9,134 @@ import json
 from pathlib import Path
 
 
+import numpy as np
+from scipy.spatial import cKDTree
+import torch
+import pickle
+
+
+###################################################
+# 2025.01.16 add embeds_convert from istar
+###################################################
+def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k=16):
+    """
+    This function processes the embeddings and calculates the nearest pixel locations.
+
+    Args:
+    hist_emb (dict): Dictionary containing the 'sub' key with the embeddings.
+    locs (numpy.ndarray): The locations to be processed.
+    current_shape (numpy.ndarray): The current shape.
+    target_shape (numpy.ndarray): The target shape.
+
+    Returns:
+    numpy.ndarray: The ordered locations.
+    numpy.ndarray: The ordered images.
+    """
+
+    # form (W-H) to (H-W)
+    locs = locs[['y','x']]    
+    embs = load_pickle(str(hist_emb))
+
+    # Reshape the 3D array into the shape (width, height, depth)
+    if image_embedings=='sub':
+        embs_sub = np.array(embs['sub'])
+        embs = embs_sub.transpose(1, 2, 0)
+    elif image_embedings=='cls':
+        embs_cls = np.array(embs['cls'])
+        embs = embs_cls.transpose(1, 2, 0)
+    elif image_embedings=='cls_sub':
+        embs = np.concatenate([embs['cls'], embs['sub']])
+        embs = embs.transpose(1, 2, 0)
+    elif image_embedings=='cls_sub_rgb':
+        embs = np.concatenate([embs['cls'], embs['sub'], embs['rgb']])
+        embs = embs.transpose(1, 2, 0)
+    
+    # Rescale locations
+    target_shape = embs.shape[:2]
+    rescale_factor = current_shape // target_shape
+    locs = locs.astype(float)
+    locs /= rescale_factor
+    locs = locs.round().astype(int)
+
+    # convert (width, height, depth) to (width*height, depth)
+    imgs_pixel = []
+    locs_pixel = []
+    for i in range(embs.shape[0]):        # height
+        for j in range(embs.shape[1]):    # width
+            embeddings = embs[i, j, :]
+            if not np.isnan(embeddings).any():  # Check if any value in embeddings is NaN
+                imgs_pixel.append(embeddings)
+                locs_pixel.append([i+1, j+1])
+
+    locs_pixel = np.array(locs_pixel)
+    imgs_pixel = np.array(imgs_pixel)
+
+    # convert (width*height, depth) to (#spots, depth)
+    tree = cKDTree(locs_pixel)
+    _, closest_points_indices = tree.query(locs, k)
+
+    locs_order = locs_pixel[closest_points_indices]
+    imgs_order = imgs_pixel[closest_points_indices]
+    imgs_order_2d = torch.from_numpy(imgs_order.reshape(imgs_order.shape[0]*imgs_order.shape[1], -1))
+                                     
+    return locs_order, imgs_order, imgs_order_2d
+
+
+###################################################
+# 2025.01.16 add patch_size calculate from adata
+# Return x_dir： patch_size at x/weidth direction 
+###################################################
+
+def patch_size(adata, p=16, dir='x'):
+    """
+    This function computes the absolute differences of the sorted spatial data in adata.
+
+    Parameters:
+    adata: anndata object which contains the spatial data
+    p: int, number of rows to select after sorting (default is 16)
+    dir: str, direction to sort by, either 'x' or 'y' (default is 'x')
+
+    Returns:
+    differences: pandas Series, the computed absolute differences
+    """
+
+    if dir == 'x':    # fix hight
+        spatial_test = pd.DataFrame(adata.obsm['spatial']).sort_values(by=1)[:p]
+        differences = spatial_test[0].diff().abs()
+    elif dir == 'y':   # fix weidth
+        spatial_test = pd.DataFrame(adata.obsm['spatial']).sort_values(by=0)[:p]
+        differences = spatial_test[1].diff().abs()
+    else:
+        print("Invalid direction. Please choose either 'x' or 'y'.")
+
+    differences = differences.dropna()
+    return differences
+
+
+########################################
+# 2025.01.15 For using istar img feature
+########################################
+def position_order_adata_istar(position, obs_names, dataset_class='Visium16'):
+    # Filter rows and set new index
+    position_order = position[position[position.columns[-5]] == 1]
+    position_order = position_order.set_index(position_order.columns[-6])
+
+    # Reorder index and drop column
+    position_order = position_order.reindex(obs_names)
+    position_order = position_order.drop(columns=[position.columns[-5]])
+
+    # Rename and reorder columns
+    if dataset_class == 'Visium16' or dataset_class == 'Visium64':
+        position_order.columns = ['array_col', 'array_row', 'pixel_x', 'pixel_y']
+    elif dataset_class == 'VisiumHD':
+        position_order.columns = ['array_col', 'array_row', 'pixel_x', 'pixel_y']
+    elif dataset_class == 'VisiumHD_MS64':
+        position_order.columns = ['array_col', 'array_row', 'pixel_y', 'pixel_x']
+    
+    position_order = position_order[['pixel_y','pixel_x', 'array_row', 'array_col']]
+
+    return position_order
+
 ########################################
 # 2024.12.2 add json file
 ########################################
@@ -36,11 +164,10 @@ def json_load(json_path):
 def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
 
     os.chdir(str(parquet_path))
-    positions = pd.read_parquet(parquet_name)
-
-    # positions = pd.read_parquet(parquet_path)
-    
+    positions = pd.read_parquet(parquet_name)    
     positions.set_index('barcode', inplace=True)
+
+    ## inverse pxl_row_in_fullres and pxl_col_in_fullres
     positions.columns = ['in_tissue', 'array_row', 'array_col', 'pxl_col_in_fullres', 'pxl_row_in_fullres']
     position_tissue = positions[positions['in_tissue'] == 1]
     
@@ -236,9 +363,11 @@ def adata_LR(adata, file_path):
     return adata
 
 
+#####################################
+# 2024.12.23: Add 
+#####################################
 def adata_preprocess(adata, keep_raw=False, normalize=True, 
-                     min_cells=10, target_sum=None, n_top_genes=None):
-
+                     min_cells=10, target_sum=None, n_top_genes=None, species='human'):
     """
     Preprocesses AnnData object for single-cell RNA sequencing data.
 
@@ -253,12 +382,24 @@ def adata_preprocess(adata, keep_raw=False, normalize=True,
     n_top_genes (int, optional): Number of highly-variable genes to keep. 
                                  If n_top_genes is not None, this number is kept as 
                                  highly-variable genes. Default is None.
+    species (str, optional): The species of the dataset. If not 'human', certain steps are skipped. Default is None.
+
     Returns:
     adata (anndata.AnnData): The processed annotated data matrix.
     """
 
-    adata.var["mt"] = adata.var_names.str.startswith("MT-")
-    sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
+    # Set mitochondrial gene prefix based on species
+    if species == 'human':
+        adata.var["mt"] = adata.var_names.str.startswith("MT-")
+    elif species == 'mouse':
+        adata.var["mt"] = adata.var_names.str.startswith("mt-")
+    else:
+        raise ValueError("Unsupported species. Please specify 'human' or 'mouse'.")
+
+    # Calculate QC metrics if there are mitochondrial genes
+    if adata.var["mt"].any():
+        sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
+        
     sc.pp.filter_genes(adata, min_cells=min_cells)
 
     if keep_raw:
@@ -276,6 +417,50 @@ def adata_preprocess(adata, keep_raw=False, normalize=True,
         sc.pp.highly_variable_genes(adata, flavor="seurat", n_top_genes=n_top_genes)
 
     return adata
+
+
+# def adata_preprocess(adata, keep_raw=False, normalize=True, 
+#                      min_cells=10, target_sum=None, n_top_genes=None):
+
+#     """
+#     Preprocesses AnnData object for single-cell RNA sequencing data.
+
+#     Parameters:
+#     adata (anndata.AnnData): The annotated data matrix of shape n_obs x n_vars. 
+#     keep_raw (bool, optional): If True, a copy of the original data is saved. Default is False.
+#     min_cells (int, optional): Minimum number of cells expressed. Default is 10.
+#     target_sum (float, optional): If not None, normalize total counts per cell with this value. 
+#                                   If None, after normalization, each cell has a total count 
+#                                   equal to the median of the counts_per_cell before normalization. 
+#                                   Default is None.
+#     n_top_genes (int, optional): Number of highly-variable genes to keep. 
+#                                  If n_top_genes is not None, this number is kept as 
+#                                  highly-variable genes. Default is None.
+#     Returns:
+#     adata (anndata.AnnData): The processed annotated data matrix.
+#     """
+
+#     adata.var["mt"] = adata.var_names.str.startswith("MT-")
+#     sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
+#     sc.pp.filter_genes(adata, min_cells=min_cells)
+
+#     if keep_raw:
+#         adata = adata.copy()     # del adata.raw   
+
+#     if normalize:
+#         if target_sum is not None:
+#             sc.pp.normalize_total(adata, target_sum=target_sum)
+#         else:
+#             sc.pp.normalize_total(adata)
+
+#         sc.pp.log1p(adata)
+
+#     if n_top_genes is not None:
+#         sc.pp.highly_variable_genes(adata, flavor="seurat", n_top_genes=n_top_genes)
+
+#     return adata
+
+
 
 def adata2matrix(adata, gene_hv):
     # Access the matrix and convert it to a dense matrix
@@ -304,7 +489,7 @@ def get_image_coord(file_paths, dataset_class):
         if dataset_class == 'Visium' or dataset_class == 'VisiumSC':
             part_3 = int(parts[-2])
             part_4 = int(parts[-1].split('.')[0])
-        elif dataset_class == "VisiumHD":
+        elif dataset_class == 'VisiumHD':
             part_3 = parts[-2]
             part_4 = parts[-1].split('.pth')[0]
         else:
@@ -315,13 +500,15 @@ def get_image_coord(file_paths, dataset_class):
     return df[['pixel_x', 'pixel_y']]
     
 
-def get_image_coord_all(file_paths, dataset_class):
+# def get_image_coord_all(file_paths, dataset_class):
+def get_image_coord_all(file_paths):
     file_paths.sort()
     data = []
     for file_path in file_paths:
         parts = file_path.split('_')
-        if dataset_class == 'Visium' or dataset_class == 'VisiumSC':
-            data.append([parts[-2], parts[-1].split('.pth')[0]])
+        data.append([parts[-2], parts[-1].split('.pth')[0]])
+        # if dataset_class == 'Visium' or dataset_class == 'VisiumSC':
+        #     data.append([parts[-2], parts[-1].split('.pth')[0]])
     return data
 
 
@@ -375,6 +562,9 @@ def image_coord_merge(df, position, dataset_class):
     if result.empty:
         raise ValueError("The merging resulted in an empty DataFrame. Please check your input data.")
 
+    # ## For Visium
+    # result = result.drop_duplicates(subset=result.columns[0], keep='first')
+
     return result
 
 
@@ -386,6 +576,12 @@ def sort_matrix(matrix, position_image, spotID_order, gene_hv):
     # Merge position_image and matrix based on the first column
     sorted_matrix = pd.merge(position_image[[position_image_first_col]], matrix, 
                              on=position_image_first_col, how="left")
+    
+    # ################################################
+    # # different: delete the same row For VisiumHD
+    # ################################################
+    # sorted_matrix = sorted_matrix.drop_duplicates(subset=position_image_first_col, keep='first')
+    
     matrix_order = np.array(sorted_matrix.set_index(position_image_first_col))
     
     # Convert matrix_order to DataFrame and set the index and column names
@@ -398,6 +594,7 @@ def sort_matrix(matrix, position_image, spotID_order, gene_hv):
 
 def update_adata_coord(adata, matrix_order, position_image):
     adata.X = csr_matrix(matrix_order, dtype=np.float32)
+    adata.obs_names = matrix_order.index    # order by image feature name 
     adata.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
     adata.obs['array_row'] = np.array(position_image.loc[:, 'y'])
     adata.obs['array_col'] = np.array(position_image.loc[:, 'x'])
@@ -433,8 +630,41 @@ def update_adata_coord_HD(matrix_order, spotID_order, gene_hv, position_image):
 
 
 
-def impute_adata(adata, adata_spot, C2, gene_hv, k=None):
-    ## Prepare impute_adata
+# def impute_adata(adata, adata_spot, C2, gene_hv, k=None):
+#     ## Prepare impute_adata
+#     # adata_know: adata (original) 1331 × 596
+#     # adata_spot: all subspot 21296 × 596
+
+#     adata_know = adata.copy()
+#     adata_know.obs[["x", "y"]] = adata.obsm['spatial']
+#     adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
+
+#     sudo = pd.DataFrame(C2, columns=["x", "y"])
+#     sudo_adata = sc.AnnData(np.zeros((sudo.shape[0], len(gene_hv))), obs=sudo, var=adata.var)
+
+#     ## Impute_adata
+#     start_time = time.time()
+
+#     nearest_points = find_nearest_point(adata_spot.obsm['spatial'], adata_know.obsm['spatial'])
+#     nbs, nbs_indices = find_nearest_neighbors(nearest_points, adata_know.obsm['spatial'], k=k)
+#     distances = calculate_euclidean_distances(adata_spot.obsm['spatial'], nbs)
+
+#     # Iterate over each point in sudo_adata
+#     for i in range(sudo_adata.shape[0]):
+#         dis_tmp = (distances[i] + 0.1) / np.min(distances[i] + 0.1)
+#         weight_exponent = 1
+#         weights = ((1 / (dis_tmp ** weight_exponent)) / ((1 / (dis_tmp ** weight_exponent)).sum()))
+#         sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
+
+#     print("--- %s seconds ---" % (time.time() - start_time))
+#     return sudo_adata
+
+
+###########################################
+# 2025.01.06 sdjust weight and optimal nbs
+###########################################
+def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=1):
+    ## Prepare impute_adata: Fill gene expression using nbs
     # adata_know: adata (original) 1331 × 596
     # adata_spot: all subspot 21296 × 596
 
@@ -445,22 +675,46 @@ def impute_adata(adata, adata_spot, C2, gene_hv, k=None):
     sudo = pd.DataFrame(C2, columns=["x", "y"])
     sudo_adata = sc.AnnData(np.zeros((sudo.shape[0], len(gene_hv))), obs=sudo, var=adata.var)
 
+
+    ## set ‘split_num’, according 'dataset_class'
+    if dataset_class == 'Visium16':
+        k_nbs = 6
+        split_num = 16
+    elif dataset_class == 'Visium64':
+        k_nbs = 6
+        split_num = 64
+    elif dataset_class == 'VisiumSC':
+        k_nbs = 6
+        split_num = 1
+    elif dataset_class == 'VisiumHD':
+        k_nbs = 4
+        split_num = 4
+    else:
+        raise ValueError('Invalid dataset_class. Only "Visium16", "Visium64", "VisiumSC" and "VisiumHD" are supported.')
+
     ## Impute_adata
     start_time = time.time()
 
     nearest_points = find_nearest_point(adata_spot.obsm['spatial'], adata_know.obsm['spatial'])
-    nbs, nbs_indices = find_nearest_neighbors(nearest_points, adata_know.obsm['spatial'], k=k)
+    nbs, nbs_indices = find_nearest_neighbors(nearest_points, adata_know.obsm['spatial'], k=k_nbs)
     distances = calculate_euclidean_distances(adata_spot.obsm['spatial'], nbs)
 
     # Iterate over each point in sudo_adata
     for i in range(sudo_adata.shape[0]):
         dis_tmp = (distances[i] + 0.1) / np.min(distances[i] + 0.1)
-        weight_exponent = 1
         weights = ((1 / (dis_tmp ** weight_exponent)) / ((1 / (dis_tmp ** weight_exponent)).sum()))
-        sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
+        
+        if isinstance(adata_know.X, np.ndarray):
+            sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]])
+        else:
+            sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
+
+        # sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
+        # sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense() / split_num)
 
     print("--- %s seconds ---" % (time.time() - start_time))
     return sudo_adata
+
 
 def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5):
     # sudo_adata: Imputed data using k neighbours of within spots

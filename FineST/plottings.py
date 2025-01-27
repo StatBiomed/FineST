@@ -1,3 +1,4 @@
+import anndata
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
@@ -27,7 +28,6 @@ from .evaluation import *
 import logging
 logging.getLogger().setLevel(logging.INFO)
 
-
 from scipy.stats import pearsonr
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
@@ -39,12 +39,76 @@ import matplotlib.colors as clr
 colors = ["#000003",  "#3b0f6f",  "#8c2980",   "#f66e5b", "#fd9f6c", "#fbfcbf"]
 cnt_color = clr.LinearSegmentedColormap.from_list('magma', colors, N=256)
 
-
 from scipy.stats import gaussian_kde
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 
+## adjust axies
+from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 
+
+import seaborn as sns
+import numpy as np
+
+
+
+#################################################
+# 2025.01.28: plot the propotion of TransDeconv 
+#################################################
+def plot_stackedbar_p(df, labels, colors, title, subtitle, 
+                      fig_size=(18, 4), trans=False, format='pdf', output_file=None):
+    fields = labels
+    
+    sns.set_context('paper',font_scale=1.8) 
+    fig, ax = plt.subplots(1, figsize=fig_size, dpi=100)
+
+    left = len(df) * [0]
+    for idx, name in enumerate(fields):
+        plt.barh(df.index, df[name], left=left, color=colors[idx])
+        left = left + df[name]
+
+    plt.legend(labels, bbox_to_anchor=([.95, -0.14, 0, 0]), ncol=5, frameon=False)
+
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+
+    xticks = np.arange(0, 1.1, 0.1)
+    xlabels = ['{}%'.format(i) for i in np.arange(0, 101, 10)]
+    plt.xticks(xticks, xlabels)
+
+    plt.ylim(-0.5, ax.get_yticks()[-1] + 0.5)
+    ax.xaxis.grid(color='gray', linestyle='dashed')
+    
+    if output_file is not None:
+        plt.savefig(output_file, transparent=trans, format=format, bbox_inches='tight', dpi=300)  
+
+    plt.show()
+
+
+#################################################
+# 2025.01.24: plot the loss curve of trining 
+#################################################
+def loss_curve(train_losses, test_losses, best_epoch, best_loss, max_step=5, min_step=1,
+               fig_size=(5, 4), trans=False, format='svg', save_path=None):
+    fig, ax = plt.subplots(figsize=fig_size)
+    ax.plot(train_losses, label='Train Loss')
+    ax.plot(test_losses, label='Test Loss')
+
+    ## Add a star for the best loss
+    ax.scatter(best_epoch, best_loss, color='black', marker='*', label='Best Loss')
+    ax.xaxis.set_major_locator(MultipleLocator(max_step))
+    ax.xaxis.set_minor_locator(MultipleLocator(min_step))
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Test Losses')
+    plt.legend()
+
+    fig.set_dpi(300)
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
+    plt.show()
 
 #################################################
 # 2024.12.12 add PlotCell from SpatialScope: 
@@ -824,7 +888,7 @@ def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, marker='s
 ###################################
 # def plot_clusters(gaussian_subspot:MixedGaussian, label='counts', w=None, s=None, save_path=None):
 def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None, 
-                       save_path=None, format='pdf'):
+                       trans=False, format='pdf', save_path=None):
     k = gaussian_subspot.K
     h = np.ceil(k / w).astype(int)  # Calculate the number of rows
     
@@ -850,7 +914,7 @@ def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None,
             plt.title('{}'.format(gaussian_subspot.pi[i]))
 
     if save_path is not None:
-        plt.savefig(save_path, format=format, dpi=300, bbox_inches='tight')
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
 
     plt.show()
 
@@ -982,14 +1046,16 @@ def plot_pairs_dot(sample, pairs_to_plot, pdf=None, trans=False, figsize=(56, 8)
 
 #     plt.show()
 
-def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, gene_hv, label, s=8, save_path=None):
+def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, 
+                       gene_hv, label, marker='h', s=8, figsize=(9, 7), save_path=None):
     def plot_gene_data_dot(spatial_loc, genedata, title, ax, s):
-        scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=genedata, cmap=cnt_color, s=s)   
+        scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=genedata, 
+                             cmap=cnt_color, marker=marker, s=s)   
         ax.invert_yaxis()
         ax.set_title(title)
         return scatter
 
-    fig, ax = plt.subplots(figsize=(9, 7))
+    fig, ax = plt.subplots(figsize=figsize)
 
     if isinstance(recon_ref_adata_image_f2, anndata.AnnData):
         genedata3 = recon_ref_adata_image_f2.to_df()[[gene]].to_numpy()
@@ -1070,16 +1136,18 @@ def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22,
         fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
 
-def subspot_expr(C, value, marker='o', s=1800, save_path=None):
-    fig, ax = plt.subplots(figsize=(2.5, 2.5))
-    ax.scatter(C[:, 0], C[:, 1], c=value, marker=marker, cmap=cnt_color, s=s)
-    ax.invert_yaxis()
+def subspot_expr(C, value, marker='o', s=1800, 
+                 fig_size=(2.5, 2.5), trans=False, format='pdf', save_path=None):
+    fig, ax = plt.subplots(figsize=fig_size)
+    scatter = ax.scatter(C[:, 0], C[:, 1], c=value, marker=marker, s=s)
     ax.set_title("First spot")
-    plt.show()
 
     # Save the figure if a save path is provided
     if save_path is not None:
-        fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
+        fig.set_dpi(300)
+        plt.savefig(save_path, transparent=trans, format=format, bbox_inches='tight')
+
+    plt.show()
 
 
 ###########################################

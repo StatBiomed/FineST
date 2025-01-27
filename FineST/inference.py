@@ -6,7 +6,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 
-def perform_inference_image(model, test_loader, dataset_class='Visium'):
+def perform_inference_image(model, test_loader, dataset_class='Visium64'):
     print("device",device)    
 
     #####################################################################################
@@ -158,3 +158,34 @@ def calculate_euclidean_distances(adata_spot, nbs):
         distances.append(dist)
     return np.array(distances)
 
+
+
+#################################################
+# 2025.01.24: add the infer model im main code
+#################################################
+def infer_model_fst(model, test_loader, logger, 
+                    dataset_class='Visium64'): 
+
+    model.to(device)
+
+    logger.info("Running inference task...")
+    start_infer_time = time.time()
+    
+    (matrix_profile, 
+    reconstructed_matrix, 
+    recon_ref_adata_image_f2, 
+    representation_image_reshape,
+    representation_matrix,
+    projection_image_reshape,
+    projection_matrix,
+    input_image_exp,
+    reconstruction_iamge,
+    reconstructed_matrix_reshaped,
+    input_coord_all) = perform_inference_image(model, test_loader, dataset_class=dataset_class)
+    
+    print("--- %s seconds for inference within spots ---" % (time.time() - start_infer_time))
+    print("Reconstructed_matrix_reshaped shape: ", reconstructed_matrix_reshaped.shape)
+    logger.info("Running inference task DONE!")
+    
+    return (matrix_profile, reconstructed_matrix, recon_ref_adata_image_f2, 
+            reconstructed_matrix_reshaped, input_coord_all)
