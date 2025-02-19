@@ -14,6 +14,37 @@ import sys
 
 
 ###########################################################
+# 2025.02.08 Form iStar
+#            Found infer-smooth not at same scale, so norm
+#            Normalized infer and smooth data, sepratelly
+###########################################################
+def scale(cnts):
+    """
+    Scale each column of the input count matrix using a custom scaling method.
+    This method first performs column-wise scaling and then applies a global max scaling.
+    Parameters:
+        cnts (numpy.ndarray): A two-dimensional count matrix.
+    Returns:
+        numpy.ndarray: The scaled count matrix.
+    """
+
+    cnts = cnts.astype(np.float64)  # Convert to float to avoid integer division issues
+
+    # ## Calculate the minimum and maximum values for each column
+    # cnts_min = cnts.min(axis=0)
+    # cnts_max = cnts.max(axis=0)
+
+    # ## Apply Min-Max normalization to each column
+    # # cnts -= cnts_min
+    # # cnts /= (cnts_max - cnts_min) + 1e-12  
+    # ## Apply column-wise scaling & global scaling to [0, 1]
+    # cnts /= (cnts_max - cnts_min) + 1e-12  # Adding a small constant to avoid division by zero
+    
+    cnts /= cnts.max()
+
+    return cnts
+
+###########################################################
 # 2024.11.20 Form SpatialScope
 #            created for StarDist_nuclei_segmente.py
 ###########################################################
@@ -148,9 +179,11 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
 
 ################################################
 # 2025.01.16 adjust C2，according to split_num
+# 2025.02.06 add 'obs' and 'obsm' to adata
 ################################################
 def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_size=56, 
                              p=None, q=None, dataset_class=None):
+    # Helper function to extract x, y coordinates based on the type of `adata`
     def get_x_y(adata, p):
         if isinstance(adata, AnnData):
             return adata.obsm['spatial'][p][0], adata.obsm['spatial'][p][1]
@@ -158,15 +191,18 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
             return adata[p][0], adata[p][1]
 
     NN = recon_mat_reshape_tensor.shape[1]
-    pixel_step = patch_size/NN
-    N = int(np.sqrt(NN))
-    all_spot_all_variable = np.zeros((recon_mat_reshape_tensor.shape[0]*recon_mat_reshape_tensor.shape[1], 
+    N = int(np.sqrt(NN))  # Determine the grid size
+    ################
+    # IMPORTANT
+    ################
+    pixel_step = patch_size / (2*N)  # Calculate the half of pixel step size
+    print('pixel_step (half of patch_size):', pixel_step)
+    all_spot_all_variable = np.zeros((recon_mat_reshape_tensor.shape[0] * recon_mat_reshape_tensor.shape[1], 
                                       recon_mat_reshape_tensor.shape[2]))
     C2 = np.zeros((recon_mat_reshape_tensor.shape[0] * recon_mat_reshape_tensor.shape[1], 2), dtype=int)
     first_spot_first_variable = None
 
-
-    # set ‘split_num’, according 'dataset_class'
+    # Set `split_num` according to `dataset_class`
     if dataset_class == 'Visium16':
         split_num = 16
     elif dataset_class == 'Visium64':
@@ -176,8 +212,8 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
     elif dataset_class == 'VisiumHD':
         split_num = 4
     else:
-        raise ValueError('Invalid dataset_class. Only "Visium" and "VisiumHD" are supported.')
-
+        raise ValueError('Invalid dataset_class. Only "Visium16", '
+                 '"Visium64", "VisiumSC" and "VisiumHD" are supported.')
 
     if p is None and q is None:
 
@@ -228,7 +264,6 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
         # Initialize C as a zero matrix of integer type
         C = np.zeros((NN, 2), dtype=int)
 
-
         #########################################
         ## 2025.01.06 adjust patch orgnization
         ## from left-up to right-down
@@ -258,6 +293,9 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
     adata_spot.var_names = gene_hv
     adata_spot.obs["x"] = C2[:, 0]
     adata_spot.obs["y"] = C2[:, 1]
+    ## add other objects to adata
+    adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
+    # adata_spot.uns['spatial'] = adata.uns['spatial']
     
     return first_spot_first_variable, C, all_spot_all_variable, C2, adata_spot
 

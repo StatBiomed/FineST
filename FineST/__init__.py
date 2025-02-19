@@ -1,6 +1,7 @@
 # add shortcuts to the package's first level
 
 from . import datasets
+from . import HIPT
 # from .main import *
 from .version import __version__
 

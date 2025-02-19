@@ -23,13 +23,15 @@ def _pexp(array):
 
 class Kernel:
 
-    def __init__(self,spatial,ss_loc=None,group_size=16,cov=None,dependency=None,d=5,kernel='laplacian',l=0.01):
+    def __init__(self,spatial,ss_loc=None,group_size=16,cov=None,dependency=None,
+                 d=5,kernel='laplacian',l=0.01):
         """
         number of superspots: M
         cov: full pre-determined covariance matrix
-        dependency format: M-length list of lists, the i-th element indicates the superspots that the i-th superspot is dependent on
-        ss_loc: M-length list of lists, the i-th element indicates the spots (ordinal) that the i-th superspots contain
-        spatial: spatial coordinates of all spots
+        dependency format: M-length list of lists, 
+        the i-th element indicates the superspots that the i-th superspot is dependent on
+        ss_loc: M-length list of lists, the i-th element indicates the spots (ordinal) that 
+        the i-th superspots contain spatial: spatial coordinates of all spots
         l: hyperparameter for kernel
         """
         super().__init__()
@@ -142,7 +144,8 @@ class Kernel:
                                                                 self.spatial[self.ss_loc[j]],gamma=self.l)
                             else:
                                 self.all_cov[i][j] = laplacian_kernel(self.spatial[self.ss_loc[i]],
-                                                                      self.spatial[self.ss_loc[j]],gamma=self.l)
+                                                                      self.spatial[self.ss_loc[j]],
+                                                                      gamma=self.l)
     
 
     def _init_ds_eig(self):
@@ -182,7 +185,8 @@ class Kernel:
         return cond_cov_eig
 
 class MixedGaussian:
-    def __init__(self,spatial,ss_loc=None,group_size=16,cov=None,dependency=None,d=5,kernel='rbf',l=0.01):
+    def __init__(self,spatial,ss_loc=None,group_size=16,
+                 cov=None,dependency=None,d=5,kernel='rbf',l=0.01):
         self.kernel = Kernel(spatial,ss_loc,group_size,cov,dependency,d,kernel,l)
 
     def update_cond_mean(self):
@@ -193,7 +197,8 @@ class MixedGaussian:
                 if len(self.kernel.dependency[i]) > 0:
                     for k in range(self.K):
                         self.cond_dev[k,self.kernel.ss_loc[i],:] = self.cond_dev[k,self.kernel.ss_loc[i],:] - \
-                        np.multiply(1/(self.kernel.ds_eig[i][0]+self.delta[k]),self.kernel.A[i]) @ self.kernel.ds_eig[i][1].T @ dev[k,self.kernel.ds_loc[i],:]
+                        np.multiply(1/(self.kernel.ds_eig[i][0]+self.delta[k]),
+                                    self.kernel.A[i]) @ self.kernel.ds_eig[i][1].T @ dev[k,self.kernel.ds_loc[i],:]
 
     def compute_ll(self,cond_cov_eig):
         ll = np.zeros((self.G,self.K))
@@ -205,7 +210,8 @@ class MixedGaussian:
                     print(cond_cov_eig[k][i][0]) 
                 ll[:,k] += np.log(det)
                 temp = self.cond_dev[k][self.kernel.ss_loc[i],:].T @ cond_cov_eig[k][i][1]
-                ll[:,k] += np.sum(np.multiply(1/cond_cov_eig[k][i][0],np.square(temp)),axis=1)/self.sigma_sq[k]
+                ll[:,k] += np.sum(np.multiply(1/cond_cov_eig[k][i][0],np.square(temp)),
+                                  axis=1)/self.sigma_sq[k]
         ll = ll*-0.5
         return ll
     
@@ -225,7 +231,8 @@ class MixedGaussian:
                 l = len(self.kernel.ss_loc[i])
                 cov_i = np.zeros((l,l))
                 for g in range(self.G):
-                    cov_i += omega[g,k]*np.outer(new_dev[k,self.kernel.ss_loc[i],g],new_dev[k,self.kernel.ss_loc[i],g])
+                    cov_i += omega[g,k]*np.outer(new_dev[k,self.kernel.ss_loc[i],g],
+                                                 new_dev[k,self.kernel.ss_loc[i],g])
                 cov_i = cov_i/np.sum(omega[:,k])
                 self.cov_new.append(cov_i)
             numer,t_2 = 0,0
@@ -263,7 +270,8 @@ class MixedGaussian:
         kmeans = KMeans(n_clusters=self.K, random_state=0).fit(sample.T)
         return kmeans.cluster_centers_.T
 
-    def run_cluster(self,Y,K,pi=None,mean=None,sigma_sq=None,delta=None,iter=500,threshold=5e-2,init_mean='k_means',update_pi=True):
+    def run_cluster(self,Y,K,pi=None,mean=None,sigma_sq=None,delta=None,iter=500,
+                    threshold=5e-2,init_mean='k_means',update_pi=True):
         self.Y = Y
         self.K = K
         self.N,self.G = self.Y.shape

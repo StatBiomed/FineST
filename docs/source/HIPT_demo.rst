@@ -106,6 +106,34 @@ using ``Spot_interpolate.py``.
 * ``NEW_AH_Patient1_pth_64_16``: Extracted "Between spot" image embeddiings for each patche (.pth)
 
 
+Step0: HE image feature extraction (for *Visium*: single-cell)
+----------------------------------------------------
+
+**For single-cell resolution:**
+* *Setp 1*: Get ``_adata_imput_all_spot.h5ad`` from ``_Train_Impute.ipynb``;
+* *Setp 2*: Get ``sp._adata_ns.h5ad`` and ``_position_all_tissue_sc``, from ``StarDist_nuclei_segmentate.py``;
+* *Setp 3*: Get ``sc_Patient1_pth_14_14`` from this scrip ``HIPT_image_feature_extract.py`` using ``Virchow2``.
+
+.. code-block:: bash
+
+   cd /mnt/lingyu/nfs_share2/Python/FineST/
+   time python ./FineST/demo/HIPT_image_feature_extract_virchow2.py \
+      --dataset AH_Patient1 \
+      --position ./FineST_local/Dataset/NPC/StarDist/DataOutput/NPC1_allspot_p075_test/_position_all_tissue_sc.csv \
+      --imagefile ./FineST_local/Dataset/NPC/patient1/20210809-C-AH4199551.tif \
+      --scale_image False \
+      --method Virchow2 \
+      --output_path_img ./FineST_local/Dataset/NPC/HIPT/sc_Patient1_pth_14_14_image \
+      --output_path_pth ./FineST_local/Dataset/NPC/HIPT/sc_Patient1_pth_14_14 \
+      --patch_size 14 \
+      --logging_folder ./FineST_local/Logging/HIPT_AH_Patient1/
+
+``HIPT_image_feature_extract.py`` also output the execution time:
+
+* The image segment execution time for the loop is: 31.082 seconds
+* The image feature extract time for the loop is: 680.178 seconds
+
+
 Step0: HE image feature extraction (for *Visium HD*)
 ----------------------------------------------------
 

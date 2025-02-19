@@ -8,7 +8,7 @@ import pickle
 import json
 from pathlib import Path
 
-
+import anndata
 import numpy as np
 from scipy.spatial import cKDTree
 import torch
@@ -32,6 +32,13 @@ def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k
     numpy.ndarray: The ordered locations.
     numpy.ndarray: The ordered images.
     """
+
+    def load_pickle(filename, verbose=True):
+        with open(filename, 'rb') as file:
+            x = pickle.load(file)
+        if verbose:
+            print(f'Pickle loaded from {filename}')
+        return x
 
     # form (W-H) to (H-W)
     locs = locs[['y','x']]    
@@ -295,9 +302,10 @@ def clean_save_adata(adata, filename):
     # List of keys to remove
     keys_to_remove = ['single_cell', 'mean', 'num_pairs',
                       # 'ligand', 'receptor',  'geneInter'                      
-                      'global_I', 'global_stat', 'global_res', 'local_z', 
+                      'global_I', 'global_stat', 'global_res', 'local_z'
                       # 'local_stat', 'local_z_p', 
-                      'selected_spots']
+                      # 'selected_spots',
+                      ]
 
     for key in keys_to_remove:
         if key in adata_save.uns:
@@ -319,7 +327,8 @@ def clean_save_adata(adata, filename):
 
 
 def Load_clean_save_adata(adata):
-    keys = ["local_z_p", "local_stat", "geneInter", "ligand", "receptor"]
+    keys = ["local_z_p", "local_stat", "geneInter", "ligand", "receptor", "selected_spots",
+            'histology_results_binary', 'histology_results_continu']
     for key in keys:
         with open(adata.uns[key], "rb") as f:
             adata.uns[key] = pickle.load(f)
@@ -592,13 +601,65 @@ def sort_matrix(matrix, position_image, spotID_order, gene_hv):
     return matrix_order, matrix_order_df
 
 
-def update_adata_coord(adata, matrix_order, position_image):
-    adata.X = csr_matrix(matrix_order, dtype=np.float32)
-    adata.obs_names = matrix_order.index    # order by image feature name 
-    adata.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
-    adata.obs['array_row'] = np.array(position_image.loc[:, 'y'])
-    adata.obs['array_col'] = np.array(position_image.loc[:, 'x'])
+def update_adata_coord(adata, matrix_order, position_image, 
+                       spotID_order=None, gene_hv=None, dataset_class='Visium16'):
+    if dataset_class in ['Visium16', 'Visium64']:
+        adata.X = csr_matrix(matrix_order, dtype=np.float32)
+        adata.obs_names = matrix_order.index    # order by image feature name 
+        adata.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
+        adata.obs['array_row'] = np.array(position_image.loc[:, 'y'])
+        adata.obs['array_col'] = np.array(position_image.loc[:, 'x'])
+
+    elif dataset_class == 'VisiumHD':
+        sparse_matrix = csr_matrix(matrix_order, dtype=np.float32)
+        # construct new adata (reduce 97 coords)
+        adata_redu = sc.AnnData(X=sparse_matrix, 
+                                obs=pd.DataFrame(index=spotID_order), 
+                                var=pd.DataFrame(index=gene_hv))
+        adata_redu.X = csr_matrix(matrix_order, dtype=np.float32)
+        adata_redu.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
+        adata_redu.obs['array_row'] = np.array(position_image.loc[:, 'y'])
+        adata_redu.obs['array_col'] = np.array(position_image.loc[:, 'x'])
+        # add another objects
+        adata_redu.var = adata.var
+        adata_redu.uns = adata.uns
+        adata = adata_redu.copy()
+    else:
+        raise ValueError("Invalid dataset_class. Expected 'Visium16', 'Visium64' or 'VisiumHD'.")
+    
     return adata
+
+
+# def update_adata_coord(adata, matrix_order, position_image):
+#     adata.X = csr_matrix(matrix_order, dtype=np.float32)
+#     adata.obs_names = matrix_order.index    # order by image feature name 
+#     adata.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
+#     adata.obs['array_row'] = np.array(position_image.loc[:, 'y'])
+#     adata.obs['array_col'] = np.array(position_image.loc[:, 'x'])
+#     return adata
+
+
+# def update_adata_coord_HD(adata, matrix_order, position_image, spotID_order, gene_hv):
+
+#     sparse_matrix = csr_matrix(matrix_order, dtype=np.float32)
+
+#     #################################################
+#     # construct new adata (reduce 97 coords)
+#     #################################################
+#     adata_redu = sc.AnnData(X=sparse_matrix, 
+#                             obs=pd.DataFrame(index=spotID_order), 
+#                             var=pd.DataFrame(index=gene_hv))
+
+#     adata_redu.X = csr_matrix(matrix_order, dtype=np.float32)
+#     adata_redu.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
+#     adata_redu.obs['array_row'] = np.array(position_image.loc[:, 'y'])
+#     adata_redu.obs['array_col'] = np.array(position_image.loc[:, 'x'])
+
+#     ## add another objects
+#     adata_redu.var = adata.var
+#     adata_redu.uns = adata.uns
+
+#     return adata_redu
 
 
 def update_st_coord(position_image):
@@ -611,22 +672,7 @@ def update_st_coord(position_image):
     return position_order
 
 
-def update_adata_coord_HD(matrix_order, spotID_order, gene_hv, position_image):
 
-    sparse_matrix = csr_matrix(matrix_order, dtype=np.float32)
-
-    #################################################
-    # construct new adata (reduce 97 coords)
-    #################################################
-    adata_redu = sc.AnnData(X=sparse_matrix, 
-                            obs=pd.DataFrame(index=spotID_order), 
-                            var=pd.DataFrame(index=gene_hv))
-
-    adata_redu.X = csr_matrix(matrix_order, dtype=np.float32)
-    adata_redu.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
-    adata_redu.obs['array_row'] = np.array(position_image.loc[:, 'y'])
-    adata_redu.obs['array_col'] = np.array(position_image.loc[:, 'x'])
-    return adata_redu
 
 
 
@@ -670,7 +716,7 @@ def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=
 
     adata_know = adata.copy()
     adata_know.obs[["x", "y"]] = adata.obsm['spatial']
-    adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
+    # adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
 
     sudo = pd.DataFrame(C2, columns=["x", "y"])
     sudo_adata = sc.AnnData(np.zeros((sudo.shape[0], len(gene_hv))), obs=sudo, var=adata.var)
@@ -713,17 +759,98 @@ def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=
         # sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense() / split_num)
 
     print("--- %s seconds ---" % (time.time() - start_time))
+
+    ## add other objects to adata
+    sudo_adata.obsm['spatial'] = adata_spot.obsm['spatial']
+    sudo_adata.uns['spatial'] = adata.uns['spatial']
+
     return sudo_adata
 
+######################################
+# 2025.02.08: add scale 
+######################################
+def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5, do_scale=False):
+    """
+    Combine inferred super-resolved gene expression data with imputed data, and optionally scale the result.
+    Parameters:
+        adata_spot (sc.AnnData): Inferred super-resolved gene expression data with high resolution.
+        sudo_adata (sc.AnnData): Imputed data using k-nearest neighbors within spots.
+        gene_hv (list): List of highly variable genes.
+        w (float, optional): Weight for combining the two datasets. Defaults to 0.5.
+        do_scale (bool, optional): Whether to scale the combined data. Defaults to False.
+    Returns:
+        sc.AnnData: Combined and optionally scaled AnnData object.
+        torch.Tensor: The combined data as a PyTorch tensor.
+    """
 
-def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5):
-    # sudo_adata: Imputed data using k neighbours of within spots
-    # adata_spot: Inferred super-resolved gene expression data with 16x solution
-    # adata_impt: Add inference data `adata_spot` and imputed data ``, with weight `w` and `1-w`
-    weight_impt_data = w*adata_spot.X + (1-w)*sudo_adata.X
+    ## Optionally scale the combined data
+    if do_scale:
+        weight_impt_data = w * scale(adata_spot.X) + (1 - w) * scale(sudo_adata.X)
+    else:
+        weight_impt_data = w * adata_spot.X + (1 - w) * sudo_adata.X
+
+    # Convert the combined data to a PyTorch tensor
     data_impt = torch.tensor(weight_impt_data)
 
-    adata_impt = sc.AnnData(X = pd.DataFrame(weight_impt_data))
+    # Create a new AnnData object with the combined data
+    adata_impt = sc.AnnData(X=pd.DataFrame(weight_impt_data))
     adata_impt.var_names = gene_hv
     adata_impt.obs = adata_spot.obs
+
+    # Add other necessary objects to the new AnnData object
+    adata_impt.obsm['spatial'] = sudo_adata.obsm['spatial']
+    adata_impt.uns['spatial'] = sudo_adata.uns['spatial']
+
     return adata_impt, data_impt
+
+############################################
+# 2025.02.06 from reshape-spot to save-adata
+############################################
+# def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
+
+#     if adata_impt_all_reshape is tensor:
+#         adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.numpy())
+#     elif adata_impt_all_reshape is annadata:
+#         adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.to_df())
+
+#     # adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.numpy())
+#     adata_impt_spot.var_names = gene_hv
+
+#     if adata_impt_all_reshape.size()[0] == adata.shape[0]:
+#         adata_impt_spot.obs_names = adata.obs_names
+#         adata_impt_spot.obsm['spatial'] = adata.obsm['spatial'] 
+#         adata_impt_spot.obs = adata.obs
+#         adata_impt_spot.var = adata.var
+#     else: 
+#         adata_impt_spot.obs['x'] = spatial_loc_all[:,0]
+#         adata_impt_spot.obs['y'] = spatial_loc_all[:,1]
+#         adata_impt_spot.obsm['spatial'] = adata_impt_spot.obs[["x", "y"]].values
+#         # adata_impt_spot.obsm['spatial'] = spatial_loc_all
+    
+#     adata_impt_spot.uns['spatial'] = adata.uns['spatial']
+
+#     return adata_impt_spot
+
+
+def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
+
+    if isinstance(adata_impt_all_reshape, torch.Tensor):
+        adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.numpy())
+    elif isinstance(adata_impt_all_reshape, anndata.AnnData):
+        adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.to_df())
+
+    adata_impt_spot.var_names = gene_hv
+
+    if adata_impt_all_reshape.shape[0] == adata.shape[0]:
+        adata_impt_spot.obs_names = adata.obs_names
+        adata_impt_spot.obsm['spatial'] = adata.obsm['spatial'] 
+        adata_impt_spot.obs = adata.obs
+        adata_impt_spot.var = adata.var
+    else: 
+        adata_impt_spot.obs['x'] = spatial_loc_all[:,0]
+        adata_impt_spot.obs['y'] = spatial_loc_all[:,1]
+        adata_impt_spot.obsm['spatial'] = adata_impt_spot.obs[["x", "y"]].values
+    
+    adata_impt_spot.uns['spatial'] = adata.uns['spatial']
+
+    return adata_impt_spot

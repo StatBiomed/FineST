@@ -1,8 +1,10 @@
 import anndata
 import matplotlib.pyplot as plt
+import spatialdm as sdm
 import matplotlib as mpl
 import pandas as pd
 import numpy as np
+from matplotlib.cm import hsv
 from matplotlib.backends.backend_pdf import PdfPages
 import scipy.stats as stats
 import seaborn as sns
@@ -16,13 +18,14 @@ from scipy.sparse import csc_matrix
 from scipy import stats
 from matplotlib import gridspec
 from scipy.spatial.distance import jensenshannon
+
+## adjust axies
 from matplotlib.ticker import MultipleLocator
 
 hv.extension('bokeh')
 hv.output(size=200)
 
 import math
-from matplotlib.cm import hsv
 from sklearn.metrics.pairwise import cosine_similarity
 from .evaluation import *
 import logging
@@ -35,56 +38,404 @@ from sklearn.metrics import r2_score
 # sns.set(style="white", font_scale=1.2)
 # plt.rcParams["figure.figsize"] = (5, 5)
 
+from scipy.stats import gaussian_kde
+import matplotlib.cm as cm
 import matplotlib.colors as clr
 colors = ["#000003",  "#3b0f6f",  "#8c2980",   "#f66e5b", "#fd9f6c", "#fbfcbf"]
 cnt_color = clr.LinearSegmentedColormap.from_list('magma', colors, N=256)
 
-from scipy.stats import gaussian_kde
-import matplotlib.colors as mcolors
-import matplotlib.cm as cm
-
-## adjust axies
-from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 
 
-import seaborn as sns
-import numpy as np
+###############################################
+# 2024.02.12 Cluster-heatmap for colocalization
+###############################################
+def MoranR_colocalization(st_adata_cltp2, cmap, cell_type=None, linewidth=0.5, linecolor='whitesmoke', 
+                          fig_size=(9, 9), font_size=12, trans=False, format='svg', 
+                          xtick_rotation=90, ytick_rotation=0, save_path=None):
+    """
+    Plot a clustermap with customized settings for tick labels and save the figure if needed.
+    
+    Parameters:
+        st_adata_cltp2: AnnData
+            The annotated data matrix containing the spatial transcriptomics data.
+    """
+
+    print("*** Calculate Moren_R using SpatialDM ***")
+    ## calculate MorenR
+    n_cell_types = st_adata_cltp2.obsm[str(cell_type)].shape[1]
+    correlation_matrix_TransImp2 = np.zeros((n_cell_types, n_cell_types))
+
+    for i in range(n_cell_types):
+        for j in range(n_cell_types):
+            correlation_matrix_TransImp2[i, j] = sdm.utils.Moran_R(
+                st_adata_cltp2.obsm[str(cell_type)].values[:, i:i+1], 
+                st_adata_cltp2.obsm[str(cell_type)].values[:, j:j+1], 
+                st_adata_cltp2.obsp['weight']
+            )[0]
+
+    correlation_matrix2 = pd.DataFrame(correlation_matrix_TransImp2)
+    correlation_matrix2.index = st_adata_cltp2.obsm[str(cell_type)].columns
+    correlation_matrix2.columns = st_adata_cltp2.obsm[str(cell_type)].columns
+    print("*** Calculate DONE! ***")
+
+    ## Create clustermap
+    g = sns.clustermap(correlation_matrix2, cmap=cmap, linewidth=linewidth, linecolor=linecolor, figsize=fig_size)
+
+    ## Set x and y axis tick labels
+    ax = g.ax_heatmap
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=xtick_rotation, ha='right', fontsize=font_size)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=ytick_rotation, fontsize=font_size)
+
+    ## Ensure all tick labels are visible
+    plt.setp(ax.get_xticklabels(), visible=True)
+    plt.setp(ax.get_yticklabels(), visible=True)
+
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
+    plt.show()
+
+    return correlation_matrix2
+
+#######################################
+# 2024.02.11 Add LR global Moran R plot
+#######################################
+# def LR_global_moranR(adata_impt_all_spot, pairs, method=None, fig_size=(6, 6), font_size=12,
+#                      trans=False, format='svg', save_path=None): 
+#     # Select P value
+#     if method == 'permutation':
+#         p = 'perm_pval'
+#     elif method == 'z-score':
+#         p = 'z_pval'
+def LR_global_moranR(adata_impt_all_spot, pairs, fig_size=(6, 6), font_size=12,
+                     trans=False, format='svg', save_path=None): 
+    # Select P value
+    if adata_impt_all_spot.uns['global_stat']['method'] == 'permutation':
+        p = 'perm_pval'
+    elif adata_impt_all_spot.uns['global_stat']['method'] == 'z-score':
+        p = 'z_pval'
+        
+    # Extract global_I values for the given pairs
+    moran_r_values = []
+    for pair in pairs:
+        ligand_index = adata_impt_all_spot.uns['ligand'].index == pair
+        moran_r_value = adata_impt_all_spot.uns['global_I'][ligand_index][0]
+        # print(moran_r_value)
+        moran_r_values.append(moran_r_value)
+    
+    # Define colors for each pair
+    colors = generate_colormap(max(10, len(pairs) + 2))[2:]
+    pair_color_dict = {pair: colors[i % len(colors)] for i, pair in enumerate(pairs)}
+    
+    # Sort pairs based on Moran_R values
+    sorted_pairs = [pair for _, pair in sorted(zip(moran_r_values, pairs))]
+    sorted_moran_r_values = sorted(moran_r_values)
+    print(sorted_pairs)
+    
+    fig, axs = plt.subplots(figsize=fig_size)
+    
+    # Original scatter plot with color and size variations
+    for i, pair in enumerate(sorted_pairs):
+        # ligand, receptor = pair.split('_')
+        ligand, receptors = pair.split('_', maxsplit=1)   # for three
+        
+        ligand_index = adata_impt_all_spot.uns['ligand'].index == pair
+        global_res_p = adata_impt_all_spot.uns['global_res'][p][ligand_index]
+        
+        size = np.exp(global_res_p) * 80
+        color = pair_color_dict[pair]  # Use the original color for the pair
+    
+        scatter = axs.scatter(i, sorted_moran_r_values[i], c=[color], s=size, label=pair, edgecolor='k')
+    
+    axs.set_xlabel('Ligand', fontsize=font_size)
+    axs.set_ylabel('Receptor', fontsize=font_size)
+    axs.set_xticks(range(len(sorted_pairs)))
+    axs.set_xticklabels([pair.split('_')[0] for pair in sorted_pairs])
+    axs.set_yticks(sorted_moran_r_values)  # Ensure the number of ticks matches the labels
+    axs.set_yticklabels([pair.split('_')[1] for pair in sorted_pairs])
+    
+    # Add right side y-axis with Moran's I values
+    ax2 = axs.twinx()
+    ax2.set_ylim(axs.get_ylim())  
+    ax2.set_yticks(range(len(sorted_moran_r_values)))  
+    ax2.set_yticklabels([f'{val:.2f}' for val in sorted_moran_r_values])  
+    ax2.set_ylabel("Global R", fontsize=font_size)
+    
+    axs.legend()
+    
+    # Add colorbar
+    # cbar = plt.colorbar(scatter, ax=ax2, pad=0.25)
+    # cbar.set_label('Global R')
+
+    fig.set_dpi(150)
+    plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
+
+    plt.show()
+
+#######################################
+# 2024.02.11 Add LR global Moran R plot
+# using aver_expr as x, y coords
+#######################################
+def select_pairs(adata_impt_all_spot, pairs, fig_size=(6, 6)):
+    # Select P value
+    if adata_impt_all_spot.uns['global_stat']['method'] == 'permutation':
+        p = 'perm_pval'
+    elif adata_impt_all_spot.uns['global_stat']['method'] == 'z-score':
+        p = 'z_pval'
+
+    coords = []
+    for pair in pairs:
+        ligand, receptor = pair.split('_')
+        x_coord = adata_impt_all_spot.to_df()[ligand].mean()
+        y_coord = adata_impt_all_spot.to_df()[receptor].mean()
+        coords.append((x_coord, y_coord))
+
+    fig, axs = plt.subplots(figsize=fig_size)
+
+    # Original scatter plot with color and size variations
+    for i, pair in enumerate(pairs):
+        ligand_index = adata_impt_all_spot.uns['ligand'].index == pair
+        global_I = adata_impt_all_spot.uns['global_I'][ligand_index]
+        global_res_p = adata_impt_all_spot.uns['global_res'][p][ligand_index]
+        
+        x_coord, y_coord = coords[i]
+        size = np.exp(global_res_p)*80
+        print(size)
+        color = global_I
+        # color = global_res_p
+        # size = np.log1p(global_I) * 100  # Scale size for better visualization
+
+        scatter = axs.scatter(x_coord, y_coord, c=color, s=size, label=pair, cmap='viridis', edgecolor='k')
+
+    axs.set_title('Original')
+    axs.set_xlabel('Ligand mean')
+    axs.set_ylabel('Receptor mean')
+    axs.legend()
+
+    # Add colorbar
+    cbar = plt.colorbar(scatter, ax=axs)
+    cbar.set_label('Global I value')
+
+    plt.tight_layout()
+    plt.show()
+
+#######################################
+# 2024.02.11 Add LR interaction plot
+#######################################
+def LR_local_moranR(adata_LRpair, pair, fig_size=(12, 6), 
+                         trans=False, format='svg', save_path=None):
+    '''
+    adata_LRpair: _adata_pattern_all_spot.h5ad from CCC 
+    '''
+    
+    loczp = adata_LRpair.uns["local_z_p"]
+    pair_data = 1 - loczp.loc[pair]
+    non_zero_mean = pair_data[pair_data != 0].mean()
+    formatted_mean = f"non_zero_mean: {non_zero_mean:.2f}"
+    
+    zero_proportion = (pair_data == 0).mean()
+    non_zero_proportion = (pair_data != 0).mean()
+    
+    proportions = [zero_proportion, non_zero_proportion]
+    labels = ['No', 'Yes']
+    colors = ['whitesmoke', 'honeydew']
+    explode = (0.1, 0)    # Highlight the first sector
+    
+    fig, axs = plt.subplots(1, 2, figsize=fig_size)
+
+    ## pie
+    wedges, texts, autotexts = axs[0].pie(proportions, explode=explode, colors=colors, 
+                                          autopct='%1.1f%%', shadow=True, startangle=90)
+    
+    axs[0].legend(wedges, labels, title="Interaction", loc="upper center", bbox_to_anchor=(0.5, 0.02), ncol=2)
+    axs[0].set_title(f'{pair}: {formatted_mean} (LocalR mean)')
+    
+    ## violinplot
+    sns.violinplot(data=pair_data[pair_data != 0], ax=axs[1], color='honeydew')
+    axs[1].set_xlabel('Interaction')
+    axs[1].set_ylabel('Strength')
+    plt.tight_layout()
+    fig.set_dpi(150)
+
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
+        
+    plt.show()
 
 
+#######################################
+# 2024.02.05 Revised global_plot x-axis
+#######################################
+def global_plot(sample, pairs=None, figsize=(3,4), loc=2, max_step=0.1, min_step=0.1, **kwarg):
+    """
+    overview of global selected pairs for a SpatialDM obj
+    :param sample: AnnData object
+    :param pairs: list
+    list of pairs to be highlighted in the scatter plot, e.g. ['SPP1_CD44'] or ['SPP1_CD44','ANGPTL4_SDC2']
+    :param figsize: tuple, default to (3,4)
+    :loc=2: left-up; 4: right-down; 5: right 
+    :reference: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.legend.html
+    :param kwarg: plt.scatter arguments
+    :return: ax: matplotlib Axes.
+    """
+    
+    if pairs is not None:
+        color_codes = generate_colormap(max(10, len(pairs)+2))[2:]
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_linewidth(0.75)
+    ax.spines['bottom'].set_linewidth(0.75)
+
+    ## Selecte P value
+    if sample.uns['global_stat']['method'] == 'permutation':
+        p = 'perm_pval'
+    elif sample.uns['global_stat']['method'] == 'z-score':
+        p = 'z_pval'
+    
+    ax.scatter(np.log1p(sample.uns['global_I']), -np.log1p(sample.uns['global_res'][p]),
+                c=sample.uns['global_res'].selected, **kwarg)
+
+    if pairs != None:
+        for i, pair in enumerate(pairs):
+            ax.scatter(np.log1p(sample.uns['global_I'])[sample.uns['ligand'].index==pair],
+                        -np.log1p(sample.uns['global_res'][p])[sample.uns['ligand'].index==pair],
+                        c=color_codes[i]) #TODO: perm pval only?
+
+    ## Set x,y step by 0.1
+    ax.xaxis.set_major_locator(MultipleLocator(max_step))
+    ax.xaxis.set_minor_locator(MultipleLocator(min_step))
+
+    ax.set_xlabel('log1p (Global R)', fontsize=14)
+    ax.set_ylabel('-log1p (P Value)', fontsize=14)
+
+    # Set tick parameters
+    ax.tick_params(axis='both', which='major', labelsize=12)
+
+    ax.legend(np.hstack((['No-significant'], pairs)), loc=loc, fontsize=10)   # loc is location
+    # ax.legend(np.hstack((['No-significant'], pairs)), bbox_to_anchor=(0,1), loc="upper left", fontsize=10)
+
+    return ax
+
+
+def generate_colormap(number_of_distinct_colors, number_of_shades = 7):
+    '''
+    Ref: https://stackoverflow.com/questions/42697933/colormap-with-maximum-distinguishable-colours
+    :param number_of_distinct_colors:
+    :param number_of_shades:
+    :return: n distinct colors
+    '''
+    number_of_distinct_colors_with_multiply_of_shades = int(math.ceil(number_of_distinct_colors \
+            / number_of_shades) * number_of_shades)
+
+    linearly_distributed_nums = np.arange(number_of_distinct_colors_with_multiply_of_shades) / \
+            number_of_distinct_colors_with_multiply_of_shades
+    arr_by_shade_rows = linearly_distributed_nums.reshape(number_of_shades, number_of_distinct_colors_with_multiply_of_shades // number_of_shades)
+    arr_by_shade_columns = arr_by_shade_rows.T
+    number_of_partitions = arr_by_shade_columns.shape[0]
+    nums_distributed_like_rising_saw = arr_by_shade_columns.reshape(-1)
+    initial_cm = hsv(nums_distributed_like_rising_saw)
+    lower_partitions_half = number_of_partitions // 2
+    upper_partitions_half = number_of_partitions - lower_partitions_half
+    lower_half = lower_partitions_half * number_of_shades
+    for i in range(3):
+        initial_cm[0:lower_half, i] *= np.arange(0.2, 1, 0.8/lower_half)
+    for i in range(3):
+        for j in range(upper_partitions_half):
+            modifier = np.ones(number_of_shades) - initial_cm[lower_half + j * number_of_shades: lower_half + (j + 1) * number_of_shades, i]
+            modifier = j * modifier / upper_partitions_half
+            initial_cm[lower_half + j * number_of_shades: lower_half + (j + 1) * number_of_shades, i] += modifier
+    initial_cm = initial_cm[:,:3] * 255
+    initial_cm = initial_cm.astype(int)
+    initial_cm = np.array(['#%02x%02x%02x' % tuple(initial_cm[i]) for i in range(len(initial_cm))])
+    return initial_cm
+
+
+def cor_hist(adata, adata_df_infer, max_step=0.1, min_step=0.01,
+                              fig_size=(5, 4), trans=False, format='svg', save_path=None):
+    pearson_correlations = [stats.pearsonr(adata.to_df()[col].values, adata_df_infer[col].values)[0] for col in adata.to_df().columns]
+    print(np.mean(pearson_correlations))
+
+    fig = plt.figure(figsize=fig_size)
+    ax = sns.histplot(data=pearson_correlations, bins=30, kde=True)
+    ax.xaxis.set_major_locator(MultipleLocator(max_step))
+    ax.xaxis.set_minor_locator(MultipleLocator(min_step))
+    plt.title("Histogram of Pearson Correlations")
+    plt.xlabel("Pearson Correlation")
+    plt.ylabel("Frequency")
+
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
+    plt.show()
 
 #################################################
 # 2025.01.28: plot the propotion of TransDeconv 
 #################################################
 def plot_stackedbar_p(df, labels, colors, title, subtitle, 
-                      fig_size=(18, 4), trans=False, format='pdf', output_file=None):
+                      fig_size=(18, 4), trans=False, format='pdf', save_path=None):
     fields = labels
-    
-    sns.set_context('paper',font_scale=1.8) 
-    fig, ax = plt.subplots(1, figsize=fig_size, dpi=100)
+
+    sns.set(style="white", context="paper", font_scale=1.0) 
+    fig, ax = plt.subplots(1, figsize=fig_size, dpi=150)
 
     left = len(df) * [0]
     for idx, name in enumerate(fields):
         plt.barh(df.index, df[name], left=left, color=colors[idx])
         left = left + df[name]
 
-    plt.legend(labels, bbox_to_anchor=([.95, -0.14, 0, 0]), ncol=5, frameon=False)
+    plt.legend(labels, bbox_to_anchor=([1, 1]), ncol=2, frameon=False, fontsize='large')
+    # plt.legend(labels, bbox_to_anchor=([.95, -0.14, 0, 0]), ncol=10, frameon=False)
 
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
+    sns.despine(ax=ax, left=True, right=True, top=True, bottom=True)
 
     xticks = np.arange(0, 1.1, 0.1)
     xlabels = ['{}%'.format(i) for i in np.arange(0, 101, 10)]
-    plt.xticks(xticks, xlabels)
+    plt.xticks(xticks, xlabels, fontsize=12)
+    # plt.xlabel("Percentage", fontsize=14)
+    plt.ylabel("", fontsize=14)
+    # plt.title(title, fontsize=16)
 
     plt.ylim(-0.5, ax.get_yticks()[-1] + 0.5)
-    ax.xaxis.grid(color='gray', linestyle='dashed')
-    
-    if output_file is not None:
-        plt.savefig(output_file, transparent=trans, format=format, bbox_inches='tight', dpi=300)  
+    ax.xaxis.grid(color='gray', linestyle='dashed', linewidth=0.6)
+
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, bbox_inches='tight', dpi=300)  
 
     plt.show()
+
+
+# def plot_stackedbar_p(df, labels, colors, title, subtitle, 
+#                       fig_size=(18, 4), trans=False, format='pdf', output_file=None):
+#     fields = labels
+    
+#     sns.set_context('paper',font_scale=1.8) 
+#     fig, ax = plt.subplots(1, figsize=fig_size, dpi=100)
+
+#     left = len(df) * [0]
+#     for idx, name in enumerate(fields):
+#         plt.barh(df.index, df[name], left=left, color=colors[idx])
+#         left = left + df[name]
+
+#     plt.legend(labels, bbox_to_anchor=([.95, -0.14, 0, 0]), ncol=5, frameon=False)
+
+#     ax.spines['right'].set_visible(False)
+#     ax.spines['left'].set_visible(False)
+#     ax.spines['top'].set_visible(False)
+#     ax.spines['bottom'].set_visible(False)
+
+#     xticks = np.arange(0, 1.1, 0.1)
+#     xlabels = ['{}%'.format(i) for i in np.arange(0, 101, 10)]
+#     plt.xticks(xticks, xlabels)
+
+#     plt.ylim(-0.5, ax.get_yticks()[-1] + 0.5)
+#     ax.xaxis.grid(color='gray', linestyle='dashed')
+    
+#     if output_file is not None:
+#         plt.savefig(output_file, transparent=trans, format=format, bbox_inches='tight', dpi=300)  
+
+#     plt.show()
 
 
 #################################################
@@ -105,7 +456,7 @@ def loss_curve(train_losses, test_losses, best_epoch, best_loss, max_step=5, min
     plt.title('Training and Test Losses')
     plt.legend()
 
-    fig.set_dpi(300)
+    # fig.set_dpi(300)
     if save_path is not None:
         plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
     plt.show()
@@ -295,7 +646,8 @@ def rmse(y_pred, y_mean_pred):
     return mse**0.5
 
 
-def plot_correlation_revised(df1, df2, column_name, x_label, y_label, title=None, 
+def plot_PCC_revised(df1, df2, column_name, x_label, y_label, gene_set=None, title=None, 
+                             max_step=0.2, min_step=0.1, fig_size=(6, 5), 
                              trans=False, format='pdf', save_path=None):
     
     merged_df = pd.merge(df1, df2, on=column_name)
@@ -303,7 +655,7 @@ def plot_correlation_revised(df1, df2, column_name, x_label, y_label, title=None
     print("merged_df:", merged_df.shape)
 
     ## Create a main plot and two subplots for the histograms
-    fig = plt.figure(figsize=(6, 5))  
+    fig = plt.figure(figsize=fig_size)  
     grid = plt.GridSpec(6, 6, hspace=0.1, wspace=0.1)  
     x_hist = fig.add_subplot(grid[0, :-2])  
     main_ax = fig.add_subplot(grid[1:, :-2], sharex=x_hist)  
@@ -314,18 +666,22 @@ def plot_correlation_revised(df1, df2, column_name, x_label, y_label, title=None
     ## Create a scatter plot in the main plot
     xy = np.vstack([merged_df[x_label], merged_df[y_label]])
     density = gaussian_kde(xy)(xy)
-    norm = mcolors.Normalize(vmin=density.min(), vmax=density.max())
+    norm = clr.Normalize(vmin=density.min(), vmax=density.max())
     colors = cm.viridis(norm(density))
     scatter = main_ax.scatter(merged_df[x_label], merged_df[y_label], 
                               c=colors, alpha=0.7, label='Data points')
 
     # created automatically.
-    main_ax.xaxis.set_major_locator(MultipleLocator(0.2))
-    main_ax.xaxis.set_major_formatter('{x:.2f}')
-    main_ax.xaxis.set_minor_locator(MultipleLocator(0.05))
-    main_ax.yaxis.set_major_locator(MultipleLocator(0.2))
-    main_ax.yaxis.set_major_formatter('{x:.2f}')
-    main_ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+    main_ax.xaxis.set_major_locator(MultipleLocator(max_step))
+    main_ax.xaxis.set_major_formatter('{x:.1f}')
+    main_ax.xaxis.set_minor_locator(MultipleLocator(min_step))
+    main_ax.yaxis.set_major_locator(MultipleLocator(max_step))
+    main_ax.yaxis.set_major_formatter('{x:.1f}')
+    main_ax.yaxis.set_minor_locator(MultipleLocator(min_step))
+
+    # Adjust the font size of the tick labels
+    main_ax.tick_params(axis='both', which='major', labelsize=12)
+    # main_ax.tick_params(axis='both', which='minor', labelsize=10)
 
     ## Add a colorbar
     cb = plt.colorbar(cm.ScalarMappable(norm=norm, cmap='viridis'), cax=cax, shrink=0.5)
@@ -343,8 +699,15 @@ def plot_correlation_revised(df1, df2, column_name, x_label, y_label, title=None
     x_hist.set_xlabel("")
     y_hist.set_ylabel("")
 
+    # Adjust the font size of the tick labels
+    x_hist.tick_params(axis='both', which='major', labelsize=12)
+    # x_hist.tick_params(axis='both', which='minor', labelsize=10)
+    y_hist.tick_params(axis='both', which='major', labelsize=12)
+    # y_hist.tick_params(axis='both', which='minor', labelsize=10)
+
     ## mark genes
-    genes_to_annotate = ['TGFB1', 'BMP2']
+    # genes_to_annotate = ['TGFB1', 'BMP2']
+    genes_to_annotate = gene_set if gene_set is not None else []
     for gene in genes_to_annotate:
         gene_data = merged_df.loc[merged_df[column_name] == gene, [x_label, y_label]]
         if not gene_data.empty:
@@ -353,8 +716,8 @@ def plot_correlation_revised(df1, df2, column_name, x_label, y_label, title=None
                              xytext=(0, 5), ha='center', fontsize=14, color='red')
 
     ## setting
-    main_ax.set_xlabel(x_label, fontsize=12)
-    main_ax.set_ylabel(y_label, fontsize=12)
+    main_ax.set_xlabel(x_label, fontsize=14)
+    main_ax.set_ylabel(y_label, fontsize=14)
 
     ## add Diagonal line
     min_value = min(merged_df[x_label].min(), merged_df[y_label].min())
@@ -363,7 +726,94 @@ def plot_correlation_revised(df1, df2, column_name, x_label, y_label, title=None
                    color='gray', label='Diagonal line')
     
     sns.despine()
-    plt.gcf().set_dpi(300)
+    plt.gcf().set_dpi(180)
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
+    plt.show
+
+
+def plot_SSIM_revised(df1, df2, column_name, x_label, y_label, gene_set=None, title=None,
+                      max_step=0.1, min_step=0.1, fig_size=(6, 5), 
+                      trans=False, format='pdf', save_path=None):
+    
+    merged_df = pd.merge(df1, df2, on=column_name)
+    merged_df = merged_df[np.isfinite(merged_df[x_label]) & np.isfinite(merged_df[y_label])]
+    print("merged_df:", merged_df.shape)
+
+    ## Create a main plot and two subplots for the histograms
+    fig = plt.figure(figsize=fig_size)  # 
+    grid = plt.GridSpec(6, 6, hspace=0.1, wspace=0.1)  
+    x_hist = fig.add_subplot(grid[0, :-2])  
+    main_ax = fig.add_subplot(grid[1:, :-2], sharex=x_hist)  
+    y_hist = fig.add_subplot(grid[1:, -2], sharey=main_ax)  
+    # Add a subplot for the colorbar
+    cax = fig.add_subplot(grid[1:, -1])  
+
+    ## Create a scatter plot in the main plot
+    xy = np.vstack([merged_df[x_label], merged_df[y_label]])
+    density = gaussian_kde(xy)(xy)
+    norm = clr.Normalize(vmin=density.min(), vmax=density.max())
+    colors = cnt_color(norm(density))
+
+    scatter = main_ax.scatter(merged_df[x_label], merged_df[y_label], 
+                              c=colors, alpha=0.7, label='Data points')
+
+    # Set major and minor ticks
+    main_ax.xaxis.set_major_locator(MultipleLocator(max_step))
+    main_ax.xaxis.set_major_formatter('{x:.1f}')
+    main_ax.xaxis.set_minor_locator(MultipleLocator(min_step))
+    main_ax.yaxis.set_major_locator(MultipleLocator(max_step))
+    main_ax.yaxis.set_major_formatter('{x:.1f}')
+    main_ax.yaxis.set_minor_locator(MultipleLocator(min_step))
+
+    # Adjust the font size of the tick labels
+    main_ax.tick_params(axis='both', which='major', labelsize=12)
+    # main_ax.tick_params(axis='both', which='minor', labelsize=10)
+    
+    ## Add a colorbar  
+    cb = plt.colorbar(cm.ScalarMappable(norm=norm, cmap=cnt_color), cax=cax, shrink=0.5) # 'viridis'
+    # cb.set_label('Density')
+
+    ## Add histograms for x and y data
+    sns.histplot(x=merged_df[x_label], ax=x_hist, kde=True, color='gray', 
+                 legend=False, bins=30, alpha=0.6)
+    sns.histplot(y=merged_df[y_label], ax=y_hist, kde=True, color='gray', 
+                 legend=False, bins=30, alpha=0.6, orientation='horizontal')
+
+    # Remove x-axis tick labels for the x_hist
+    plt.setp(x_hist.get_xticklabels(), visible=False)
+    plt.setp(y_hist.get_yticklabels(), visible=False)
+    ## Remove x-axis tick labels
+    x_hist.set_xlabel("")
+    y_hist.set_ylabel("")
+
+    # Adjust the font size of the tick labels
+    x_hist.tick_params(axis='both', which='major', labelsize=12)
+    # x_hist.tick_params(axis='both', which='minor', labelsize=10)
+    y_hist.tick_params(axis='both', which='major', labelsize=12)
+    # y_hist.tick_params(axis='both', which='minor', labelsize=10)
+    
+    ## mark genes
+    genes_to_annotate = gene_set if gene_set is not None else []
+    for gene in genes_to_annotate:
+        gene_data = merged_df.loc[merged_df[column_name] == gene, [x_label, y_label]]
+        if not gene_data.empty:
+            main_ax.scatter(*gene_data.values[0], c='red', alpha=0.7)
+            main_ax.annotate(gene, gene_data.values[0], textcoords="offset points", 
+                             xytext=(0, 5), ha='center', fontsize=14, color='red')
+
+    ## setting
+    main_ax.set_xlabel(x_label, fontsize=14)
+    main_ax.set_ylabel(y_label, fontsize=14)
+
+    ## add Diagonal line
+    min_value = min(merged_df[x_label].min(), merged_df[y_label].min())
+    max_value = max(merged_df[x_label].max(), merged_df[y_label].max())
+    main_ax.axline((min_value, min_value), (max_value, max_value), linestyle='--', 
+                   color='gray', label='Diagonal line')
+
+    sns.despine()
+    plt.gcf().set_dpi(180)
     if save_path is not None:
         plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
     plt.show
@@ -375,7 +825,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import urllib, json
 
-def sankey_LR2TF2TG(subdf, width=600, height=400, title='Pattern 0', 
+def sankey_LR2TF2TG(subdf, width=600, height=400, title='Pattern 0', alpha_color=0.6,
                     save_path=None, fig_format='svg'):
     """
     Create a Sankey diagram from ligand-receptor-TF data and save as SVG.
@@ -413,8 +863,25 @@ def sankey_LR2TF2TG(subdf, width=600, height=400, title='Pattern 0',
     response = urllib.request.urlopen(url)
     data = json.loads(response.read())
     # override gray link colors with 'source' colors
-    mycol_vector_list = ['rgba(255,0,255, 0.8)' if color == "magenta" else color for color in data['data'][0]['node']['color']]
+    # mycol_vector_list = ['rgba(255,0,255, 0.8)' if color == "magenta" else color for color in data['data'][0]['node']['color']]
 
+    #########################
+    # 70%  color
+    #########################
+    def adjust_alpha(color, alpha=alpha_color):
+        # Check if color is in rgba format
+        if color.startswith('rgba'):
+            color = color.rstrip(')').split(',')
+            color[-1] = str(alpha)
+            color = ','.join(color) + ')'
+        # Check if color is in rgb format
+        elif color.startswith('rgb'):
+            color = color.rstrip(')').split(',')
+            color.append(str(alpha))
+            color = ','.join(color) + ')'
+        return color
+    
+    mycol_vector_list = [adjust_alpha(color) for color in data['data'][0]['node']['color']]
 
     # # Set the number of colors you want
     # num_colors = len(node_label)*4  # for example, use the number of nodes as the number of colors
@@ -500,11 +967,11 @@ def sankey_LR2TF2TG(subdf, width=600, height=400, title='Pattern 0',
         pio.write_image(fig, save_path, format=fig_format)
     else:
         fig_obj = go.Figure(fig)
-        fig_obj.write_html(str(save_path) + 'sankey_diagram.html')
+        fig_obj.write_html(str(save_path) + '_sankey_diagram.html')
 
         from IPython.display import display, HTML
 
-        with open(str(save_path) + 'sankey_diagram.html', 'r') as f:
+        with open(str(save_path) + '_sankey_diagram.html', 'r') as f:
             html_string = f.read()
 
         display(HTML(html_string))
@@ -721,7 +1188,7 @@ def dot(pathway_res, figsize, markersize, pdf, step=4):
         dotplot.set_title(name)
         plt.colorbar(im, location='bottom', label='Percentage of pairs out of CellChatDB')
         #                 dotplot.tight_layout()
-        plt.gcf().set_dpi(300)
+        plt.gcf().set_dpi(150)
 
         # plot size bar
         size_uniq = np.quantile(size, np.arange(1, 0, -0.1))
@@ -791,21 +1258,25 @@ def make_grid_spec(
         return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
 
 
-def dot_path(adata, uns_key=None, dic=None, cut_off=1, groups=None, markersize=50,
-             step=4, figsize=(6, 8), pdf=None,
-             **kwargs):
+####################################
+# 2025.02.07 add the p_value cutoff
+####################################
+def dot_path(adata, uns_key=None, dic=None, num_cutoff=1, p_cutoff=None, 
+             groups=None, markersize=50, step=4, figsize=(6, 8), pdf=None, **kwargs):
     """
     Either input a dict containing lists of interactions, or specify a dict key in adata.uns
-    :param sample: AnnData object.
+    :param adata: AnnData object.
     :param uns_key: a dict key in adata.uns
     :param dic: a dict containing 1 or more list(s) of interactions
-    :param cut_off: Minimum number of spots to be plotted.
+    :param num_cutoff: Minimum number of spots to be plotted.
+    :param p_cutoff: p-value cutoff for filtering interactions.
     :param groups: subgroups from all dict keys.
-    :param markersize:
-    :param figsize:
-    :param pdf: export pdf under your current directory
-    :param kwargs:
-    :return:
+    :param markersize: Size of the markers in the plot.
+    :param step: Step size for plotting.
+    :param figsize: Size of the figure.
+    :param pdf: Export PDF under your current directory.
+    :param kwargs: Additional keyword arguments.
+    :return: None
     """
     # plt.figure(figsize=figsize)
 
@@ -813,7 +1284,19 @@ def dot_path(adata, uns_key=None, dic=None, cut_off=1, groups=None, markersize=5
         dic = {uns_key: adata.uns[uns_key]}
     pathway_res = compute_pathway(adata, dic=dic)
     # print(pathway_res)
-    pathway_res = pathway_res[pathway_res.selected >= cut_off]
+
+    ## add p_value -f fisher
+    # if p_cutoff is None:
+    #     pathway_res = pathway_res[pathway_res.selected >= num_cutoff]
+    # else:
+    #     pathway_res = pathway_res[(pathway_res.selected >= num_cutoff) & (pathway_res.fisher_p <= p_cutoff)]
+
+    # Apply the num_cutoff filter
+    pathway_res = pathway_res[pathway_res.selected >= num_cutoff]
+    # Apply the p_cutoff filter if provided
+    if p_cutoff is not None:
+        pathway_res = pathway_res[pathway_res.fisher_p <= p_cutoff]
+
     if groups is not None:
         pathway_res = pathway_res.loc[pathway_res.name.isin(groups)]
     # pathway_res = pathway_res.loc[pathway_res.name.isin(groups)]
@@ -831,25 +1314,40 @@ def dot_path(adata, uns_key=None, dic=None, cut_off=1, groups=None, markersize=5
 #################################################
 # 2024.11.12 add for pathway confusion matrix
 #################################################
-def plot_conf_mat(result_pattern_all, pattern_name='Pattern_0', pathway_name='WNT', save_path=None):
+def plot_conf_mat(result_pattern_all, pattern_name='Pattern_0', pathway_name='WNT', font=14, save_path=None):
     result_pattern = result_pattern_all[result_pattern_all['name'] == pattern_name]
 
-    confusion_matrix = np.array([[result_pattern.loc[pathway_name, 'overlap_size'], 
-                                  result_pattern.loc[pathway_name, 'query_set_size'] - result_pattern.loc[pathway_name, 'overlap_size']],
-                                 [result_pattern.loc[pathway_name, 'module_size'] - result_pattern.loc[pathway_name, 'overlap_size'], 
-                                  result_pattern.loc[pathway_name, 'negneg']]])
+    confusion_matrix = np.array([
+        [
+            result_pattern.loc[pathway_name, 'overlap_size'], 
+            result_pattern.loc[pathway_name, 'query_set_size'] - 
+            result_pattern.loc[pathway_name, 'overlap_size']
+        ],
+        [
+            result_pattern.loc[pathway_name, 'module_size'] - 
+            result_pattern.loc[pathway_name, 'overlap_size'], 
+            result_pattern.loc[pathway_name, 'negneg']
+        ]
+    ])
 
     ## confusion matirix heatmap
     fig, ax = plt.subplots(figsize=(3.8,3.0))
-    sns.heatmap(confusion_matrix, annot=True, cmap="coolwarm", fmt='d', 
-                xticklabels=[str(pathway_name), "Others"], 
-                yticklabels=[pattern_name, "Others"]
-               )
+    cax = sns.heatmap(confusion_matrix, annot=True, cmap="coolwarm", fmt='d', 
+                    xticklabels=[str(pathway_name), "Others"], 
+                    yticklabels=[pattern_name, "Others"],
+                    annot_kws={"size": 16}  # Adjust size here
+                    )
+
+    # Adjust tick size
+    ax.tick_params(axis='both', which='major', labelsize=font)
+
+    # Adjust colorbar size
+    cbar = cax.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=font)
 
     plt.title(str(pathway_name)+" pathway")
     plt.axis('equal')
-    # plt.gcf().set_dpi(300)
-
+    plt.gcf().set_dpi(150)
     if save_path is not None:
         plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
@@ -870,11 +1368,13 @@ def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, marker='s
         else:
             scatter = plt.scatter(spatialxy[:,0], spatialxy[:,1], marker = marker, 
                                   c=patterns[str(i)], cmap="viridis", s=s)
-        plt.colorbar(scatter)  
+        colorbar = plt.colorbar(scatter)
+        colorbar.ax.tick_params(labelsize=14)  # Adjust colorbar tick label size here
         plt.axis('equal')
         plt.gca().invert_yaxis()
         plt.title('Pattern {} - {} LR pairs'.format(i, 
                                                     histology_results.query('pattern == @i').shape[0]))
+        plt.tick_params(axis='both', which='major', labelsize=14)
         plt.gcf().set_dpi(300)
 
     if save_path is not None:
@@ -887,31 +1387,47 @@ def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, marker='s
 # 2024.11.12 adjust for sparseAEH
 ###################################
 # def plot_clusters(gaussian_subspot:MixedGaussian, label='counts', w=None, s=None, save_path=None):
-def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None, 
+def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None, marker='s', resolution=None,
                        trans=False, format='pdf', save_path=None):
     k = gaussian_subspot.K
     h = np.ceil(k / w).astype(int)  # Calculate the number of rows
     
-    # Adjust figure size based on the number of columns
-    if w == 3:
-        plt.figure(figsize=(21,5))
-    elif w == 2:
-        plt.figure(figsize=(14,5))
+    if resolution is not None:
+        if w == 3 and h == 2:
+            plt.figure(figsize=(21,11))
+        elif w == 3:
+            plt.figure(figsize=(19,5))
+        elif w == 2:
+            plt.figure(figsize=(14,5))
+        else:
+            plt.figure(figsize=(7,5))
     else:
-        plt.figure(figsize=(7,5))
+        # Adjust figure size based on the number of columns
+        if w == 3 and h == 2:
+            plt.figure(figsize=(21,11))
+        elif w == 3:
+            plt.figure(figsize=(21,5))
+        elif w == 2:
+            plt.figure(figsize=(14,5))
+        else:
+            plt.figure(figsize=(7,5))
 
     for i in range(gaussian_subspot.K):
         plt.subplot(h, w, i + 1)
         scatter = plt.scatter(gaussian_subspot.kernel.spatial[:,0],
-                              gaussian_subspot.kernel.spatial[:,1],marker='s', 
-                              c=gaussian_subspot.mean[:,i], cmap="viridis", s=s)
-        plt.colorbar(scatter)  
+                            gaussian_subspot.kernel.spatial[:,1], 
+                            c=gaussian_subspot.mean[:,i], cmap="viridis",
+                            marker=marker, s=s)
+        colorbar = plt.colorbar(scatter)
+        colorbar.ax.tick_params(labelsize=14)  # Adjust colorbar tick label size here
         plt.axis('equal')
         plt.gca().invert_yaxis()
         if label == 'counts':
-            plt.title('{}'.format(np.sum(gaussian_subspot.labels==i)))
+            plt.title('Pattern {} - {} LR pairs'.format(i, np.sum(gaussian_subspot.labels==i)))
         else:
-            plt.title('{}'.format(gaussian_subspot.pi[i]))
+            plt.title('Pattern {} - {} LR pairs'.format(i, gaussian_subspot.pi[i]))
+        plt.gcf().set_dpi(300)
+        plt.tick_params(axis='both', which='major', labelsize=14)
 
     if save_path is not None:
         plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
@@ -919,8 +1435,11 @@ def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=None,
     plt.show()
 
 
+#############################
+# 2025.02.07 update font size
+#############################
 def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r, 
-                           marker, marker_size, **kwargs):
+                           marker, marker_size, title_font_size=16, tick_font_size=16, **kwargs):
     i = pd.Series(selected_ind == pair).idxmax()
     L = sample.uns['ligand'].loc[pair].dropna().values
     R = sample.uns['receptor'].loc[pair].dropna().values
@@ -933,28 +1452,35 @@ def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cma
     
     plt.figure(figsize=figsize)
     plt.subplot(1, 5, 1)
-    plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=spots.loc[pair], cmap=cmap,
+    scatter = plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=spots.loc[pair], cmap=cmap,
                 vmax=1, marker=marker, s=marker_size, **kwargs)
-    plt_util_invert('Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots')
+    colorbar = plt.colorbar(scatter)
+    colorbar.ax.tick_params(labelsize=tick_font_size)
+    plt_util_invert('Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots', 
+                    title_font_size=title_font_size, tick_font_size=tick_font_size)
     
     for l in range(l1):
         plt.subplot(1, 5, 2 + l)
-        plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,L[l]].X.toarray(),
+        scatter = plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,L[l]].X.toarray(),
                     cmap=cmap_l, marker=marker, s=marker_size, **kwargs)
-        plt_util_invert('Ligand: ' + L[l])
+        colorbar = plt.colorbar(scatter)
+        colorbar.ax.tick_params(labelsize=tick_font_size)
+        plt_util_invert('Ligand: ' + L[l],  title_font_size=title_font_size, tick_font_size=tick_font_size)
     for l in range(l2):
         plt.subplot(1, 5, 2 + l1 + l)
-        plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,R[l]].X.toarray(),
+        scatter = plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,R[l]].X.toarray(),
                     cmap=cmap_r, marker=marker, s=marker_size, **kwargs)
-        plt_util_invert('Receptor: ' + R[l])
+        colorbar = plt.colorbar(scatter)
+        colorbar.ax.tick_params(labelsize=tick_font_size)
+        plt_util_invert('Receptor: ' + R[l],  title_font_size=title_font_size, tick_font_size=tick_font_size)
 
 
-def plt_util_invert(title):
+def plt_util_invert(title, title_font_size=14, tick_font_size=14):
     plt.xticks([])
     plt.yticks([])
-    plt.title(title)
-    plt.gca().invert_yaxis()   
-    plt.colorbar()
+    plt.title(title, fontsize=title_font_size)
+    plt.tick_params(axis='both', labelsize=tick_font_size)
+    plt.gca().invert_yaxis()
 
 
 # def plot_pairs_dot(sample, pairs_to_plot, save_path=None, trans=False,
@@ -1120,29 +1646,77 @@ def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, marker='o', s=2,
         fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
 
+###########################################
+# 2025.01.29 Add the infer and impt FineST
+###########################################
 def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22, 
-              figsize=(9, 7), save_path=None):
-    fig, ax1 = plt.subplots(1, 1, figsize=figsize)
-    scatter_plot = ax1.scatter(adata.obsm['spatial'][:, 0], adata.obsm['spatial'][:, 1], 
-                               c=matrix_order_df[gene_selet], cmap=cnt_color, 
-                               marker=marker, s=s) 
+              figsize=(9, 7), cnt_color=None, 
+              trans=False, format='pdf', save_path=None):
+    if isinstance(matrix_order_df, pd.DataFrame):
+        fig, ax1 = plt.subplots(1, 1, figsize=figsize)
+        scatter_plot = ax1.scatter(adata.obsm['spatial'][:, 0], adata.obsm['spatial'][:, 1], 
+                                   c=matrix_order_df[gene_selet], cmap=cnt_color, 
+                                   marker=marker, s=s) 
+    
+    elif isinstance(matrix_order_df, torch.Tensor):
+        matrix_order_df = pd.DataFrame(matrix_order_df.numpy(), columns=adata.var_names)
+
+        fig, ax1 = plt.subplots(1, 1, figsize=figsize)
+        scatter_plot = ax1.scatter(adata.obsm['spatial'][:, 0], adata.obsm['spatial'][:, 1], 
+                                   c=matrix_order_df[[gene_selet]].to_numpy(), cmap=cnt_color, 
+                                   marker=marker, s=s) 
     ax1.invert_yaxis()
     ax1.set_title(str(gene_selet)+' Expression')
-    fig.colorbar(scatter_plot, ax=ax1)
-    plt.show()
+    cbar = fig.colorbar(scatter_plot, ax=ax1)
+
+    if max(figsize) >=9:
+        # Set tick parameters
+        ax1.tick_params(axis='both', which='major', labelsize=18)
+        cbar.ax.tick_params(labelsize=18) 
 
     # Save the figure if a save path is provided
     if save_path is not None:
-        fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
+        plt.savefig(save_path, transparent=trans, format=format,
+                    dpi=300, bbox_inches='tight')
+    plt.show()
 
-
-def subspot_expr(C, value, marker='o', s=1800, 
+def subspot_expr(C, value, patch_size=56, dataset_class=None, 
+                 marker='o', s=1800, rotation=None,
                  fig_size=(2.5, 2.5), trans=False, format='pdf', save_path=None):
     fig, ax = plt.subplots(figsize=fig_size)
     scatter = ax.scatter(C[:, 0], C[:, 1], c=value, marker=marker, s=s)
     ax.set_title("First spot")
 
-    # Save the figure if a save path is provided
+    if rotation is None:
+        rotation_value = 0
+    else:
+        rotation_value = rotation
+
+    # Set `split_num` according to `dataset_class`
+    if dataset_class == 'Visium16':
+        split_num = 16
+    elif dataset_class == 'Visium64':
+        split_num = 64
+    elif dataset_class == 'VisiumSC':
+        split_num = 1
+    elif dataset_class == 'VisiumHD':
+        split_num = 4
+    else:
+        raise ValueError('Invalid dataset_class. Only "Visium16", '
+                 '"Visium64", "VisiumSC" and "VisiumHD" are supported.')
+
+    x_ticks = np.unique(C[:, 0])
+    y_ticks = np.unique(C[:, 1])
+    ax.set_xticks(x_ticks)
+    ax.set_yticks(y_ticks)
+    ax.set_xticklabels(x_ticks, rotation=rotation_value) 
+    ax.set_yticklabels(y_ticks)
+
+    ## Ensure that the points are evenly distributed
+    ax.set_xlim([C[:, 0].min() - patch_size/(2*np.sqrt(split_num)), C[:, 0].max() + patch_size/(2*np.sqrt(split_num))])
+    ax.set_ylim([C[:, 1].min() - patch_size/(2*np.sqrt(split_num)), C[:, 1].max() + patch_size/(2*np.sqrt(split_num))])
+    ax.set_aspect('equal', 'box') 
+
     if save_path is not None:
         fig.set_dpi(300)
         plt.savefig(save_path, transparent=trans, format=format, bbox_inches='tight')
@@ -1248,39 +1822,6 @@ def mean_cor_box(adata, data_impt_reshape, gene_only=False, save_path=None):
     if save_path is not None:
         plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
     plt.show()
-
-
-def generate_colormap(number_of_distinct_colors, number_of_shades = 7):
-    '''
-    Ref: https://stackoverflow.com/questions/42697933/colormap-with-maximum-distinguishable-colours
-    :param number_of_distinct_colors:
-    :param number_of_shades:
-    :return: n distinct colors
-    '''
-    number_of_distinct_colors_with_multiply_of_shades = int(math.ceil(number_of_distinct_colors \
-            / number_of_shades) * number_of_shades)
-
-    linearly_distributed_nums = np.arange(number_of_distinct_colors_with_multiply_of_shades) / \
-            number_of_distinct_colors_with_multiply_of_shades
-    arr_by_shade_rows = linearly_distributed_nums.reshape(number_of_shades, number_of_distinct_colors_with_multiply_of_shades // number_of_shades)
-    arr_by_shade_columns = arr_by_shade_rows.T
-    number_of_partitions = arr_by_shade_columns.shape[0]
-    nums_distributed_like_rising_saw = arr_by_shade_columns.reshape(-1)
-    initial_cm = hsv(nums_distributed_like_rising_saw)
-    lower_partitions_half = number_of_partitions // 2
-    upper_partitions_half = number_of_partitions - lower_partitions_half
-    lower_half = lower_partitions_half * number_of_shades
-    for i in range(3):
-        initial_cm[0:lower_half, i] *= np.arange(0.2, 1, 0.8/lower_half)
-    for i in range(3):
-        for j in range(upper_partitions_half):
-            modifier = np.ones(number_of_shades) - initial_cm[lower_half + j * number_of_shades: lower_half + (j + 1) * number_of_shades, i]
-            modifier = j * modifier / upper_partitions_half
-            initial_cm[lower_half + j * number_of_shades: lower_half + (j + 1) * number_of_shades, i] += modifier
-    initial_cm = initial_cm[:,:3] * 255
-    initial_cm = initial_cm.astype(int)
-    initial_cm = np.array(['#%02x%02x%02x' % tuple(initial_cm[i]) for i in range(len(initial_cm))])
-    return initial_cm
 
 def ligand_ct(adata, pair):
     ct_L = (

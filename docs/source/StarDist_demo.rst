@@ -17,11 +17,11 @@ Step0: Image cropping and nuclei segmentation (for *Visium*)
 .. code-block:: bash
 
     conda activate FineST
-    python ./FineST/FineST/FineST/demo/StarDist_nuclei_segmente.py \
+    time python ./FineST/FineST/demo/StarDist_nuclei_segmente.py \
         --tissue NPC1_allspot_p075_test \
-        --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
-        --adata_path ./NPC/ScanpyDataP1/V1_Human_NPC1_spatial_allspot.h5ad \
-        --img_path ./NPC/Data/stdata/GSE200310_RAW/patient1/20210809-C-AH4199551.tif \
+        --out_dir ./FineST/FineST_local/Dataset/NPC/StarDist/DataOutput \
+        --adata_path ./FineST/FineST_local/Dataset/ImputData/patient1/patient1_adata_imput_all_spot.h5ad \
+        --img_path ./FineST/FineST_local/Dataset/NPC/patient1/20210809-C-AH4199551.tif \
         --prob_thresh 0.75
 
 ``StarDist_nuclei_segmente.py`` will cost `4m26.463s` in this dataset.

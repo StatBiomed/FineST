@@ -6,6 +6,10 @@
 ##            cp -r 2D_versatile_he_extracted/config.json config.json
 ## 2024.11.19 add ROI selected 
 ## 2024.11.20 Adjust for roi_path=None, for Visium Data
+## 2024.02.06 Revised 'from .utils import *' using 'from FineST.utils import * '
+##            For NPC1, Omit 'sc.pp.filter_cells(sp_adata, min_counts=min_counts)', 
+##            Because for FineST result, the output is not count, is values
+## 2024.02.06 Try add the code: form 'adata_sn.adata' to 'csv'
 
 
 import scanpy as sc
@@ -21,7 +25,7 @@ Image.MAX_IMAGE_PIXELS = None
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from utils import *
+from FineST.utils import *  # need install FineST package if put in /dome file not denpend FineST file
 
 ## 2024.11.19 LLY add
 from matplotlib.path import Path
@@ -173,7 +177,7 @@ class SpatialScopeNS:
         sp_adata.obs_names_make_unique()
         sp_adata.var_names_make_unique()
         self.loggings.info(f'Spatial data shape: {sp_adata.shape}')
-        sc.pp.filter_cells(sp_adata, min_counts=min_counts)
+        # sc.pp.filter_cells(sp_adata, min_counts=min_counts)    # for FineST result
         self.loggings.info(f'Spatial data shape after QC: {sp_adata.shape}')
         self.sp_adata = sp_adata
     
@@ -261,7 +265,7 @@ class SpatialScopeNS:
         self.sp_adata.obsm['image_features'] = df_cells       
         self.sp_adata.obs["cell_count"] = self.sp_adata.obsm["image_features"]["segmentation_label"].astype(int)
         
-        fig, axes = plt.subplots(1, 3,figsize=(30,9),dpi=250)
+        fig, axes = plt.subplots(1,3,figsize=(20,6),dpi=300)
         self.image.show("image", ax=axes[0])
         _ = axes[0].set_title("H&E")
         self.image.show("segmented_stardist_default", cmap="jet", interpolation="none", ax=axes[1])
@@ -282,6 +286,19 @@ class SpatialScopeNS:
         )  
         self.sp_adata.write_h5ad(os.path.join(self.out_dir, 'sp_adata_ns.h5ad'))
 
+        #####################################
+        # 2025.02.06 From '.adata' to '.csv'
+        #####################################
+        self.loggings.info(f"image_features: \n{self.sp_adata.obsm['image_features']}")
+        coord_cell = self.sp_adata.uns['cell_locations']
+        ## delete NaN: dropna()
+        coord_cell_filtered = coord_cell.dropna()
+        # print(coord_cell_filtered)
+        ## set colnum names: columns()
+        coord_cell_filtered.columns = list(['pxl_row_in_fullres', 'pxl_col_in_fullres', 'spot_index', 'cell_index', 'cell_nums'])
+        self.loggings.info(f"coord_cell_filtered: \n{coord_cell_filtered}")
+        ## save coords position
+        coord_cell_filtered.to_csv(os.path.join(self.out_dir, "_position_all_tissue_sc.csv"))
 
 
 if __name__ == "__main__":
@@ -345,3 +362,19 @@ if __name__ == "__main__":
 
     NS.NucleiSegmentation()
 
+
+
+##########
+# NPC1
+##########
+# conda activate FineST
+# time python ./FineST/FineST/demo/StarDist_nuclei_segmente.py \
+#         --tissue NPC1_allspot_p075_test \
+#         --out_dir ./FineST/FineST_local/Dataset/NPC/StarDist/DataOutput \
+#         --adata_path ./FineST/FineST_local/Dataset/ImputData/patient1/patient1_adata_imput_all_spot.h5ad \
+#         --img_path ./FineST/FineST_local/Dataset/NPC/patient1/20210809-C-AH4199551.tif \
+#         --prob_thresh 0.75
+
+##########
+# CRC16
+##########

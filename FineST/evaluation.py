@@ -6,7 +6,50 @@ from .loadData import *
 from scipy.spatial import cKDTree
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics.pairwise import cosine_similarity
+from skimage.metrics import structural_similarity as ssim
+from sklearn.preprocessing import MinMaxScaler
 import torch
+
+
+#############################
+# 2025.02.12 add ssim index
+#############################
+def vector2matrix(locs, cnts, shape):
+    x_reconstructed = np.full(shape, np.nan)
+    for loc, cnt in zip(locs, cnts):
+        x_reconstructed[loc[0], loc[1]] = cnt
+    return x_reconstructed
+
+def compute_ssim(x, x_reconstructed):
+    x = np.nan_to_num(x)
+    x_reconstructed = np.nan_to_num(x_reconstructed)
+    ssim_index = ssim(x, x_reconstructed, data_range=x.max() - x.min())
+    return ssim_index
+
+def compute_ssim_scale(x, x_reconstructed):
+    """
+    Compute the Structural Similarity Index (SSIM) between original and reconstructed data.
+    Parameters:
+        x: np.ndarray
+        x_reconstructed: np.ndarray
+    Returns:
+        float, the SSIM index between the original data and the reconstructed data.
+    """
+    
+    scaler = MinMaxScaler()  # Initialize MinMaxScaler to scale data to the range [0, 1].
+
+    # Replace NaN values in the original data with zero and scale to [0, 1] range
+    x = np.nan_to_num(x)
+    x_scaled = scaler.fit_transform(x.reshape(-1, 1)).reshape(x.shape)
+
+    # Replace NaN values in the reconstructed data with zero and scale to [0, 1] range
+    x_reconstructed = np.nan_to_num(x_reconstructed)
+    x_reconstructed_scaled = scaler.fit_transform(x_reconstructed.reshape(-1, 1)).reshape(x_reconstructed.shape)
+
+    # Compute the SSIM index; set data_range to 1 because the data has been scaled to [0, 1]
+    ssim_index = ssim(x_scaled, x_reconstructed_scaled, data_range=1)
+
+    return ssim_index   
 
 
 #############################

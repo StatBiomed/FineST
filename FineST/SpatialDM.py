@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
@@ -11,8 +12,20 @@ import pyreadr
 import requests
 
 
+def topLRpairs(adata, spa_coexp_pair, num):
+    """
+    Get the top ligand-receptor pairs based on the global intensity from adata.
 
+    Parameters:
+    adata (AnnData): The annotated data matrix.
+    num (int): The number of top pairs to return.
 
+    Returns:
+    TopLRpair (numpy.ndarray): The top ligand-receptor pairs.
+    """
+    TopLRpair=adata.uns['ligand'].index[np.argsort(np.log1p(adata.uns['global_I']))[(spa_coexp_pair.shape[0]-num):spa_coexp_pair.shape[0]]].tolist()
+    
+    return TopLRpair
 
 #######################################
 # 2024.11.28 Add code of LR-TF
@@ -34,9 +47,14 @@ def extract_tf(species, datahost='package'):
             # datapath = './datasets/TF_data/%s-' %(species)
             datapath = './FineST/datasets/TF_data/%s-' %(species)
         else:
-            raise ValueError("species type: {} is not supported currently. Please have a check.".format(species))
+            raise ValueError("Species type: {} is not supported currently. Please check.".format(species))
         
-        LR_TF = pyreadr.read_r(datapath + 'TF_PPRhuman.rda')['TF_PPRhuman']
+        filepath = datapath + 'TF_PPRhuman.rda'
+        
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"The file {filepath} does not exist!")
+        
+        LR_TF = pyreadr.read_r(filepath)['TF_PPRhuman']
 
     else:
         if species == 'mouse':
@@ -49,7 +67,7 @@ def extract_tf(species, datahost='package'):
         # specify where to download the file
         # download_path = '/mnt/lingyu/nfs_share2/Python/FineST/FineST/FineST/datasets/TF_data/temp.rda'
         # download_path = './datasets/TF_data/'
-        download_path = './FineST/datasets/TF_data/'
+        download_path = './FineST/datasets/TF_data/human-TF_PPRhuman.rda'
         
         # download the file
         r = requests.get(url)
@@ -303,11 +321,10 @@ def anno_LRpair(adata_impt_all):
 #######################################
 # 2024.11.11.Adjust code of SpatialDM
 #######################################
-
 def _Euclidean_to_RBF(X, l, singlecell):
     """Convert Euclidean distance to RBF distance"""
     from scipy.sparse import issparse
-    if issparse:
+    if issparse(X):
         rbf_d = X
         rbf_d[X.nonzero()] = np.exp(-X[X.nonzero()].A**2 / (2 * l ** 2))
     else:
@@ -321,11 +338,21 @@ def _Euclidean_to_RBF(X, l, singlecell):
         ###################
         # np.fill_diagonal(rbf_d, 0)
 
-        rbf_d_dense = rbf_d.toarray()  # or rbf_d.todense()
-        np.fill_diagonal(rbf_d_dense, 0)
+        ###################
+        # update v1
+        ###################
+        # rbf_d_dense = rbf_d.toarray()  # or rbf_d.todense()
+        # np.fill_diagonal(rbf_d_dense, 0)
 
-    else:
-        rbf_d.setdiag(np.exp(-X.diagonal()**2 / (2 * l ** 2)))
+        ####################
+        # update v2 25.01.31
+        ####################
+        # At single-cell resolution, no within-spot communications
+        if singlecell:
+            rbf_d.setdiag(0)    
+
+        else:
+            rbf_d.setdiag(np.exp(-X.diagonal()**2 / (2 * l ** 2)))
 
     return rbf_d
 
@@ -683,7 +710,7 @@ def pathway_analysis(sample=None,
 #         _fdr = fdrcorrection(np.hstack(_p.values))[1].reshape(_p.shape)
 #         _p.loc[:,:] = _fdr
 #         adata.uns['local_stat']['local_fdr'] = _p
-#     adata.uns['selected_spots'] = (_p < threshold)
+#     adata.uns['selected_spots'] = (_p < threshold) <
 #     adata.uns['local_stat']['n_spots'] = adata.uns['selected_spots'].sum(1)
 #     adata.uns['local_stat']['local_method'] = method
 #     return
