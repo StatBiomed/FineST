@@ -1,5 +1,5 @@
 =================================================================
-FineST: <u>Fine</u>-grained <u>S</u>patial <u></u>Transcriptomic
+*FineST*: *Fine*-grained *S*patial *T*ranscriptomic
 =================================================================
 
 A statistical model/toolbox to **identify nuclei-resolved ligand-receptor interactions (LRIs) 
@@ -78,7 +78,6 @@ All relevant materials involved in the reproducing codes are available
 from `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8>`_.
 
 * For *Visium*, using a single slice of 10x Visium human nasopharyngeal carcinoma (NPC) data.
-
 * For *Visium HD*, using a single slice of 10x Visium HD human colorectal cancer (CRC) data with 16-um bin.
 
 
