@@ -1,5 +1,5 @@
 =================================================================
-*FineST*: *Fine*-grained *S*patial *T*ranscriptomic
+FineST: Fine-grained Spatial Transcriptomic
 =================================================================
 
 A statistical model/toolbox to **identify nuclei-resolved ligand-receptor interactions (LRIs) 
