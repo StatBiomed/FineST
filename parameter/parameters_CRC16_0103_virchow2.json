@@ -1,0 +1,26 @@
+{
+    "n_encoder_hidden_matrix": 256,
+    "n_encoder_hidden_image": 128,
+
+    "n_encoder_latent": 128,
+    "n_projection_hidden": 256,
+    "n_projection_output": 128,
+
+    "batch_size": 200,
+    "batch_size_pair": 640,
+
+    "n_encoder_layers": 2,
+    "dropout_rate": 0,
+
+    "training_epoch": 50,
+    "inital_learning_rate": 0.25,
+    
+    "k_nearest_positives": 0,
+    "temperature": 0.03,
+    "n_input_image": 1280,    
+
+    "w1": 0,
+    "w2": 0,
+    "w3": 1,
+    "w4": 1
+}

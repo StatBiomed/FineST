@@ -2,10 +2,12 @@ Release History
 ===============
 
 
-Version 0.1.0 (xx/12/2024)
+Version 0.1.0 (03/03/2025)
 --------------------------
 
-- xx
+- update some plottings function
+- update the tutorial notebook
+- revised some code, to fit Visium or Visium HD
 
 Version 0.0.9 (19/12/2024)
 --------------------------

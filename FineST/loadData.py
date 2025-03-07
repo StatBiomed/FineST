@@ -140,8 +140,6 @@ def checkNeighbors(cur_adata, neighbor_k, tree_type='KDTree', leaf_size=2):
     print("checkNeighbors.............")
     
     cur_coor = np.column_stack((cur_adata.obs['array_row'].values, cur_adata.obs['array_col'].values))
-
-    # start = time.time()
     if tree_type == 'BallTree':
         cur_coor_tree = BallTree(cur_coor, leaf_size=leaf_size)
     elif tree_type == 'cKDTree':
@@ -150,15 +148,9 @@ def checkNeighbors(cur_adata, neighbor_k, tree_type='KDTree', leaf_size=2):
         cur_coor_tree = KDTree(cur_coor, leaf_size=leaf_size)
     else:
         raise ValueError('Invalid tree_type. Only "BallTree, KDTree and cKDTree" is supported.')
-    # end = time.time()
-    # print(f"Time to build KDTree: {end - start}")
-
-    # start = time.time()
     location_dist, location_ind  = cur_coor_tree.query(cur_coor, k=(neighbor_k+1))
-    # end = time.time()
-    # print(f"Time to query KDTree: {end - start}")
 
-    # Reshape the results to 2D if they are 1D
+    ## Reshape the results to 2D if they are 1D
     if len(location_dist.shape) == 1:
         location_dist = location_dist[:, None]
     if len(location_ind.shape) == 1:
@@ -173,7 +165,6 @@ def checkNeighbors(cur_adata, neighbor_k, tree_type='KDTree', leaf_size=2):
     # location_ind = location_ind[:,1:]
     
     return location_dist, location_ind
-
 
 
 #################################################################

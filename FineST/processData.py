@@ -7,7 +7,6 @@ from .inference import *
 import pickle
 import json
 from pathlib import Path
-
 import anndata
 import numpy as np
 from scipy.spatial import cKDTree
@@ -20,19 +19,16 @@ import pickle
 ###################################################
 def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k=16):
     """
-    This function processes the embeddings and calculates the nearest pixel locations.
-
-    Args:
-    hist_emb (dict): Dictionary containing the 'sub' key with the embeddings.
-    locs (numpy.ndarray): The locations to be processed.
-    current_shape (numpy.ndarray): The current shape.
-    target_shape (numpy.ndarray): The target shape.
-
+    Processes the embeddings and calculates the nearest pixel locations.
+    Parameters:
+        hist_emb (dict): Dictionary containing the 'sub' key with the embeddings.
+        locs (numpy.ndarray): The locations to be processed.
+        current_shape (numpy.ndarray): The current shape.
+        target_shape (numpy.ndarray): The target shape.
     Returns:
-    numpy.ndarray: The ordered locations.
-    numpy.ndarray: The ordered images.
+        numpy.ndarray: The ordered locations.
+        numpy.ndarray: The ordered images.
     """
-
     def load_pickle(filename, verbose=True):
         with open(filename, 'rb') as file:
             x = pickle.load(file)
@@ -40,11 +36,11 @@ def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k
             print(f'Pickle loaded from {filename}')
         return x
 
-    # form (W-H) to (H-W)
+    ## form (W-H) to (H-W)
     locs = locs[['y','x']]    
     embs = load_pickle(str(hist_emb))
 
-    # Reshape the 3D array into the shape (width, height, depth)
+    ## Reshape the 3D array into the shape (width, height, depth)
     if image_embedings=='sub':
         embs_sub = np.array(embs['sub'])
         embs = embs_sub.transpose(1, 2, 0)
@@ -58,14 +54,14 @@ def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k
         embs = np.concatenate([embs['cls'], embs['sub'], embs['rgb']])
         embs = embs.transpose(1, 2, 0)
     
-    # Rescale locations
+    ## Rescale locations
     target_shape = embs.shape[:2]
     rescale_factor = current_shape // target_shape
     locs = locs.astype(float)
     locs /= rescale_factor
     locs = locs.round().astype(int)
 
-    # convert (width, height, depth) to (width*height, depth)
+    ## convert (width, height, depth) to (width*height, depth)
     imgs_pixel = []
     locs_pixel = []
     for i in range(embs.shape[0]):        # height
@@ -78,7 +74,7 @@ def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k
     locs_pixel = np.array(locs_pixel)
     imgs_pixel = np.array(imgs_pixel)
 
-    # convert (width*height, depth) to (#spots, depth)
+    ## convert (width*height, depth) to (#spots, depth)
     tree = cKDTree(locs_pixel)
     _, closest_points_indices = tree.query(locs, k)
 
@@ -96,17 +92,14 @@ def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k
 
 def patch_size(adata, p=16, dir='x'):
     """
-    This function computes the absolute differences of the sorted spatial data in adata.
-
+    Computes the absolute differences of the sorted spatial data in adata.
     Parameters:
-    adata: anndata object which contains the spatial data
-    p: int, number of rows to select after sorting (default is 16)
-    dir: str, direction to sort by, either 'x' or 'y' (default is 'x')
-
+        adata: anndata object which contains the spatial data
+        p: int, number of rows to select after sorting (default is 16)
+        dir: str, direction to sort by, either 'x' or 'y' (default is 'x')
     Returns:
-    differences: pandas Series, the computed absolute differences
+        differences: pandas Series, the computed absolute differences
     """
-
     if dir == 'x':    # fix hight
         spatial_test = pd.DataFrame(adata.obsm['spatial']).sort_values(by=1)[:p]
         differences = spatial_test[0].diff().abs()
@@ -124,15 +117,15 @@ def patch_size(adata, p=16, dir='x'):
 # 2025.01.15 For using istar img feature
 ########################################
 def position_order_adata_istar(position, obs_names, dataset_class='Visium16'):
-    # Filter rows and set new index
+    ## Filter rows and set new index
     position_order = position[position[position.columns[-5]] == 1]
     position_order = position_order.set_index(position_order.columns[-6])
 
-    # Reorder index and drop column
+    ## Reorder index and drop column
     position_order = position_order.reindex(obs_names)
     position_order = position_order.drop(columns=[position.columns[-5]])
 
-    # Rename and reorder columns
+    ## Rename and reorder columns
     if dataset_class == 'Visium16' or dataset_class == 'Visium64':
         position_order.columns = ['array_col', 'array_row', 'pixel_x', 'pixel_y']
     elif dataset_class == 'VisiumHD':
@@ -148,36 +141,18 @@ def position_order_adata_istar(position, obs_names, dataset_class='Visium16'):
 # 2024.12.2 add json file
 ########################################
 def json_load(json_path):
-    """
-    This function loads the scale factors from a Visium dataset.
-
-    Parameters:
-    path (str): The base path to the dataset.
-    json_path (str): The relative path from the base path to the JSON file.
-
-    Returns:
-    dict: A dictionary containing the scale factors.
-    """
-    # Combine the base path and the relative path
     path_to_visium_bundle = Path(str(json_path)).expanduser()
-
-    # Open the JSON file and load the scale factors
     with open(path_to_visium_bundle / "scalefactors_json.json") as file:
         visium_scale_factors = json.load(file)
-
     return visium_scale_factors
 
-
 def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
-
     os.chdir(str(parquet_path))
     positions = pd.read_parquet(parquet_name)    
     positions.set_index('barcode', inplace=True)
-
     ## inverse pxl_row_in_fullres and pxl_col_in_fullres
     positions.columns = ['in_tissue', 'array_row', 'array_col', 'pxl_col_in_fullres', 'pxl_row_in_fullres']
     position_tissue = positions[positions['in_tissue'] == 1]
-    
     return position_tissue
 
 
@@ -186,19 +161,14 @@ def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
 ######################################
 def filter_pos_list(filename):
     """
-    Reads a CSV file, renames the columns, and filters the rows where 'in_tissue' is 1.
-    filename: str
-        The name of the CSV file to read.
-    Returns a DataFrame.
+    Reads CSV file, renames the columns, and filters the rows where 'in_tissue' is 1.
+        filename: str, The name of the CSV file to read.
+        Returns a DataFrame.
     """
-    ## Read the CSV file
     position = pd.read_csv(filename, header=None)
-    ## Rename the columns
     position.columns = ['barcode', 'in_tissue', 'array_row', 'array_col', 
                         'pxl_row_in_fullres', 'pxl_col_in_fullres']
-    ## Filter rows where 'in_tissue' is 1
     position_tissue = position[position['in_tissue'] == 1]
-    
     return position_tissue
 
 
@@ -208,18 +178,17 @@ def filter_pos_list(filename):
 ######################################
 def inter_spot(position, direction):
     """
-    position : DataFrame
-    direction: str, either 'x' or 'y'
-
     Returns a DataFrame of midpoints between adjacent points in the specified direction.
+        position : DataFrame
+        direction: str, either 'x' or 'y'
     """
-    # Order position according to array_row and array_col 
+    ## Order position according to array_row and array_col 
     position_ordered = position.sort_values(['array_col', 'array_row'], 
                                             ascending=[True, True]).reset_index(drop=True)
 
     mid_points_list = []
 
-    # Iterate over position_ordered
+    ## Iterate over position_ordered
     for _, row in position_ordered.iterrows():
         if direction == 'x':
             # Find the next point in the 'x' direction
@@ -241,14 +210,14 @@ def inter_spot(position, direction):
                 })
 
         elif direction == 'y' and row['array_col'] < 127:
-            # Find the nearest points in the horizontal direction
+            ## Find the nearest points in the horizontal direction
             nearest_rows = position_ordered[
                 position_ordered['array_col'] == row['array_col'] + 1
             ].copy()
             nearest_rows['distance'] = np.abs(nearest_rows['array_row'] - row['array_row'])
             nearest_rows = nearest_rows.nsmallest(2, 'distance')
 
-            # Compute the midpoints
+            ## Compute the midpoints
             for _, nearest_row in nearest_rows.iterrows():
                 mid_points_list.append({
                     'array_row': (row['array_row'] + nearest_row['array_row']) / 2,
@@ -257,25 +226,22 @@ def inter_spot(position, direction):
                     'pxl_col_in_fullres': (row['pxl_col_in_fullres'] + nearest_row['pxl_col_in_fullres']) / 2
                 })
 
-    # Create DataFrame from list of midpoints
+    ## Create DataFrame from list of midpoints
     position_add = pd.DataFrame(mid_points_list)
 
     if direction == 'y':
-        # Remove duplicates for 'y' direction
-        position_add = position_add.drop_duplicates()
+        position_add = position_add.drop_duplicates()    # Remove duplicates for 'y' direction
 
     return position_add
 
 
 def final_pos_list(position_x, position_y, position=None):
     """
-    position_x, position_y : DataFrame
-    position : DataFrame, optional
-
-    Returns a DataFrame that is the concatenation of position (if provided), 
+    Returns DataFrame: the concatenation of position, 
     position_x, and position_y, sorted by 'array_col' and 'array_row'.
+        position_x, position_y : DataFrame
     """
-    # Concatenate position (if provided), position_x, and position_y
+    ## Concatenate position (if provided), position_x, and position_y
     if position is not None:
         position_final = pd.concat([
             position[['array_row', 'array_col', 
@@ -286,7 +252,7 @@ def final_pos_list(position_x, position_y, position=None):
     else:
         position_final = pd.concat([position_x, position_y], ignore_index=True)
 
-    # Sort position_final by 'array_col' and 'array_row'
+    # #Sort position_final by 'array_col' and 'array_row'
     position_final = position_final.sort_values(['array_col', 'array_row'], 
                                                 ascending=[True, True]).reset_index(drop=True)
 
@@ -299,7 +265,7 @@ def final_pos_list(position_x, position_y, position=None):
 def clean_save_adata(adata, filename):
     adata_save = adata.copy()
 
-    # List of keys to remove
+    ## List of keys to remove
     keys_to_remove = ['single_cell', 'mean', 'num_pairs',
                       # 'ligand', 'receptor',  'geneInter'                      
                       'global_I', 'global_stat', 'global_res', 'local_z'
@@ -311,18 +277,15 @@ def clean_save_adata(adata, filename):
         if key in adata_save.uns:
             del adata_save.uns[key]
 
-    # Update problematic elements in adata_save.uns and save them as pickle files
+    ## Update problematic elements in adata_save.uns and save them as pickle files
     for key, value in adata_save.uns.items():
-        # Save the original value as a pickle file
+        ## Save the original value as a pickle file
         with open(f"{key}.pkl", "wb") as f:
             pickle.dump(value, f)
-
-        # Update the value in adata with the filename of the pickle file
+        ## Update the value in adata with the filename of the pickle file
         adata_save.uns[key] = f"{key}.pkl"
 
-    # Save adata
     adata_save.write_h5ad(filename)
-
     return adata_save
 
 
@@ -333,8 +296,6 @@ def Load_clean_save_adata(adata):
         with open(adata.uns[key], "rb") as f:
             adata.uns[key] = pickle.load(f)
     return adata
-
-
 
 
 ######################################
@@ -348,9 +309,9 @@ def get_allspot_coors(input_coord_all):
     input_coord_all_concat = torch.stack((tensor_1, tensor_2))
     spatial_loc = input_coord_all_concat.T.numpy()
 
-    # Find unique rows and their counts
+    ## Find unique rows and their counts
     unique_rows, counts = np.unique(spatial_loc, axis=0, return_counts=True)
-    # Check if there are any duplicate rows
+    ## Check if there are any duplicate rows
     duplicate_rows = (counts > 1).any()
     print("Are there any duplicate rows? :", duplicate_rows)
     return spatial_loc
@@ -378,26 +339,24 @@ def adata_LR(adata, file_path):
 def adata_preprocess(adata, keep_raw=False, normalize=True, 
                      min_cells=10, target_sum=None, n_top_genes=None, species='human'):
     """
-    Preprocesses AnnData object for single-cell RNA sequencing data.
-
+    Preprocesses AnnData object for single-cell RNA-seq data.
     Parameters:
-    adata (anndata.AnnData): The annotated data matrix of shape n_obs x n_vars. 
-    keep_raw (bool, optional): If True, a copy of the original data is saved. Default is False.
-    min_cells (int, optional): Minimum number of cells expressed. Default is 10.
-    target_sum (float, optional): If not None, normalize total counts per cell with this value. 
-                                  If None, after normalization, each cell has a total count 
-                                  equal to the median of the counts_per_cell before normalization. 
-                                  Default is None.
-    n_top_genes (int, optional): Number of highly-variable genes to keep. 
-                                 If n_top_genes is not None, this number is kept as 
-                                 highly-variable genes. Default is None.
-    species (str, optional): The species of the dataset. If not 'human', certain steps are skipped. Default is None.
-
+        adata (anndata.AnnData): The annotated data matrix of shape n_obs x n_vars. 
+        keep_raw (bool, optional): If True, a copy of the original data is saved. Default is False.
+        min_cells (int, optional): Minimum number of cells expressed. Default is 10.
+        target_sum (float, optional): If not None, normalize total counts per cell with this value. 
+                                    If None, after normalization, each cell has a total count 
+                                    equal to the median of the counts_per_cell before normalization. 
+                                    Default is None.
+        n_top_genes (int, optional): Number of highly-variable genes to keep. 
+                                    If n_top_genes is not None, this number is kept as 
+                                    highly-variable genes. Default is None.
+        species (str, optional): The species of the dataset. If not 'human', certain steps are skipped.
     Returns:
-    adata (anndata.AnnData): The processed annotated data matrix.
+        adata (anndata.AnnData): The processed annotated data matrix.
     """
 
-    # Set mitochondrial gene prefix based on species
+    ## Set mitochondrial gene prefix based on species
     if species == 'human':
         adata.var["mt"] = adata.var_names.str.startswith("MT-")
     elif species == 'mouse':
@@ -405,7 +364,7 @@ def adata_preprocess(adata, keep_raw=False, normalize=True,
     else:
         raise ValueError("Unsupported species. Please specify 'human' or 'mouse'.")
 
-    # Calculate QC metrics if there are mitochondrial genes
+    ## Calculate QC metrics if there are mitochondrial genes
     if adata.var["mt"].any():
         sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
         
@@ -428,51 +387,8 @@ def adata_preprocess(adata, keep_raw=False, normalize=True,
     return adata
 
 
-# def adata_preprocess(adata, keep_raw=False, normalize=True, 
-#                      min_cells=10, target_sum=None, n_top_genes=None):
-
-#     """
-#     Preprocesses AnnData object for single-cell RNA sequencing data.
-
-#     Parameters:
-#     adata (anndata.AnnData): The annotated data matrix of shape n_obs x n_vars. 
-#     keep_raw (bool, optional): If True, a copy of the original data is saved. Default is False.
-#     min_cells (int, optional): Minimum number of cells expressed. Default is 10.
-#     target_sum (float, optional): If not None, normalize total counts per cell with this value. 
-#                                   If None, after normalization, each cell has a total count 
-#                                   equal to the median of the counts_per_cell before normalization. 
-#                                   Default is None.
-#     n_top_genes (int, optional): Number of highly-variable genes to keep. 
-#                                  If n_top_genes is not None, this number is kept as 
-#                                  highly-variable genes. Default is None.
-#     Returns:
-#     adata (anndata.AnnData): The processed annotated data matrix.
-#     """
-
-#     adata.var["mt"] = adata.var_names.str.startswith("MT-")
-#     sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
-#     sc.pp.filter_genes(adata, min_cells=min_cells)
-
-#     if keep_raw:
-#         adata = adata.copy()     # del adata.raw   
-
-#     if normalize:
-#         if target_sum is not None:
-#             sc.pp.normalize_total(adata, target_sum=target_sum)
-#         else:
-#             sc.pp.normalize_total(adata)
-
-#         sc.pp.log1p(adata)
-
-#     if n_top_genes is not None:
-#         sc.pp.highly_variable_genes(adata, flavor="seurat", n_top_genes=n_top_genes)
-
-#     return adata
-
-
-
 def adata2matrix(adata, gene_hv):
-    # Access the matrix and convert it to a dense matrix
+    ## Access the matrix and convert it to a dense matrix
     if isinstance(adata.X, np.ndarray):
         matrix = pd.DataFrame(adata.X)
     else:
@@ -484,8 +400,7 @@ def adata2matrix(adata, gene_hv):
     print(matrix.shape)
     return matrix
 
-
-
+#
 ###############################################
 # 2024.11.02 update 
 # 2024.12.18 add VisiumSC
@@ -509,7 +424,6 @@ def get_image_coord(file_paths, dataset_class):
     return df[['pixel_x', 'pixel_y']]
     
 
-# def get_image_coord_all(file_paths, dataset_class):
 def get_image_coord_all(file_paths):
     file_paths.sort()
     data = []
@@ -522,7 +436,6 @@ def get_image_coord_all(file_paths):
 
 
 def image_coord_merge(df, position, dataset_class):
-    # Define merge_dfs function within the new function
     def merge_dfs(df, position):
         merged_df = pd.merge(df, position, on=['pixel_x', 'pixel_y'], how='left')
         cols = merged_df.columns.tolist()
@@ -536,7 +449,6 @@ def image_coord_merge(df, position, dataset_class):
     #######################################################
     # 2024.12.04 postion doesn't match image
     #######################################################
-    # Define merge_dfs_HD function within the new function
     def merge_dfs_HD(df, position):
         position['pxl_col_in_fullres'] = pd.to_numeric(position['pxl_col_in_fullres'], errors='coerce').round(6)
         position['pxl_row_in_fullres'] = pd.to_numeric(position['pxl_row_in_fullres'], errors='coerce').round(6)
@@ -559,7 +471,7 @@ def image_coord_merge(df, position, dataset_class):
     #     merged_df = merged_df.rename(columns={'array_row': 'x', 'array_col': 'y'})
     #     return merged_df
 
-    # Use dataset_class to decide which function to call
+    ## Use dataset_class to decide which function to call
     if dataset_class == 'Visium' or dataset_class=='VisiumSC':
         result = merge_dfs(df, position)
     elif dataset_class == 'VisiumHD':
@@ -567,7 +479,7 @@ def image_coord_merge(df, position, dataset_class):
     else:
         raise ValueError(f"Unknown dataset_class: {dataset_class}")
 
-    # Check if the merge was successful
+    ## Check if the merge was successful
     if result.empty:
         raise ValueError("The merging resulted in an empty DataFrame. Please check your input data.")
 
@@ -578,11 +490,11 @@ def image_coord_merge(df, position, dataset_class):
 
 
 def sort_matrix(matrix, position_image, spotID_order, gene_hv):
-    # Reset the index of the matrix and rename the first column
+    ## Reset the index of the matrix and rename the first column
     position_image_first_col = position_image.columns[0]
     matrix = matrix.reset_index().rename(columns={matrix.index.name: position_image_first_col})
     
-    # Merge position_image and matrix based on the first column
+    ## Merge position_image and matrix based on the first column
     sorted_matrix = pd.merge(position_image[[position_image_first_col]], matrix, 
                              on=position_image_first_col, how="left")
     
@@ -593,7 +505,7 @@ def sort_matrix(matrix, position_image, spotID_order, gene_hv):
     
     matrix_order = np.array(sorted_matrix.set_index(position_image_first_col))
     
-    # Convert matrix_order to DataFrame and set the index and column names
+    ## Convert matrix_order to DataFrame and set the index and column names
     matrix_order_df = pd.DataFrame(matrix_order)
     matrix_order_df.index = spotID_order
     matrix_order_df.columns = gene_hv
@@ -612,7 +524,7 @@ def update_adata_coord(adata, matrix_order, position_image,
 
     elif dataset_class == 'VisiumHD':
         sparse_matrix = csr_matrix(matrix_order, dtype=np.float32)
-        # construct new adata (reduce 97 coords)
+        ## construct new adata (reduce 97 coords)
         adata_redu = sc.AnnData(X=sparse_matrix, 
                                 obs=pd.DataFrame(index=spotID_order), 
                                 var=pd.DataFrame(index=gene_hv))
@@ -620,7 +532,7 @@ def update_adata_coord(adata, matrix_order, position_image,
         adata_redu.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
         adata_redu.obs['array_row'] = np.array(position_image.loc[:, 'y'])
         adata_redu.obs['array_col'] = np.array(position_image.loc[:, 'x'])
-        # add another objects
+        ## add another objects
         adata_redu.var = adata.var
         adata_redu.uns = adata.uns
         adata = adata_redu.copy()
@@ -628,38 +540,6 @@ def update_adata_coord(adata, matrix_order, position_image,
         raise ValueError("Invalid dataset_class. Expected 'Visium16', 'Visium64' or 'VisiumHD'.")
     
     return adata
-
-
-# def update_adata_coord(adata, matrix_order, position_image):
-#     adata.X = csr_matrix(matrix_order, dtype=np.float32)
-#     adata.obs_names = matrix_order.index    # order by image feature name 
-#     adata.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
-#     adata.obs['array_row'] = np.array(position_image.loc[:, 'y'])
-#     adata.obs['array_col'] = np.array(position_image.loc[:, 'x'])
-#     return adata
-
-
-# def update_adata_coord_HD(adata, matrix_order, position_image, spotID_order, gene_hv):
-
-#     sparse_matrix = csr_matrix(matrix_order, dtype=np.float32)
-
-#     #################################################
-#     # construct new adata (reduce 97 coords)
-#     #################################################
-#     adata_redu = sc.AnnData(X=sparse_matrix, 
-#                             obs=pd.DataFrame(index=spotID_order), 
-#                             var=pd.DataFrame(index=gene_hv))
-
-#     adata_redu.X = csr_matrix(matrix_order, dtype=np.float32)
-#     adata_redu.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
-#     adata_redu.obs['array_row'] = np.array(position_image.loc[:, 'y'])
-#     adata_redu.obs['array_col'] = np.array(position_image.loc[:, 'x'])
-
-#     ## add another objects
-#     adata_redu.var = adata.var
-#     adata_redu.uns = adata.uns
-
-#     return adata_redu
 
 
 def update_st_coord(position_image):
@@ -672,55 +552,20 @@ def update_st_coord(position_image):
     return position_order
 
 
-
-
-
-
-# def impute_adata(adata, adata_spot, C2, gene_hv, k=None):
-#     ## Prepare impute_adata
-#     # adata_know: adata (original) 1331 × 596
-#     # adata_spot: all subspot 21296 × 596
-
-#     adata_know = adata.copy()
-#     adata_know.obs[["x", "y"]] = adata.obsm['spatial']
-#     adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
-
-#     sudo = pd.DataFrame(C2, columns=["x", "y"])
-#     sudo_adata = sc.AnnData(np.zeros((sudo.shape[0], len(gene_hv))), obs=sudo, var=adata.var)
-
-#     ## Impute_adata
-#     start_time = time.time()
-
-#     nearest_points = find_nearest_point(adata_spot.obsm['spatial'], adata_know.obsm['spatial'])
-#     nbs, nbs_indices = find_nearest_neighbors(nearest_points, adata_know.obsm['spatial'], k=k)
-#     distances = calculate_euclidean_distances(adata_spot.obsm['spatial'], nbs)
-
-#     # Iterate over each point in sudo_adata
-#     for i in range(sudo_adata.shape[0]):
-#         dis_tmp = (distances[i] + 0.1) / np.min(distances[i] + 0.1)
-#         weight_exponent = 1
-#         weights = ((1 / (dis_tmp ** weight_exponent)) / ((1 / (dis_tmp ** weight_exponent)).sum()))
-#         sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
-
-#     print("--- %s seconds ---" % (time.time() - start_time))
-#     return sudo_adata
-
-
 ###########################################
 # 2025.01.06 sdjust weight and optimal nbs
 ###########################################
 def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=1):
-    ## Prepare impute_adata: Fill gene expression using nbs
-    # adata_know: adata (original) 1331 × 596
-    # adata_spot: all subspot 21296 × 596
-
+    '''
+    Prepare impute_adata: Fill gene expression using nbs
+        adata_know: adata (original) 1331 × 596
+        adata_spot: all subspot 21296 × 596
+    '''
     adata_know = adata.copy()
     adata_know.obs[["x", "y"]] = adata.obsm['spatial']
     # adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
-
     sudo = pd.DataFrame(C2, columns=["x", "y"])
     sudo_adata = sc.AnnData(np.zeros((sudo.shape[0], len(gene_hv))), obs=sudo, var=adata.var)
-
 
     ## set ‘split_num’, according 'dataset_class'
     if dataset_class == 'Visium16':
@@ -745,7 +590,7 @@ def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=
     nbs, nbs_indices = find_nearest_neighbors(nearest_points, adata_know.obsm['spatial'], k=k_nbs)
     distances = calculate_euclidean_distances(adata_spot.obsm['spatial'], nbs)
 
-    # Iterate over each point in sudo_adata
+    ## Iterate over each point in sudo_adata
     for i in range(sudo_adata.shape[0]):
         dis_tmp = (distances[i] + 0.1) / np.min(distances[i] + 0.1)
         weights = ((1 / (dis_tmp ** weight_exponent)) / ((1 / (dis_tmp ** weight_exponent)).sum()))
@@ -789,47 +634,19 @@ def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5, do_scale=False):
     else:
         weight_impt_data = w * adata_spot.X + (1 - w) * sudo_adata.X
 
-    # Convert the combined data to a PyTorch tensor
+    ## Convert the combined data to a PyTorch tensor
     data_impt = torch.tensor(weight_impt_data)
 
-    # Create a new AnnData object with the combined data
+    ## Create a new AnnData object with the combined data
     adata_impt = sc.AnnData(X=pd.DataFrame(weight_impt_data))
     adata_impt.var_names = gene_hv
     adata_impt.obs = adata_spot.obs
 
-    # Add other necessary objects to the new AnnData object
+    ## Add other necessary objects to the new AnnData object
     adata_impt.obsm['spatial'] = sudo_adata.obsm['spatial']
     adata_impt.uns['spatial'] = sudo_adata.uns['spatial']
 
     return adata_impt, data_impt
-
-############################################
-# 2025.02.06 from reshape-spot to save-adata
-############################################
-# def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
-
-#     if adata_impt_all_reshape is tensor:
-#         adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.numpy())
-#     elif adata_impt_all_reshape is annadata:
-#         adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.to_df())
-
-#     # adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.numpy())
-#     adata_impt_spot.var_names = gene_hv
-
-#     if adata_impt_all_reshape.size()[0] == adata.shape[0]:
-#         adata_impt_spot.obs_names = adata.obs_names
-#         adata_impt_spot.obsm['spatial'] = adata.obsm['spatial'] 
-#         adata_impt_spot.obs = adata.obs
-#         adata_impt_spot.var = adata.var
-#     else: 
-#         adata_impt_spot.obs['x'] = spatial_loc_all[:,0]
-#         adata_impt_spot.obs['y'] = spatial_loc_all[:,1]
-#         adata_impt_spot.obsm['spatial'] = adata_impt_spot.obs[["x", "y"]].values
-#         # adata_impt_spot.obsm['spatial'] = spatial_loc_all
-    
-#     adata_impt_spot.uns['spatial'] = adata.uns['spatial']
-
-#     return adata_impt_spot
 
 
 def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
@@ -851,6 +668,8 @@ def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
         adata_impt_spot.obs['y'] = spatial_loc_all[:,1]
         adata_impt_spot.obsm['spatial'] = adata_impt_spot.obs[["x", "y"]].values
     
-    adata_impt_spot.uns['spatial'] = adata.uns['spatial']
+    ## Check if adata has 'uns' and 'spatial' key
+    if hasattr(adata, 'uns') and 'spatial' in adata.uns:
+        adata_impt_spot.uns['spatial'] = adata.uns['spatial']
 
     return adata_impt_spot

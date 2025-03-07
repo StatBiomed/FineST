@@ -1,12 +1,11 @@
-===========================================
-FineST: Fine-grained Spatial Transcriptomic
-===========================================
+=================================================================
+FineST: <u>Fine</u>-grained <u>S</u>patial <u></u>Transcriptomic
+=================================================================
 
-A statistical model and toolbox to identify the super-resolved ligand-receptor interaction 
-with spatial co-expression (i.e., spatial association). 
+A statistical model/toolbox to **identify nuclei-resolved ligand-receptor interactions (LRIs) 
+with spatial co-expression** (i.e., spatial association). 
 Uniquely, FineST can distinguish co-expressed ligand-receptor pairs (LR pairs) 
-from spatially separating pairs at sub-spot level or single-cell level, 
-and identify the super-resolved ligand-receptor interaction (LRI).
+from spatially separating pairs at sub-spot level or single-cell level.
 
 .. image:: https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework_all.png?raw=true
    :width: 800px
@@ -89,9 +88,9 @@ Step0: HE image feature extraction (for *Visium*)
 *Visium* measures about 5k spots across the entire tissue area. 
 The diameter of each individual spot is roughly 55 micrometers (um), 
 while the center-to-center distance between two adjacent spots is about 100 um.
-In order to capture the gene expression profile across the whole tissue ASSP, 
+In order to capture the gene expression profile across the whole tissue ASAP, 
 
-Firstly, interpolate ``between spots`` in horizontal and vertical directions, 
+**Firstly**, interpolate ``between spots`` in horizontal and vertical directions, 
 using ``Spot_interpolate.py``.
 
 .. code-block:: bash
@@ -120,7 +119,7 @@ and **Output:**  ``_position_add_tissue.csv``- Locations of ``between spots`` (m
 .. * ``_position_add_tissue.csv``: Spot locations of the ``between spots`` (m ~= 3n)
 .. * ``_position_all_tissue.csv``: Spot locations of all ``between spots`` and ``within spots``
 
-Then extracte the ``within spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
+**Then** extracte the ``within spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
 
 .. code-block:: bash
 
@@ -150,7 +149,7 @@ Then extracte the ``within spots`` HE image feature embeddings using ``HIPT_imag
 .. * ``AH_Patient1_pth_64_16``: Extracted "Within spot" image feature embeddiings for each patche (.pth)
 
 
-Similarlly, extracte the ``between spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
+**Similarlly**, extracte the ``between spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
 
 .. code-block:: bash
 
@@ -163,11 +162,7 @@ Similarlly, extracte the ``between spots`` HE image feature embeddings using ``H
       --patch_size 64 \
       --logging_folder ./Logging/HIPT_AH_Patient1/
 
-``HIPT_image_feature_extract.py`` also output the execution time:
-
-* The image segment execution time for the loop is:  8.153 seconds
-* The image feature extract time for the loop is: 35.499 seconds
-
+The image segment execution time: 8.153s, the image feature extract time: 35.499s.
 
 **Input files:**
 
@@ -196,10 +191,7 @@ Step0: HE image feature extraction (for *Visium HD*)
       --patch_size 32 \
       --logging_folder ./Logging/HIPT_HD_CRC_16um/
 
-``HIPT_image_feature_extract.py`` also output the execution time:
-
-* The image segment execution time for the loop is: 62.491 seconds
-* The image feature extract time for the loop is: 1717.818 seconds
+The image segment execution time: 62.491s, the image feature extract time: 1717.818s.
 
 **Input files:**
 
@@ -305,8 +297,7 @@ For *single-cell* resolution
 ----------------------------
 
 Using ``sc Patient1 pth 16 16`` 
-(saved in `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8>`_), i.e.,   
-the image feature of single-nuclei from ``HIPT_image_feature_extract.py``, just run the following.
+i.e., the image feature of single-nuclei from ``HIPT_image_feature_extract.py``, just run the following.
 
 .. code-block:: bash
 
@@ -329,39 +320,77 @@ the image feature of single-nuclei from ``HIPT_image_feature_extract.py``, just 
 Step3: Fine-grained LR pair and CCC pattern discovery
 =====================================================
 
+This step is based on `SpatialDM <https://github.com/StatBiomed/SpatialDM>`_ and `SparseAEH <https://github.com/jackywangtj66/SparseAEH>`_ (developed by our Lab). 
 
+ * SpatialDM: for significant fine-grained ligand-receptor pair selection.
+ * SparseAEH: for fastly cell-cell communication pattern discovery, 1000 times speedup to `SpatialDE <https://github.com/Teichlab/SpatialDE>`_.
 
-.. Quick example
-.. =============
-
-.. Using the build-in NPC dataset as an example, the following Python script
-.. will predict super-resolution ST gene expression and compute the p-value indicating whether a certain Ligand-Receptor is
-.. spatially co-expressed. 
 
 Detailed Manual
 ===============
 
-The full manual is at `FineST tutorial <https://finest-rtd-tutorial.readthedocs.io>`_ for installation, tutorials and examples. 
+The full manual is at `FineST tutorial <https://finest-rtd-tutorial.readthedocs.io>`_ for installation, tutorials and examples.
+
+**Spot interpolation** for Visium datasets.
 
 * `Interpolate between-spots among within-spots by FineST (For Visium dataset)`_.
 
-* `Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD)`_.
-
-* `Sub-spot level (16x resolution) prediction by FineST (For Visium dataset)`_.
-
-* `Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset)`_.
-
-* `Super-resolved ligand-receptor interavtion discovery by FineST`_.
-
 .. _Interpolate between-spots among within-spots by FineST (For Visium dataset): docs/source/Between_spot_demo.ipynb
 
-.. _Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD): docs/source/Crop_ROI_image.ipynb
 
-.. _Sub-spot level (16x resolution) prediction by FineST (For Visium dataset): docs/source/NPC_Train_Impute.ipynb
+**Step1 and Step2** Train FineST and impute super-resolved spatial RNA-seq.
 
-.. _Sub-bin level (from 16um to 8um) prediction by FineST (For Visium HD dataset): docs/source/CRC16_Train_Impute.ipynb
+* `FineST on Visium HD for super-resolved gene expression prediction (from 16um to 8um)`_.
 
-.. _Super-resolved ligand-receptor interavtion discovery by FineST: docs/source/NPC_LRI_CCC.ipynb
+.. _FineST on Visium HD for super-resolved gene expression prediction (from 16um to 8um): docs/source/CRC16_Train_Impute_count.ipynb
+
+* `FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell)`_.
+
+.. _FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell): docs/source/NPC_Train_Impute_count.ipynb
+
+
+**Step3** Fine-grained LR pair and CCC pattern discovery.
+
+* `Nuclei-resolved ligand-receptor interaction discovery by FineST (For Visium dataset)`_.
+
+.. _Nuclei-resolved ligand-receptor interaction discovery by FineST (For Visium dataset): docs/source/NPC_LRI_CCC_count.ipynb
+
+* `Super-resolved ligand-receptor interaction discovery by FineST (For Visium HD dataset)`_.
+
+.. _Super-resolved ligand-receptor interaction discovery by FineST (For Visium HD dataset): docs/source/CRC_LRI_CCC.ipynb
+
+
+**Downstream analysis** Cell type deconvolution, ROI region cropping, cell-cell colocalization.
+
+* `Nuclei-resolved cell type deconvolution of Visium (use FineST-imputed data)`_.
+
+.. _Nuclei-resolved cell type deconvolution of Visium (use FineST-imputed data): docs/source/transDeconv_NPC_count.ipynb
+
+* `Super-resolved cell type deconvolution of Visium HD (For FineST-imputed data)`_.
+
+.. _Super-resolved cell type deconvolution of Visium HD (For FineST-imputed data): docs/source/transDeconv_CRC_count.ipynb
+
+* `Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD)`_.
+
+.. _Crop region of interest (ROI) from HE image by FineST (Visium or Visium HD): docs/source/Crop_ROI_Boundary_image.ipynb
+
+
+**Performance evaluation** of FineST vs (TESLA and iSTAR).
+
+* `PCC-SSIM-CelltypeProportion-RunTimes comparison in FineST manuscript`_.
+
+.. _PCC-SSIM-CelltypeProportion-RunTimes comparison in FineST manuscript: docs/source/NPC_Evaluate.ipynb
+
+
+**Inference comparison** of FineST vs iStar (only LR genes).
+
+* `FineST on demo data`_.
+
+.. _FineST on demo data: docs/source/Demo_Train_Impute_count.ipynb
+
+* `iStar on demo data`_.
+
+.. _iStar on demo data: docs/source/Demo_results_istar_check.ipynb
 
 
 Contact Information

@@ -58,7 +58,7 @@ intersphinx_mapping = {
 intersphinx_disabled_domains = ['std']
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------
 
@@ -73,11 +73,11 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx.ext.coverage",
     "sphinx.ext.mathjax",
-    # "sphinx.ext.autosummary",
+    "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.githubpages",
-    # "sphinx_autodoc_typehints",
+    "sphinx_autodoc_typehints",
     "nbsphinx",
     # "edit_on_github",
 ]

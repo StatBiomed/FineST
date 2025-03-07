@@ -1,7 +1,7 @@
-High-sresolution imputation
+High-resolution imputation
 ===========================
 
-Super-resolved gene expression: sub-spot or single-nuclei level
+Super-resolved gene expression: sub-spot or single-nuclei
 ---------------------------------------------------------------
 
 **Usage illustrations**: 
@@ -11,10 +11,10 @@ Super-resolved gene expression: sub-spot or single-nuclei level
 * For *single-cell* resolution, using patch-image feature embeddings from Nuclei Segmentation.
 
 
-Step2: Super-resolution spatial RNA-seq imputation (for *sub-spot*)
+Step2: Super-resolution imputation (for *sub-spot*)
 -------------------------------------------------------------------
 
-Suppose that the trained weights (i.e. **weight_save_path**) have been obtained, just run the following.
+Suppose the trained weights (**weight_save_path**) have been obtained, just run the following.
 
 .. code-block:: bash
 
@@ -55,7 +55,7 @@ based on the image segmentation (Geometric ``sub-spot level`` or Nuclei ``single
 * ``patient1_adata_all_spot.h5ad``: High-resolution gene expression, at spot level (3x resolution).
 
 
-Step2: Super-resolution spatial RNA-seq imputation (for *single-cell*)
+Step2: Super-resolution imputation (for *single-cell*)
 ----------------------------------------------------------------------
 
 Using ``sc Patient1 pth 16 16`` 

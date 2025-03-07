@@ -1,6 +1,3 @@
-"""
-Utils of permutation calculation
-"""
 import numpy as np
 import random
 import pandas as pd
@@ -20,8 +17,7 @@ import sys
 ###########################################################
 def scale(cnts):
     """
-    Scale each column of the input count matrix using a custom scaling method.
-    This method first performs column-wise scaling and then applies a global max scaling.
+    First performs column-wise scaling and then applies a global max scaling.
     Parameters:
         cnts (numpy.ndarray): A two-dimensional count matrix.
     Returns:
@@ -112,7 +108,7 @@ device = torch.device(dev)
 ## define function
 def reshape_latent_image(inputdata, dataset_class='Visium64'):   
 
-    # set ‘split_num’, according 'dataset_class'
+    ## set ‘split_num’, according 'dataset_class'
     if dataset_class == 'Visium16':
         split_num = 16
     elif dataset_class == 'Visium64':
@@ -148,7 +144,7 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
         self.image_data = torch.stack(self.images)
         self.image_tensor = self.image_data.view(self.image_data.size(0), -1)  
 
-        # set ‘split_num’, according 'dataset_class'
+        ## set ‘split_num’, according 'dataset_class'
         if dataset_class == 'Visium16':
             self.split_num = 16
         elif dataset_class == 'Visium64':
@@ -183,7 +179,7 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
 ################################################
 def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_size=56, 
                              p=None, q=None, dataset_class=None):
-    # Helper function to extract x, y coordinates based on the type of `adata`
+    ## Extract x, y coordinates based on the type of `adata`
     def get_x_y(adata, p):
         if isinstance(adata, AnnData):
             return adata.obsm['spatial'][p][0], adata.obsm['spatial'][p][1]
@@ -202,7 +198,7 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
     C2 = np.zeros((recon_mat_reshape_tensor.shape[0] * recon_mat_reshape_tensor.shape[1], 2), dtype=int)
     first_spot_first_variable = None
 
-    # Set `split_num` according to `dataset_class`
+    ## Set `split_num` according to `dataset_class`
     if dataset_class == 'Visium16':
         split_num = 16
     elif dataset_class == 'Visium64':
@@ -258,10 +254,10 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
     else:
         x, y = get_x_y(adata, p)
 
-        # Select the information of the pth spot and the qth variable
+        ## Select the information of the pth spot and the qth variable
         first_spot_first_variable = recon_mat_reshape_tensor[p, :, q].cpu().detach().numpy()
 
-        # Initialize C as a zero matrix of integer type
+        ## Initialize C as a zero matrix of integer type
         C = np.zeros((NN, 2), dtype=int)
 
         #########################################
@@ -298,118 +294,3 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
     # adata_spot.uns['spatial'] = adata.uns['spatial']
     
     return first_spot_first_variable, C, all_spot_all_variable, C2, adata_spot
-
-
-# def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, pixel_step=7, 
-#                              p=None, q=None, dataset_class=None):
-#     def get_x_y(adata, p):
-#         if isinstance(adata, AnnData):
-#             return adata.obsm['spatial'][p][0], adata.obsm['spatial'][p][1]
-#         else:
-#             return adata[p][0], adata[p][1]
-
-#     NN = recon_mat_reshape_tensor.shape[1]
-#     N = int(np.sqrt(NN))
-#     all_spot_all_variable = np.zeros((recon_mat_reshape_tensor.shape[0]*recon_mat_reshape_tensor.shape[1], 
-#                                       recon_mat_reshape_tensor.shape[2]))
-#     C2 = np.zeros((recon_mat_reshape_tensor.shape[0] * recon_mat_reshape_tensor.shape[1], 2), dtype=int)
-#     first_spot_first_variable = None
-
-
-#     # set ‘split_num’, according 'dataset_class'
-#     if dataset_class == 'Visium16':
-#         split_num = 16
-#     elif dataset_class == 'Visium64':
-#         split_num = 64
-#     elif dataset_class == 'VisiumSC':
-#         split_num = 1
-#     elif dataset_class == 'VisiumHD':
-#         split_num = 4
-#     else:
-#         raise ValueError('Invalid dataset_class. Only "Visium" and "VisiumHD" are supported.')
-
-
-#     if p is None and q is None:
-#         for p_ in range(recon_mat_reshape_tensor.shape[0]):
-#             x, y = get_x_y(adata, p_)
-#             C = np.zeros((N**2, 2), dtype=int)
-
-#             #########################################
-#             ## 2025.01.06 adjust patch orgnization
-#             ## from left-up to right-down
-#             #########################################
-#             k = 1
-#             for j in range(N, 0, -1):
-#                 for i in range(1, N + 1):
-#                     C[k - 1, 0] = x - pixel_step - 1 * (2*pixel_step) + (i - 1) * (2*pixel_step)
-#                     C[k - 1, 1] = y - pixel_step - 1 * (2*pixel_step) + (j - 1) * (2*pixel_step)
-#                     k += 1
-
-#             ##############################
-#             ## 2025.01.06 old code
-#             ## from left-down to right-up
-#             ##############################
-#             # for k in range(1, N**2 + 1):
-#             #     s = k % N
-#             #     if s == 0:
-#             #         i = N
-#             #         j = k // N
-#             #     else:
-#             #         i = s
-#             #         j = (k - i) // N + 1
-
-#             #     ## 224
-#             #     # C[k - 1, 0] = x - 7 - 7 * 14 + (i - 1) * 14
-#             #     # C[k - 1, 1] = y - 7 - 7 * 14 + (j - 1) * 14
-#             #     ## 64  -- h=64/4=16 --  x-(h/2) - (4/2-1)*h
-#             #     C[k - 1, 0] = x - pixel_step - 1 * (2*pixel_step) + (i - 1) * (2*pixel_step)
-#             #     C[k - 1, 1] = y - pixel_step - 1 * (2*pixel_step) + (j - 1) * (2*pixel_step)
-
-#             C2[p_ * split_num:(p_ + 1) * split_num, :] = C
-
-#         for q_ in range(recon_mat_reshape_tensor.shape[2]):
-#             all_spot_all_variable[:, q_] = recon_mat_reshape_tensor[:, :, q_].flatten().cpu().detach().numpy()
-
-#     else:
-#         x, y = get_x_y(adata, p)
-
-#         # Select the information of the pth spot and the qth variable
-#         first_spot_first_variable = recon_mat_reshape_tensor[p, :, q].cpu().detach().numpy()
-
-#         # Initialize C as a zero matrix of integer type
-#         C = np.zeros((N**2, 2), dtype=int)
-
-
-#         #########################################
-#         ## 2025.01.06 adjust patch orgnization
-#         ## from left-up to right-down
-#         #########################################
-#         k = 1
-#         for j in range(N, 0, -1):
-#             for i in range(1, N + 1):
-#                 C[k - 1, 0] = x - pixel_step - 1 * (2*pixel_step) + (i - 1) * (2*pixel_step)
-#                 C[k - 1, 1] = y - pixel_step - 1 * (2*pixel_step) + (j - 1) * (2*pixel_step)
-#                 k += 1
-
-#         # for k in range(1, N**2 + 1):
-#         #     s = k % N
-
-#         #     if s == 0:
-#         #         i = N
-#         #         j = k // N
-#         #     else:
-#         #         i = s
-#         #         j = (k - i) // N + 1
-
-#         #     # 64-16
-#         #     C[k - 1, 0] = x - pixel_step - 1 * (2*pixel_step) + (i - 1) * (2*pixel_step)
-#         #     C[k - 1, 1] = y - pixel_step - 1 * (2*pixel_step) + (j - 1) * (2*pixel_step)
-
-
-#     ## Establish new anndata in sub-spot level
-#     adata_spot = sc.AnnData(X=pd.DataFrame(all_spot_all_variable))
-#     adata_spot.var_names = gene_hv
-#     adata_spot.obs["x"] = C2[:, 0]
-#     adata_spot.obs["y"] = C2[:, 1]
-    
-#     return first_spot_first_variable, C, all_spot_all_variable, C2, adata_spot

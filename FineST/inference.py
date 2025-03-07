@@ -9,9 +9,9 @@ from scipy.spatial import cKDTree
 def perform_inference_image(model, test_loader, dataset_class='Visium64'):
     print("device",device)    
 
-    #####################################################################################
+    ########################
     # for whole dataset
-    #####################################################################################        
+    ########################    
     print("***** Begin perform_inference: ******")
     
     input_spot_all, input_image_all, input_coord_all, _, _ = extract_test_data(test_loader)
@@ -20,7 +20,7 @@ def perform_inference_image(model, test_loader, dataset_class='Visium64'):
     matrix_profile = input_spot_all.to(device)
     image_profile = input_image_all.to(device)
     ## reshape image
-    image_profile_reshape = image_profile.view(-1, image_profile.shape[2])     # [1331, 256, 384] --> [1331*256, 384]
+    image_profile_reshape = image_profile.view(-1, image_profile.shape[2])  # [1331, 256, 384] --> [1331*256, 384]
     input_image_exp = image_profile_reshape.clone().detach().to(device)     # SDU
     
     ## useful model
@@ -39,10 +39,9 @@ def perform_inference_image(model, test_loader, dataset_class='Visium64'):
     reconstructed_matrix_reshaped = model.matrix_decoder(representation_image)  
     _, reconstruction_iamge_reshapef2 = reshape_latent_image(reconstructed_matrix_reshaped, dataset_class)
     
-    
-    #####################################################################################  
+    ########################  
     # convert
-    #####################################################################################  
+    ######################## 
     ## matrix
     matrix_profile = matrix_profile.cpu().detach().numpy() 
     reconstructed_matrix = reconstructed_matrix.cpu().detach().numpy() 
@@ -72,13 +71,12 @@ def perform_inference_image(model, test_loader, dataset_class='Visium64'):
             input_coord_all)
 
 
-
 def perform_inference_image_between_spot(model, test_loader, dataset_class='Visium'):
     print("device",device)    
 
-    #####################################################################################
+    ########################
     # for whole dataset
-    #####################################################################################        
+    ########################    
     print("***** Begin perform_inference: ******")
     
     input_image_all, input_coord_all = extract_test_data_image_between_spot(test_loader)   
@@ -86,7 +84,7 @@ def perform_inference_image_between_spot(model, test_loader, dataset_class='Visi
     ## input image
     image_profile = input_image_all.to(device)
     ## reshape image
-    image_profile_reshape = image_profile.view(-1, image_profile.shape[2])     # [adata.shape[0], 256, 384] --> [adata.shape[0]*256, 384]
+    image_profile_reshape = image_profile.view(-1, image_profile.shape[2])  # [adata.shape[0], 256, 384] --> [adata.shape[0]*256, 384]
     input_image_exp = image_profile_reshape.clone().detach().to(device)     # SDU
     ## useful model
     representation_image = model.image_encoder(input_image_exp) 
@@ -96,9 +94,9 @@ def perform_inference_image_between_spot(model, test_loader, dataset_class='Visi
     ## reshape
     _, representation_image_reshape = reshape_latent_image(representation_image, dataset_class)
     
-    #####################################################################################  
+    ######################## 
     # convert
-    #####################################################################################  
+    ########################  
     ## matrix
     representation_image_reshape = representation_image_reshape.cpu().detach().numpy() 
     reconstruction_iamge_reshapef2 = reconstruction_iamge_reshapef2.cpu().detach().numpy() 
@@ -109,12 +107,12 @@ def perform_inference_image_between_spot(model, test_loader, dataset_class='Visi
             input_image_exp,
             input_coord_all)
 
-##################################################################################
-# imputation.py
-##################################################################################
 
-## Find the nearest point in adata_know for each point in adata_spot
+########################
+# imputation.py
+########################
 def find_nearest_point(adata_spot, adata_know):
+    ## Find the nearest point in adata_know for each point in adata_spot
     nearest_points = []
     for point in adata_spot:
         distances = np.linalg.norm(adata_know - point, axis=1)
@@ -123,7 +121,7 @@ def find_nearest_point(adata_spot, adata_know):
     return np.array(nearest_points)
 
 ##################################################################################
-# using 7 neighborhood： cKDTree is more faster
+# using 6 neighborhood： cKDTree is more faster
 # Find k nearest neighbors for each point in nearest_points within adata_know
 ##################################################################################
 
@@ -159,28 +157,18 @@ def calculate_euclidean_distances(adata_spot, nbs):
     return np.array(distances)
 
 
-
 #################################################
 # 2025.01.24: add the infer model im main code
 #################################################
 def infer_model_fst(model, test_loader, logger, 
                     dataset_class='Visium64'): 
-
     model.to(device)
 
     logger.info("Running inference task...")
     start_infer_time = time.time()
     
-    (matrix_profile, 
-    reconstructed_matrix, 
-    recon_ref_adata_image_f2, 
-    representation_image_reshape,
-    representation_matrix,
-    projection_image_reshape,
-    projection_matrix,
-    input_image_exp,
-    reconstruction_iamge,
-    reconstructed_matrix_reshaped,
+    (matrix_profile, reconstructed_matrix, recon_ref_adata_image_f2, 
+    _, _, _, _, _, _, reconstructed_matrix_reshaped,
     input_coord_all) = perform_inference_image(model, test_loader, dataset_class=dataset_class)
     
     print("--- %s seconds for inference within spots ---" % (time.time() - start_infer_time))

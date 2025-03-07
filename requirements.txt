@@ -25,6 +25,9 @@ squidpy==1.2.3
 stardist==0.9.1
 tensorflow==2.13.1
 
+# cell type deconvolution
+transpa==0.1.1
+
 # Plotting
 matplotlib>=3.1.2
 holoviews

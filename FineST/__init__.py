@@ -8,12 +8,11 @@ from .version import __version__
 from .loadData import *
 from .processData import *
 from .model import *
-from .train import *
+from .traintest import *
 from .inference import *
 from .evaluation import * 
 from .SparseAEH import *
-from .SpatialDM import *
 from .plottings import *
 from .cropping import *
-from .celltype import *
+from .downstream import *
 

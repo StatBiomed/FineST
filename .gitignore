@@ -14,10 +14,11 @@ __pycache__/
 .Python
 Example/
 FineSTtest/
-Dataset/
+Example/
 Logging/
-Tutorial/
+tutorial/
 build/
+docs/build/
 develop-eggs/
 dist/
 downloads/

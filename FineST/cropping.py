@@ -11,21 +11,14 @@ import scanpy as sc
 Image.MAX_IMAGE_PIXELS = None
 
 
-
 def create_mask(polygon, shape):
-    """Create a mask for the given shape
-
-    Parameters
-    ----------
-    polygon : (N, 2) array
-        Points defining the shape.
-    shape : tuple of two ints
-        Shape of the output mask.
-
-    Returns
-    -------
-    mask : (shape[0], shape[1]) array
-        Boolean mask of the given shape.
+    """
+    Create a mask for the given shape
+    Parameters:
+        polygon : (N, 2) array, Points defining the shape.
+        shape : tuple of two ints, Shape of the output mask.
+    Returns: 
+        mask : (shape[0], shape[1]) array, Boolean mask of the given shape.
     """
     polygon = polygon.iloc[:, -2:].values
     print("polygon: \n", polygon)
@@ -41,32 +34,20 @@ def create_mask(polygon, shape):
     return mask, polygon
 
 
-
 def crop_img_adata(roi_path, img_path, adata_path, crop_img_path, crop_adata_path, 
                    segment=False, save=None):
     """
     Crop an image and an AnnData object based on a region of interest.
-
     Parameters:
-    roi_path : numpy.ndarray
-        A numpy array specifying the region of interest.
-    img_path : str
-        The path to the image file.
-    adata_path : str
-        The path to the AnnData file.
-    crop_img_path : str
-        The path where the cropped image will be saved.
-    crop_adata_path : str
-        The path where the cropped AnnData object will be saved.
-    save: bool, optional
-        Whether to save the cropped image and AnnData object to files. 
-        Default is None, which means not to save.
-
+        roi_path : numpy.ndarray, A numpy array specifying the region of interest.
+        img_path : str, The path to the image file.
+        adata_path : str, The path to the AnnData file.
+        crop_img_path : str, The path where the cropped image will be saved.
+        crop_adata_path : str, The path where the cropped AnnData object will be saved.
+        save: bool, optional, Default is None, which means not to save.
     Returns:
-    tuple
-        A tuple containing the cropped image and the cropped AnnData object.
+        tuple, A tuple containing the cropped image and the cropped AnnData object.
     """
-
     roi_coords = pd.read_csv(roi_path)
     print("ROI coordinates from napari package: \n", roi_coords)
 

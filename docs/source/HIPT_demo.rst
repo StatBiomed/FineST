@@ -1,20 +1,20 @@
 Geometric segmentation
 ======================
 
-Image embedding extraction: for *Visium* or *Visium HD*
---------------------------------------------------------------------
+Image embedding extraction
+---------------------------
 
 **Usage illustrations**: 
 
-* For *Visium*, use slice of 10x Visium human nasopharyngeal carcinoma (NPC) data.
+* For *Visium*, use one slice - 10x Visium human nasopharyngeal carcinoma (NPC) data.
 
-* For *Visium HD*, use slice of 10x Visium HD human colorectal cancer (CRC) data with 16-um bin.
+* For *Visium HD*, use one slice - 10x Visium HD human colorectal cancer (CRC) data with 16um bin.
 
 
-Step0: HE image feature extraction (for *Visium*)
+Step0: For *Visium*
 -------------------------------------------------
 
-*Visium* measures about 5k spots across the entire tissue area. 
+*Visium (v1)* measures about 5k spots across the entire tissue area. 
 The diameter of each individual spot is roughly 55 micrometers (um), 
 while the center-to-center distance between two adjacent spots is about 100 um.
 In order to capture the gene expression profile across the whole tissue ASSP, 
@@ -103,10 +103,10 @@ using ``Spot_interpolate.py``.
 **Output files:**
 
 * ``NEW_AH_Patient1_pth_64_16_image``: Segmeted "Between spot" histology image patches (.png)
-* ``NEW_AH_Patient1_pth_64_16``: Extracted "Between spot" image embeddiings for each patche (.pth)
+* ``NEW_AH_Patient1_pth_64_16``: Extracted "Between spot" image embeddiings of each patch (.pth)
 
 
-Step0: HE image feature extraction (for *Visium*: single-cell)
+Step0: For *Visium*: single-cell
 ----------------------------------------------------
 
 **For single-cell resolution:**
@@ -134,7 +134,7 @@ Step0: HE image feature extraction (for *Visium*: single-cell)
 * The image feature extract time for the loop is: 680.178 seconds
 
 
-Step0: HE image feature extraction (for *Visium HD*)
+Step0: For *Visium HD*
 ----------------------------------------------------
 
 *Visium HD* captures continuous squares without gaps, it measures the whole tissue area.
@@ -144,7 +144,7 @@ then split each 28-pixels patch_image to 14-pixels tile_image.
 
 .. code-block:: bash
 
-   python .FineST/demo/HIPT_image_feature_extract.py \
+   python ./FineST/demo/HIPT_image_feature_extract.py \
       --dataset HD_CRC_16um \
       --position ./Dataset/CRC/square_016um/tissue_positions.parquet \
       --imagefile ./Dataset/CRC/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
