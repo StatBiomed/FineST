@@ -1,6 +1,5 @@
-## 2024.10.31 Create by Tianjie Wang (our co-author)
-##            https://github.com/jackywangtj66/SparseAEH
-## 2024.10.31 intergrate base.py and plot.py together
+## Create by Tianjie Wang (our co-author)
+## See https://github.com/jackywangtj66/SparseAEH
 
 import numpy as np
 #from function import RBF_kernel

@@ -4,17 +4,145 @@ import pandas as pd
 import torch
 import scanpy as sc
 from anndata import AnnData
-import logging
 import os
-## for configure_logging
 import sys
+import logging
+logging.getLogger().setLevel(logging.INFO)
+from matplotlib.path import Path
+import matplotlib.pyplot as plt
+from skimage import draw, measure, io
+import squidpy as sq
+from PIL import Image
+Image.MAX_IMAGE_PIXELS = None
 
 
-###########################################################
-# 2025.02.08 Form iStar
-#            Found infer-smooth not at same scale, so norm
-#            Normalized infer and smooth data, sepratelly
-###########################################################
+def create_mask(polygon, shape):
+    """
+    Create a mask for the given shape
+    Parameters:
+        polygon : (N, 2) array, Points defining the shape.
+        shape : tuple of two ints, Shape of the output mask.
+    Returns: 
+        mask : (shape[0], shape[1]) array, Boolean mask of the given shape.
+    """
+    polygon = polygon.iloc[:, -2:].values
+    print("polygon: \n", polygon)
+    polygon = np.clip(polygon, a_min=0, a_max=None)
+    print("polygon adjusted: \n", polygon)
+    ## Keep the order of x and y unchanged
+    rr, cc = draw.polygon(polygon[:, 0], polygon[:, 1], shape) 
+    # rr, cc = draw.polygon(polygon.iloc[:, -2], polygon.iloc[:, -1], shape) 
+
+    ## Set negative coordinate to 0
+    mask = np.zeros(shape, dtype=bool)
+    mask[rr, cc] = True
+    return mask, polygon
+
+
+def crop_img_adata(roi_path, img_path, adata_path, crop_img_path, crop_adata_path, 
+                   segment=False, save=None):
+    """
+    Crop an image and an AnnData object based on a region of interest.
+    Parameters:
+        roi_path : numpy.ndarray, A numpy array specifying the region of interest.
+        img_path : str, The path to the image file.
+        adata_path : str, The path to the AnnData file.
+        crop_img_path : str, The path where the cropped image will be saved.
+        crop_adata_path : str, The path where the cropped AnnData object will be saved.
+        save: bool, optional, Default is None, which means not to save.
+    Returns:
+        tuple, A tuple containing the cropped image and the cropped AnnData object.
+    """
+    roi_coords = pd.read_csv(roi_path)
+    print("ROI coordinates from napari package: \n", roi_coords)
+
+    img = io.imread(img_path)
+    print("img shape: \n", img.shape)
+
+    ## Create a mask for the region of interest
+    mask, roi_coords = create_mask(roi_coords, img.shape[:2])
+    ## Find the bounding box of the region of interest
+    props = measure.regionprops_table(mask.astype(int), properties=('bbox',))
+
+    minr = props['bbox-0'][0]
+    minc = props['bbox-1'][0]
+    maxr = props['bbox-2'][0]
+    maxc = props['bbox-3'][0]
+
+    cropped_img = img[minr:maxr, minc:maxc]
+    print("cropped_img shape: \n", cropped_img.shape)
+
+    if save:
+        io.imsave(crop_img_path, cropped_img)
+
+    adata = sc.read_h5ad(adata_path)
+
+    print("The adata: \n", adata)
+    print("The range of original adata: \n", 
+          [[adata.obsm["spatial"][:,0].min(), adata.obsm["spatial"][:,0].max()], 
+           [adata.obsm["spatial"][:,1].min(), adata.obsm["spatial"][:,1].max()]])
+    
+    ## replace x and y of adata
+    roi_yx = roi_coords[:, [1, 0]]   
+    # roi_yx = np.stack([roi_coords.iloc[:, -1], roi_coords.iloc[:, -2]]).T
+    adata_roi = adata[Path(roi_yx).contains_points(adata.obsm["spatial"]), :].copy()
+
+    ## Update the 'spatial' field of the AnnData object
+    ## if you no need segment, then it can be omitted.
+    if segment:
+        if roi_coords[2][0] == 0: 
+            adata_roi.obsm["spatial"] = adata_roi.obsm["spatial"] - \
+                                        np.array([roi_coords[0][1], 0])
+        else: 
+            adata_roi.obsm["spatial"] = adata_roi.obsm["spatial"] - \
+                                        np.array([roi_coords[0][1], roi_coords[0][0]])
+    if save:
+        adata_roi.write(crop_adata_path)
+
+    return cropped_img, adata_roi
+
+
+def adata_nuclei_filter(adata_sp, img_path, whole_path, roi_path):
+    coord_cell = adata_sp.uns['cell_locations']
+    coord_cell = coord_cell.dropna()
+    coord_cell.columns = ['pxl_row_in_fullres', 'pxl_col_in_fullres', 
+                          'spot_index', 'cell_index', 'cell_nums']
+    
+    image = plt.imread(img_path)
+    img = sq.im.ImageContainer(image)
+    coord_image = pd.read_csv(whole_path)
+    print("Coordinates from napari package: \n", coord_image)
+    _, coord_image = create_mask(coord_image, img.shape[:2])
+
+    ## adjust adata_sp.obsm["spatial"] using the cropped whole image coords
+    if coord_image[2][0] == 0: 
+        adata_sp.obsm["spatial"] = adata_sp.obsm["spatial"] + \
+                                    np.array([coord_image[0][1], 0])
+        coord_cell[['pxl_row_in_fullres', 'pxl_col_in_fullres']] += np.array([coord_image[0][1], 0])
+    else: 
+        adata_sp.obsm["spatial"] = adata_sp.obsm["spatial"] + \
+                                    np.array([coord_image[0][1], coord_image[0][0]])
+        coord_cell[['pxl_row_in_fullres', 'pxl_col_in_fullres']] += np.array([coord_image[0][1], coord_image[0][0]])
+    print("adata_sp.obsm: spatial: \n", adata_sp.obsm["spatial"])
+
+    ## select adata_sp.obsm["spatial"] using the cropped ROI image coords
+    roi_coords = pd.read_csv(roi_path)
+    print("ROI coordinates from napari package: \n", roi_coords)
+    _, roi_coords = create_mask(roi_coords, img.shape[:2])
+    roi_yx = roi_coords[:, [1, 0]]   
+    ad_sp_crop = adata_sp[Path(roi_yx).contains_points(adata_sp.obsm["spatial"]), :].copy()
+
+    ## filter
+    ad_sp_crop.uns['cell_locations'] = (
+        ad_sp_crop.uns['cell_locations']
+        .loc[ad_sp_crop.uns['cell_locations'].spot_index.isin(ad_sp_crop.obs.index)]
+        .reset_index(drop=True)
+    )
+    
+    return ad_sp_crop, coord_image, coord_cell
+
+
+
 def scale(cnts):
     """
     First performs column-wise scaling and then applies a global max scaling.
@@ -40,10 +168,7 @@ def scale(cnts):
 
     return cnts
 
-###########################################################
-# 2024.11.20 Form SpatialScope
-#            created for StarDist_nuclei_segmente.py
-###########################################################
+
 def configure_logging(logger_name):
     LOG_LEVEL = logging.DEBUG
     log_filename = logger_name+'.log'
@@ -97,12 +222,12 @@ def setup_logger(model_save_folder):
     return logger
 
 
-## set the device
-if torch.cuda.is_available():
-    dev = "cuda:0"
-else:
-    dev = "cpu"
-device = torch.device(dev)
+# ## set the device
+# if torch.cuda.is_available():
+#     dev = "cuda:0"
+# else:
+#     dev = "cpu"
+# device = torch.device(dev)
 
 
 ## define function
@@ -128,9 +253,6 @@ def reshape_latent_image(inputdata, dataset_class='Visium64'):
 
 
 
-###############################################
-# 2024.11.02 adjusted: add parameter： dataset
-###############################################
 class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
     def __init__(self, image_paths, spatial_pos_path, dataset_class):
         self.spatial_pos_csv = pd.read_csv(spatial_pos_path, sep=",", header=None)
@@ -163,7 +285,7 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
         v1 = self.spatial_pos_csv.loc[idx, 0]   
         v2 = self.spatial_pos_csv.loc[idx, 1]  
     
-        # Stack the tensors in the list along a new dimension  
+        ## Stack the tensors in the list along a new dimension  
         item['image'] = self.image_tensor[idx * self.split_num : (idx + 1) * self.split_num]    
         item['spatial_coords'] = [v1, v2]  
 
@@ -173,10 +295,6 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
         return len(self.spatial_pos_csv)
     
 
-################################################
-# 2025.01.16 adjust C2，according to split_num
-# 2025.02.06 add 'obs' and 'obsm' to adata
-################################################
 def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_size=56, 
                              p=None, q=None, dataset_class=None):
     ## Extract x, y coordinates based on the type of `adata`
@@ -221,7 +339,6 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
             C = np.zeros((NN, 2), dtype=int)
 
             ##############################
-            ## 2025.01.06 old code
             ## from left-down to right-up
             ##############################
             for k in range(1, split_num + 1):
@@ -261,7 +378,6 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
         C = np.zeros((NN, 2), dtype=int)
 
         #########################################
-        ## 2025.01.06 adjust patch orgnization
         ## from left-up to right-down
         #########################################
         for k in range(1, split_num + 1):
@@ -289,8 +405,6 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
     adata_spot.var_names = gene_hv
     adata_spot.obs["x"] = C2[:, 0]
     adata_spot.obs["y"] = C2[:, 1]
-    ## add other objects to adata
     adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
-    # adata_spot.uns['spatial'] = adata.uns['spatial']
     
     return first_spot_first_variable, C, all_spot_all_variable, C2, adata_spot

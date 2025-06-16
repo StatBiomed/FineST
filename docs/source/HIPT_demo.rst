@@ -46,20 +46,22 @@ using ``Spot_interpolate.py``.
 * ``_position_all_tissue.csv``: Spot locations of all ``between spots`` and ``within spots``
 
 
-**Then** extracte the ``within spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
+**Then** extracte the ``within spots`` HE image feature embeddings using ``Image_feature_extraction.py``.
 
 .. code-block:: bash
 
-   python ./FineST/demo/HIPT_image_feature_extract.py \
+   python ./FineST/demo/Image_feature_extraction.py \
       --dataset AH_Patient1 \
       --position ./Dataset/NPC/patient1/tissue_positions_list.csv \
       --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
-      --output_path_img ./Dataset/NPC/HIPT/AH_Patient1_pth_64_16_image \
-      --output_path_pth ./Dataset/NPC/HIPT/AH_Patient1_pth_64_16 \
-      --patch_size 64 \
+      --scale_image False \
+      --method Virchow2 \
+      --output_path_img ./Dataset/NPC/HIPT/AH_Patient1_pth_112_14_image \
+      --output_path_pth ./Dataset/NPC/HIPT/AH_Patient1_pth_112_14 \
+      --patch_size 112 \
       --logging_folder ./Logging/HIPT_AH_Patient1/
 
-``HIPT_image_feature_extract.py`` also output the execution time:
+``Image_feature_extraction.py`` also output the execution time:
 
 * The image segment execution time for the loop is: 3.493 seconds
 * The image feature extract time for the loop is: 13.374 seconds
@@ -72,24 +74,26 @@ using ``Spot_interpolate.py``.
 
 **Output files:**
 
-* ``AH_Patient1_pth_64_16_image``: Segmeted "Within spot" histology image patches (.png)
-* ``AH_Patient1_pth_64_16``: Extracted "Within spot" image feature embeddiings for each patche (.pth)
+* ``AH_Patient1_pth_112_14_image``: Segmeted "Within spot" histology image patches (.png)
+* ``AH_Patient1_pth_112_14``: Extracted "Within spot" image feature embeddiings for each patche (.pth)
 
 
-**Similarlly**, extracte the ``between spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
+**Similarlly**, extracte the ``between spots`` HE image feature embeddings using ``Image_feature_extraction.py``.
 
 .. code-block:: bash
 
-   python ./FineST/demo/HIPT_image_feature_extract.py \
+   python ./FineST/demo/Image_feature_extraction.py \
       --dataset AH_Patient1 \
       --position ./Dataset/NPC/patient1/patient1_position_add_tissue.csv \
       --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
-      --output_path_img ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_64_16_image \
-      --output_path_pth ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_64_16 \
-      --patch_size 64 \
+      --scale_image False \
+      --method Virchow2 \
+      --output_path_img ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_112_14_image \
+      --output_path_pth ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_112_14 \
+      --patch_size 112 \
       --logging_folder ./Logging/HIPT_AH_Patient1/
 
-``HIPT_image_feature_extract.py`` also output the execution time:
+``Image_feature_extraction.py`` also output the execution time:
 
 * The image segment execution time for the loop is:  8.153 seconds
 * The image feature extract time for the loop is: 35.499 seconds
@@ -102,8 +106,8 @@ using ``Spot_interpolate.py``.
 
 **Output files:**
 
-* ``NEW_AH_Patient1_pth_64_16_image``: Segmeted "Between spot" histology image patches (.png)
-* ``NEW_AH_Patient1_pth_64_16``: Extracted "Between spot" image embeddiings of each patch (.pth)
+* ``NEW_AH_Patient1_pth_112_14_image``: Segmeted "Between spot" histology image patches (.png)
+* ``NEW_AH_Patient1_pth_112_14``: Extracted "Between spot" image embeddiings of each patch (.pth)
 
 
 Step0: For *Visium*: single-cell
@@ -112,12 +116,12 @@ Step0: For *Visium*: single-cell
 **For single-cell resolution:**
 * *Setp 1*: Get ``_adata_imput_all_spot.h5ad`` from ``_Train_Impute.ipynb``;
 * *Setp 2*: Get ``sp._adata_ns.h5ad`` and ``_position_all_tissue_sc``, from ``StarDist_nuclei_segmentate.py``;
-* *Setp 3*: Get ``sc_Patient1_pth_14_14`` from this scrip ``HIPT_image_feature_extract.py`` using ``Virchow2``.
+* *Setp 3*: Get ``sc_Patient1_pth_14_14`` from this scrip ``Image_feature_extraction.py`` using ``Virchow2``.
 
 .. code-block:: bash
 
    cd /mnt/lingyu/nfs_share2/Python/FineST/
-   time python ./FineST/demo/HIPT_image_feature_extract_virchow2.py \
+   time python ./FineST/demo/Image_feature_extraction.py \
       --dataset AH_Patient1 \
       --position ./FineST_local/Dataset/NPC/StarDist/DataOutput/NPC1_allspot_p075_test/_position_all_tissue_sc.csv \
       --imagefile ./FineST_local/Dataset/NPC/patient1/20210809-C-AH4199551.tif \
@@ -128,7 +132,7 @@ Step0: For *Visium*: single-cell
       --patch_size 14 \
       --logging_folder ./FineST_local/Logging/HIPT_AH_Patient1/
 
-``HIPT_image_feature_extract.py`` also output the execution time:
+``Image_feature_extraction.py`` also output the execution time:
 
 * The image segment execution time for the loop is: 31.082 seconds
 * The image feature extract time for the loop is: 680.178 seconds
@@ -144,7 +148,7 @@ then split each 28-pixels patch_image to 14-pixels tile_image.
 
 .. code-block:: bash
 
-   python ./FineST/demo/HIPT_image_feature_extract.py \
+   python ./FineST/demo/Image_feature_extraction.py \
       --dataset HD_CRC_16um \
       --position ./Dataset/CRC/square_016um/tissue_positions.parquet \
       --imagefile ./Dataset/CRC/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
@@ -155,7 +159,7 @@ then split each 28-pixels patch_image to 14-pixels tile_image.
       --patch_size 28 \
       --logging_folder ./Logging/HIPT_HD_CRC_16um/
 
-``HIPT_image_feature_extract.py`` also output the execution time:
+``Image_feature_extraction.py`` also output the execution time:
 
 * The image segment execution time for the loop is: 125.442 seconds
 * The image feature extract time for the loop is: 2486.118 seconds

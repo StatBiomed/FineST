@@ -1,13 +1,12 @@
-=================================================================
-FineST: Fine-grained Spatial Transcriptomic
-=================================================================
+===================================================================================================================
+Scalable discovery of nucleus-resolved ligand-receptor interaction by fusing spatial RNA-seq and histology images
+===================================================================================================================
 
-A statistical model/toolbox to **identify nuclei-resolved ligand-receptor interactions (LRIs) 
-with spatial co-expression** (i.e., spatial association). 
-Uniquely, FineST can distinguish co-expressed ligand-receptor pairs (LR pairs) 
-from spatially separating pairs at sub-spot level or single-cell level.
+This software package impletements FineST (Fine-grained Spatial Transcriptomic), which could 
+**identify super-resolved ligand-receptor interactions with spatial co-expression** (i.e., spatial association) 
+from a spot-level to a sub-spot level or single-cell level.
 
-.. image:: https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework_all.png?raw=true
+.. image:: https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework_all_update.png?raw=true
    :width: 800px
    :align: center
 
@@ -118,20 +117,22 @@ and **Output:**  ``_position_add_tissue.csv``- Locations of ``between spots`` (m
 .. * ``_position_add_tissue.csv``: Spot locations of the ``between spots`` (m ~= 3n)
 .. * ``_position_all_tissue.csv``: Spot locations of all ``between spots`` and ``within spots``
 
-**Then** extracte the ``within spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
+**Then** extracte the ``within spots`` HE image feature embeddings using ``Image_feature_extraction.py``.
 
 .. code-block:: bash
 
-   python ./FineST/demo/HIPT_image_feature_extract.py \
+   python ./FineST/demo/Image_feature_extraction.py \
       --dataset AH_Patient1 \
       --position ./Dataset/NPC/patient1/tissue_positions_list.csv \
       --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
-      --output_path_img ./Dataset/NPC/HIPT/AH_Patient1_pth_64_16_image \
-      --output_path_pth ./Dataset/NPC/HIPT/AH_Patient1_pth_64_16 \
-      --patch_size 64 \
+      --scale_image False \
+      --method Virchow2 \
+      --output_path_img ./Dataset/NPC/HIPT/AH_Patient1_pth_112_14_image \
+      --output_path_pth ./Dataset/NPC/HIPT/AH_Patient1_pth_112_14 \
+      --patch_size 112 \
       --logging_folder ./Logging/HIPT_AH_Patient1/
 
-.. ``HIPT_image_feature_extract.py`` also output the execution time:
+.. ``Image_feature_extraction.py`` also output the execution time:
 
 .. * The image segment execution time for the loop is: 3.493 seconds
 .. * The image feature extract time for the loop is: 13.374 seconds
@@ -144,21 +145,23 @@ and **Output:**  ``_position_add_tissue.csv``- Locations of ``between spots`` (m
 
 .. **Output files:**
 
-.. * ``AH_Patient1_pth_64_16_image``: Segmeted "Within spot" histology image patches (.png)
-.. * ``AH_Patient1_pth_64_16``: Extracted "Within spot" image feature embeddiings for each patche (.pth)
+.. * ``AH_Patient1_pth_112_14_image``: Segmeted "Within spot" histology image patches (.png)
+.. * ``AH_Patient1_pth_112_14``: Extracted "Within spot" image feature embeddiings for each patche (.pth)
 
 
-**Similarlly**, extracte the ``between spots`` HE image feature embeddings using ``HIPT_image_feature_extract.py``.
+**Similarlly**, extracte the ``between spots`` HE image feature embeddings using ``Image_feature_extraction.py``.
 
 .. code-block:: bash
 
-   python ./FineST/demo/HIPT_image_feature_extract.py \
+   python ./FineST/demo/Image_feature_extraction.py \
       --dataset AH_Patient1 \
       --position ./Dataset/NPC/patient1/patient1_position_add_tissue.csv \
       --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
-      --output_path_img ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_64_16_image \
-      --output_path_pth ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_64_16 \
-      --patch_size 64 \
+      --scale_image False \
+      --method Virchow2 \
+      --output_path_img ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_112_14_image \
+      --output_path_pth ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_112_14 \
+      --patch_size 112 \
       --logging_folder ./Logging/HIPT_AH_Patient1/
 
 The image segment execution time: 8.153s, the image feature extract time: 35.499s.
@@ -170,8 +173,8 @@ The image segment execution time: 8.153s, the image feature extract time: 35.499
 
 **Output files:**
 
-* ``NEW_AH_Patient1_pth_64_16_image``: Segmeted "Between spot" histology image patches (.png)
-* ``NEW_AH_Patient1_pth_64_16``: Extracted "Between spot" image feature embeddiings for each patche (.pth)
+* ``NEW_AH_Patient1_pth_112_14_image``: Segmeted "Between spot" histology image patches (.png)
+* ``NEW_AH_Patient1_pth_112_14``: Extracted "Between spot" image feature embeddiings for each patche (.pth)
 
 
 Step0: HE image feature extraction (for *Visium HD*)
@@ -181,13 +184,15 @@ Step0: HE image feature extraction (for *Visium HD*)
 
 .. code-block:: bash
 
-   python ./FineST/demo/HIPT_image_feature_extract.py \
+   python ./FineST/demo/Image_feature_extraction.py \
       --dataset HD_CRC_16um \
       --position ./Dataset/CRC/square_016um/tissue_positions.parquet \
       --image ./Dataset/CRC/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
-      --output_path_img ./Dataset/CRC/HIPT/HD_CRC_16um_pth_32_16_image \
-      --output_path_pth ./Dataset/CRC/HIPT/HD_CRC_16um_pth_32_16 \
-      --patch_size 32 \
+      --scale_image True \
+      --method Virchow2 \
+      --output_path_img ./Dataset/CRC/HIPT/HD_CRC_16um_pth_28_14_image \
+      --output_path_pth ./Dataset/CRC/HIPT/HD_CRC_16um_pth_28_14 \
+      --patch_size 28 \
       --logging_folder ./Logging/HIPT_HD_CRC_16um/
 
 The image segment execution time: 62.491s, the image feature extract time: 1717.818s.
@@ -199,8 +204,8 @@ The image segment execution time: 62.491s, the image feature extract time: 1717.
 
 **Output files:**
 
-* ``HD_CRC_16um_pth_32_16_image``: Segmeted histology image patches (.png)
-* ``HD_CRC_16um_pth_32_16``: Extracted image feature embeddiings for each patche (.pth)
+* ``HD_CRC_16um_pth_28_14_image``: Segmeted histology image patches (.png)
+* ``HD_CRC_16um_pth_28_14``: Extracted image feature embeddiings for each patche (.pth)
 
 
 Step1: Training FineST on the within spots
@@ -219,7 +224,7 @@ Otherwise, if you want to re-train a model, just omit **weight_save_path** line.
       --gene_selected 'CD70' \
       --LRgene_path 'FineST/FineST/Dataset/LRgene/LRgene_CellChatDB_baseline.csv' \
       --visium_path 'FineST/FineST/Dataset/NPC/patient1/tissue_positions_list.csv' \
-      --image_embed_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_64_16/' \
+      --image_embed_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_112_14/' \
       --spatial_pos_path 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/position_order.csv' \
       --reduced_mtx_path 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/harmony_matrix.npy' \
       --weight_save_path 'FineST/FineST_local/Finetune/20240125140443830148' \
@@ -235,7 +240,7 @@ Otherwise, if you want to re-train a model, just omit **weight_save_path** line.
 * ``parameters_NPC_P10125.json``: The model parameters.
 * ``LRgene_CellChatDB_baseline.csv``: The genes involved in Ligand or Receptor from CellChatDB.
 * ``tissue_positions_list.csv``: It can be found in the spatial folder of 10x Visium outputs.
-* ``AH_Patient1_pth_64_16``: Image feature folder from HIPT ``HIPT_image_feature_extract.py``.
+* ``AH_Patient1_pth_112_14``: Image feature folder from HIPT ``Image_feature_extraction.py``.
 * ``position_order.csv``: Ordered tissue positions list, according to image patches' coordinates.
 * ``harmony_matrix.npy``: Ordered gene expression matrix, according to image patches' coordinates.
 * ``20240125140443830148``: The trained weights. Just omit it if you want to newly train a model.
@@ -264,8 +269,8 @@ This step supposes that the trained weights (i.e. **weight_save_path**) have bee
       --gene_selected 'CD70' \
       --LRgene_path 'FineST/FineST/Dataset/LRgene/LRgene_CellChatDB_baseline.csv' \
       --visium_path 'FineST/FineST/Dataset/NPC/patient1/tissue_positions_list.csv' \
-      --imag_within_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_64_16/' \
-      --imag_betwen_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/NEW_AH_Patient1_pth_64_16/' \
+      --imag_within_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_112_14/' \
+      --imag_betwen_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/NEW_AH_Patient1_pth_112_14/' \
       --spatial_pos_path 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/position_order_all.csv' \
       --weight_save_path 'FineST/FineST_local/Finetune/20240125140443830148' \
       --figure_save_path 'FineST/FineST_local/Dataset/NPC/Figures/' \
@@ -280,8 +285,8 @@ based on the image segmentation (Geometric ``sub-spot level`` or Nuclei ``single
 * ``parameters_NPC_P10125.json``: The model parameters.
 * ``LRgene_CellChatDB_baseline.csv``: The genes involved in Ligand or Receptor from CellChatDB.
 * ``tissue_positions_list.csv``: It can be found in the spatial folder of 10x Visium outputs.
-* ``AH_Patient1_pth_64_16``: Image feature of within-spots from ``HIPT_image_feature_extract.py``.
-* ``NEW_AH_Patient1_pth_64_16``: Image feature of between-spots from ``HIPT_image_feature_extract.py``.
+* ``AH_Patient1_pth_112_14``: Image feature of within-spots from ``Image_feature_extraction.py``.
+* ``NEW_AH_Patient1_pth_112_14``: Image feature of between-spots from ``Image_feature_extraction.py``.
 * ``position_order_all.csv``: Ordered tissue positions list, of both within spots and between spots.
 * ``20240125140443830148``: The trained weights. Just omit it if you want to newly train a model.
 
@@ -296,7 +301,7 @@ For *single-cell* resolution
 ----------------------------
 
 Using ``sc Patient1 pth 16 16`` 
-i.e., the image feature of single-nuclei from ``HIPT_image_feature_extract.py``, just run the following.
+i.e., the image feature of single-nuclei from ``Image_feature_extraction.py``, just run the following.
 
 .. code-block:: bash
 
@@ -308,7 +313,7 @@ i.e., the image feature of single-nuclei from ``HIPT_image_feature_extract.py``,
       --gene_selected 'CD70' \
       --LRgene_path 'FineST/FineST/Dataset/LRgene/LRgene_CellChatDB_baseline.csv' \
       --visium_path 'FineST/FineST/Dataset/NPC/patient1/tissue_positions_list.csv' \
-      --imag_within_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_64_16/' \
+      --imag_within_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_112_14/' \
       --image_embed_path_sc 'NPC/Data/stdata/ZhuoLiang/LLYtest/sc_Patient1_pth_16_16/' \
       --spatial_pos_path_sc 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/position_order_sc.csv' \
       --adata_super_path_sc 'FineST/FineST_local/Dataset/ImputData/patient1/patient1_adata_all_sc.h5ad' \
@@ -356,7 +361,7 @@ The full manual is at `FineST tutorial <https://finest-rtd-tutorial.readthedocs.
 
 * `Super-resolved ligand-receptor interaction discovery by FineST (For Visium HD dataset)`_.
 
-.. _Super-resolved ligand-receptor interaction discovery by FineST (For Visium HD dataset): docs/source/CRC_LRI_CCC.ipynb
+.. _Super-resolved ligand-receptor interaction discovery by FineST (For Visium HD dataset): docs/source/CRC_LRI_CCC_count.ipynb
 
 
 **Downstream analysis** Cell type deconvolution, ROI region cropping, cell-cell colocalization.

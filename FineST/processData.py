@@ -85,11 +85,6 @@ def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k
     return locs_order, imgs_order, imgs_order_2d
 
 
-###################################################
-# 2025.01.16 add patch_size calculate from adata
-# Return x_dir： patch_size at x/weidth direction 
-###################################################
-
 def patch_size(adata, p=16, dir='x'):
     """
     Computes the absolute differences of the sorted spatial data in adata.
@@ -137,9 +132,7 @@ def position_order_adata_istar(position, obs_names, dataset_class='Visium16'):
 
     return position_order
 
-########################################
-# 2024.12.2 add json file
-########################################
+
 def json_load(json_path):
     path_to_visium_bundle = Path(str(json_path)).expanduser()
     with open(path_to_visium_bundle / "scalefactors_json.json") as file:
@@ -156,9 +149,6 @@ def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
     return position_tissue
 
 
-######################################
-# 2024.11.13 add for Visium position
-######################################
 def filter_pos_list(filename):
     """
     Reads CSV file, renames the columns, and filters the rows where 'in_tissue' is 1.
@@ -252,7 +242,7 @@ def final_pos_list(position_x, position_y, position=None):
     else:
         position_final = pd.concat([position_x, position_y], ignore_index=True)
 
-    # #Sort position_final by 'array_col' and 'array_row'
+    ## Sort position_final by 'array_col' and 'array_row'
     position_final = position_final.sort_values(['array_col', 'array_row'], 
                                                 ascending=[True, True]).reset_index(drop=True)
 
@@ -298,9 +288,6 @@ def Load_clean_save_adata(adata):
     return adata
 
 
-######################################
-# 2024.11.11 add for all spot: Visium
-######################################
 def get_allspot_coors(input_coord_all):
     
     tensor_1 = input_coord_all[0][0]
@@ -317,74 +304,197 @@ def get_allspot_coors(input_coord_all):
     return spatial_loc
 
 
-def adata_LR(adata, file_path):
-    LRgene = pd.read_csv(file_path)
+# def adata_LR(adata, file_path):
+#     LRgene = pd.read_csv(file_path)
+#     adata.var_names_make_unique()
+#     if isinstance(adata.X, np.ndarray):
+#         adata_matrix = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
+#     else:
+#         adata_matrix = pd.DataFrame(adata.X.A, index=adata.obs_names, columns=adata.var_names)
+#     available_genes = [gene for gene in LRgene['LR gene'].tolist() if gene in adata_matrix.columns]
+#     adataLR_matrix = adata_matrix[available_genes]
+#     adata._n_vars = adataLR_matrix.shape[1]
+#     adata.X = adataLR_matrix.values
+#     adata.var = adata.var.loc[available_genes]
+#     adata.var_names = adataLR_matrix.columns
+#     return adata
+
+
+# def adata_LR(adata, gene_list='LRgene'):
+
+#     file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline.csv'
+#     if gene_list == 'LRgene':
+#         LRgene = pd.read_csv(file_path)
+#     elif gene_list == 'HVgenes':    
+#         adata = adata_preprocess(adata, keep_raw=True, normalize=True, min_cells=0, target_sum=None, n_top_genes=None)
+#         LRgene = pd.DataFrame(adata.var[adata.var['highly_variable']].index, columns=['LR gene'])
+#     elif gene_list == 'LR_HV_genes':
+#         LRgene_df = pd.read_csv(file_path)
+#         LRgenes_set = set(LRgene_df['LR gene'])
+#         adata = adata_preprocess(adata, keep_raw=True, normalize=True, min_cells=0, target_sum=None, n_top_genes=None)
+#         HVgenes_set = set(adata.var[adata.var['highly_variable']].index)
+#         inter_genes = list(LRgenes_set & HVgenes_set)
+#         LRgene = pd.DataFrame(inter_genes, columns=['LR gene'])
+#     else:
+#         raise ValueError("Invalid gene_list. Choose from 'LRgene', 'HVgenes', or 'LR_HV_genes'.")
+
+#     adata.var_names_make_unique()
+#     if isinstance(adata.X, np.ndarray):
+#         adata_matrix = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
+#     else:
+#         adata_matrix = pd.DataFrame(adata.X.A, index=adata.obs_names, columns=adata.var_names)
+
+#     available_genes = [g for g in LRgene[LRgene.columns[0]].tolist() if g in adata_matrix.columns]
+#     adataLR_matrix = adata_matrix[available_genes]
+#     adata._n_vars = adataLR_matrix.shape[1]
+#     adata.X = adataLR_matrix.values
+#     adata.var = adata.var.loc[available_genes]
+#     adata.var_names = adataLR_matrix.columns
+
+#     return adata
+
+
+# def adata_LR(adata, gene_list='LR_gene'):
+#     """
+#     Filter AnnData to contain only specific gene sets.
+#     gene_list: 'LR_gene', 'HV_genes', or 'LR_HV_genes'
+#     """
+
+#     file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline.csv'
+#     adata.var_names_make_unique()  # Ensure unique variable names
+#     adata_raw = adata.copy() 
+    
+#     ## Select gene set
+#     if gene_list == 'LR_gene':
+#         LRgene = pd.read_csv(file_path)
+#         genes = set(LRgene.iloc[:, 0])
+#     elif gene_list == 'HV_genes':
+#         _, genes = adata_preprocess(adata_raw, n_top_genes=1000)
+#     elif gene_list == 'LR_HV_genes':
+#         LRgenes = set(pd.read_csv(file_path).iloc[:, 0])
+#         _, HVgenes = adata_preprocess(adata_raw, n_top_genes=1000)
+#         genes = LRgenes | HVgenes
+#     else:
+#         raise ValueError("gene_list must be 'LR_gene', 'HV_genes', or 'LR_HV_genes'.")
+
+#     ## Filter genes present in AnnData
+#     gene_filter = [g for g in genes if g in adata.var_names]
+#     adata._inplace_subset_var(gene_filter)
+
+#     return adata
+
+
+def adata_LR(adata, gene_list='LR_genes'):
+    """
+    Filter AnnData to contain only specific gene sets.
+    gene_list: 'LR_genes', 'HV_genes', or 'LR_HV_genes'
+    """
     adata.var_names_make_unique()
-    if isinstance(adata.X, np.ndarray):
-        adata_matrix = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
+    file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline.csv'
+
+    if gene_list == 'LR_genes':
+        LRgenes = set(pd.read_csv(file_path).iloc[:, 0])
+        genes = LRgenes
+    elif gene_list == 'HV_genes':
+        _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=1000)
+        genes = HVgenes
+    elif gene_list == 'LR_HV_genes':
+        LRgenes = set(pd.read_csv(file_path).iloc[:, 0])
+        _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=1000)
+        genes = LRgenes | HVgenes
     else:
-        adata_matrix = pd.DataFrame(adata.X.A, index=adata.obs_names, columns=adata.var_names)
-    available_genes = [gene for gene in LRgene['LR gene'].tolist() if gene in adata_matrix.columns]
-    adataLR_matrix = adata_matrix[available_genes]
-    adata._n_vars = adataLR_matrix.shape[1]
-    adata.X = adataLR_matrix.values
-    adata.var = adata.var.loc[available_genes]
-    adata.var_names = adataLR_matrix.columns
+        raise ValueError("gene_list must be 'LR_genes', 'HV_genes', or 'LR_HV_genes'.")
+
+    gene_filter = [g for g in genes if g in adata.var_names]
+    adata._inplace_subset_var(gene_filter)
     return adata
 
 
-#####################################
-# 2024.12.23: Add 
-#####################################
-def adata_preprocess(adata, keep_raw=False, normalize=True, 
-                     min_cells=10, target_sum=None, n_top_genes=None, species='human'):
-    """
-    Preprocesses AnnData object for single-cell RNA-seq data.
-    Parameters:
-        adata (anndata.AnnData): The annotated data matrix of shape n_obs x n_vars. 
-        keep_raw (bool, optional): If True, a copy of the original data is saved. Default is False.
-        min_cells (int, optional): Minimum number of cells expressed. Default is 10.
-        target_sum (float, optional): If not None, normalize total counts per cell with this value. 
-                                    If None, after normalization, each cell has a total count 
-                                    equal to the median of the counts_per_cell before normalization. 
-                                    Default is None.
-        n_top_genes (int, optional): Number of highly-variable genes to keep. 
-                                    If n_top_genes is not None, this number is kept as 
-                                    highly-variable genes. Default is None.
-        species (str, optional): The species of the dataset. If not 'human', certain steps are skipped.
-    Returns:
-        adata (anndata.AnnData): The processed annotated data matrix.
-    """
+def adata_preprocess(
+    adata, 
+    normalize=True, 
+    min_cells=10, 
+    target_sum=None, 
+    n_top_genes=None, 
+    species='human'
+):
 
-    ## Set mitochondrial gene prefix based on species
-    if species == 'human':
-        adata.var["mt"] = adata.var_names.str.startswith("MT-")
-    elif species == 'mouse':
-        adata.var["mt"] = adata.var_names.str.startswith("mt-")
-    else:
-        raise ValueError("Unsupported species. Please specify 'human' or 'mouse'.")
+    ## Set mitochondrial gene prefix
+    prefix = 'MT-' if species == 'human' else 'mt-' if species == 'mouse' else None
+    if prefix is None:
+        raise ValueError("species must be 'human' or 'mouse'.")
 
-    ## Calculate QC metrics if there are mitochondrial genes
+    adata.var["mt"] = adata.var_names.str.startswith(prefix)
     if adata.var["mt"].any():
         sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
-        
     sc.pp.filter_genes(adata, min_cells=min_cells)
 
-    if keep_raw:
-        adata = adata.copy()     # del adata.raw   
-
     if normalize:
+        adata.raw = adata.copy()
         if target_sum is not None:
             sc.pp.normalize_total(adata, target_sum=target_sum)
         else:
             sc.pp.normalize_total(adata)
-
         sc.pp.log1p(adata)
 
+    HVgenes = None
     if n_top_genes is not None:
         sc.pp.highly_variable_genes(adata, flavor="seurat", n_top_genes=n_top_genes)
+        HVgenes = set(adata.var.index[adata.var['highly_variable']])
 
-    return adata
+    return (adata, HVgenes) if n_top_genes is not None else adata
+
+
+# def adata_preprocess(adata, keep_raw=False, normalize=True, 
+#                      min_cells=10, target_sum=None, n_top_genes=None, species='human'):
+#     """
+#     Preprocesses AnnData object for single-cell RNA-seq data.
+#     Parameters:
+#         adata (anndata.AnnData): The annotated data matrix of shape n_obs x n_vars. 
+#         keep_raw (bool, optional): If True, a copy of the original data is saved. Default is False.
+#         min_cells (int, optional): Minimum number of cells expressed. Default is 10.
+#         target_sum (float, optional): If not None, normalize total counts per cell with this value. 
+#                                     If None, after normalization, each cell has a total count 
+#                                     equal to the median of the counts_per_cell before normalization. 
+#                                     Default is None.
+#         n_top_genes (int, optional): Number of highly-variable genes to keep. 
+#                                     If n_top_genes is not None, this number is kept as 
+#                                     highly-variable genes. Default is None.
+#         species (str, optional): The species of the dataset. If not 'human', certain steps are skipped.
+#     Returns:
+#         adata (anndata.AnnData): The processed annotated data matrix.
+#     """
+
+#     ## Set mitochondrial gene prefix based on species
+#     if species == 'human':
+#         adata.var["mt"] = adata.var_names.str.startswith("MT-")
+#     elif species == 'mouse':
+#         adata.var["mt"] = adata.var_names.str.startswith("mt-")
+#     else:
+#         raise ValueError("Unsupported species. Please specify 'human' or 'mouse'.")
+
+#     ## Calculate QC metrics if there are mitochondrial genes
+#     if adata.var["mt"].any():
+#         sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
+        
+#     sc.pp.filter_genes(adata, min_cells=min_cells)
+
+#     if keep_raw:
+#         adata_raw = adata.copy()     # del adata.raw   
+
+#     if normalize:
+#         if target_sum is not None:
+#             sc.pp.normalize_total(adata_raw, target_sum=target_sum)
+#         else:
+#             sc.pp.normalize_total(adata_raw)
+
+#         sc.pp.log1p(adata_raw)
+
+#     if n_top_genes is not None:
+#         sc.pp.highly_variable_genes(adata_raw, flavor="seurat", n_top_genes=n_top_genes)
+#         HVgenes = set(adata_raw.var.index[adata_raw.var['highly_variable']])
+
+#     return adata, HVgenes
 
 
 def adata2matrix(adata, gene_hv):
@@ -400,11 +510,7 @@ def adata2matrix(adata, gene_hv):
     print(matrix.shape)
     return matrix
 
-#
-###############################################
-# 2024.11.02 update 
-# 2024.12.18 add VisiumSC
-###############################################
+
 def get_image_coord(file_paths, dataset_class):
     data = []
     file_paths.sort() 
@@ -430,8 +536,6 @@ def get_image_coord_all(file_paths):
     for file_path in file_paths:
         parts = file_path.split('_')
         data.append([parts[-2], parts[-1].split('.pth')[0]])
-        # if dataset_class == 'Visium' or dataset_class == 'VisiumSC':
-        #     data.append([parts[-2], parts[-1].split('.pth')[0]])
     return data
 
 
@@ -466,11 +570,6 @@ def image_coord_merge(df, position, dataset_class):
         col_y = merged_df.columns[-3]
         return merged_df.rename(columns={col_x: 'x', col_y: 'y'})
 
-    #     in_df = position['pixel_x'].isin(df['pixel_x']) & position['pixel_y'].isin(df['pixel_y'])
-    #     merged_df = position[in_df].reset_index(drop=True)
-    #     merged_df = merged_df.rename(columns={'array_row': 'x', 'array_col': 'y'})
-    #     return merged_df
-
     ## Use dataset_class to decide which function to call
     if dataset_class == 'Visium' or dataset_class=='VisiumSC':
         result = merge_dfs(df, position)
@@ -482,9 +581,6 @@ def image_coord_merge(df, position, dataset_class):
     ## Check if the merge was successful
     if result.empty:
         raise ValueError("The merging resulted in an empty DataFrame. Please check your input data.")
-
-    # ## For Visium
-    # result = result.drop_duplicates(subset=result.columns[0], keep='first')
 
     return result
 
@@ -532,7 +628,6 @@ def update_adata_coord(adata, matrix_order, position_image,
         adata_redu.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
         adata_redu.obs['array_row'] = np.array(position_image.loc[:, 'y'])
         adata_redu.obs['array_col'] = np.array(position_image.loc[:, 'x'])
-        ## add another objects
         adata_redu.var = adata.var
         adata_redu.uns = adata.uns
         adata = adata_redu.copy()
@@ -552,9 +647,6 @@ def update_st_coord(position_image):
     return position_order
 
 
-###########################################
-# 2025.01.06 sdjust weight and optimal nbs
-###########################################
 def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=1):
     '''
     Prepare impute_adata: Fill gene expression using nbs
@@ -563,7 +655,6 @@ def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=
     '''
     adata_know = adata.copy()
     adata_know.obs[["x", "y"]] = adata.obsm['spatial']
-    # adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values
     sudo = pd.DataFrame(C2, columns=["x", "y"])
     sudo_adata = sc.AnnData(np.zeros((sudo.shape[0], len(gene_hv))), obs=sudo, var=adata.var)
 
@@ -600,20 +691,14 @@ def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=
         else:
             sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
 
-        # sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
-        # sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense() / split_num)
-
     print("--- %s seconds ---" % (time.time() - start_time))
 
-    ## add other objects to adata
     sudo_adata.obsm['spatial'] = adata_spot.obsm['spatial']
     sudo_adata.uns['spatial'] = adata.uns['spatial']
 
     return sudo_adata
 
-######################################
-# 2025.02.08: add scale 
-######################################
+
 def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5, do_scale=False):
     """
     Combine inferred super-resolved gene expression data with imputed data, and optionally scale the result.
@@ -641,8 +726,6 @@ def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5, do_scale=False):
     adata_impt = sc.AnnData(X=pd.DataFrame(weight_impt_data))
     adata_impt.var_names = gene_hv
     adata_impt.obs = adata_spot.obs
-
-    ## Add other necessary objects to the new AnnData object
     adata_impt.obsm['spatial'] = sudo_adata.obsm['spatial']
     adata_impt.uns['spatial'] = sudo_adata.uns['spatial']
 

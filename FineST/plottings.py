@@ -1717,8 +1717,8 @@ def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, 
     genedata2 = imputed_matrix_test_exp[[gene]].to_numpy()  
 
     g = sns.JointGrid(x=genedata1[:, 0], y=genedata2[:, 0], space=0, height=size)
-    g = g.plot_joint(sns.scatterplot, color="b")
-    g = g.plot_marginals(sns.kdeplot, shade=True, color="b")
+    g = g.plot_joint(sns.scatterplot)
+    g = g.plot_marginals(sns.kdeplot, shade=True)
 
     pearson_corr, _ = pearsonr(genedata1[:, 0], genedata2[:, 0])
     cosine_sim = cosine_similarity(genedata1.reshape(1, -1), genedata2.reshape(1, -1))[0][0]
@@ -1760,7 +1760,7 @@ def mean_cor_box(adata, data_impt_reshape, gene_only=False, save_path=None):
         corr_spot = calculate_correlation(matrix_profile, data_impt_reshape, 
                                           method='pearson', sample="spot")
         mean_corr_spot = np.mean(corr_spot)
-        print(mean_corr_spot)
+        print('mean correlation of spots: ',mean_corr_spot)
 
     corr_gene = calculate_correlation(matrix_profile, data_impt_reshape, 
                                       method='pearson', sample="gene")
