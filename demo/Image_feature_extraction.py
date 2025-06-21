@@ -14,6 +14,8 @@
 ##            omit Line130-Line135, for sing-nuclei file, dont need rename the colnums
 ##            this problem is from see the path image from 'sc_Patient1_pth_14_14_image'
 ##            there are some 'blank' patches. And compare the '_spot.csv' and 'all_spot_sc.csv'
+## 2025.06.20 using 'FineST_demo'
+
 
 import os
 import torch
@@ -81,11 +83,11 @@ def rescale_image(img, scale):
 # def get_patch_size(diameter, tile_size=14):
 #     return int((diameter // tile_size) * tile_size)
 
-def main(dataset, jsonfile, position, imagefile, scale_image, method, 
-         output_path_img, output_path_pth, patch_size, logging_folder):
+def main(dataset, position_path, rawimage_path, scale_image, method, patch_size, 
+         output_img, output_pth, logging):
 
     ## Create the folder with a unique timestamp only once
-    dir_name = logging_folder + datetime.now().strftime('%Y%m%d%H%M%S%f')
+    dir_name = logging + datetime.now().strftime('%Y%m%d%H%M%S%f')
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     logger = setup_logger(dir_name)
@@ -108,14 +110,14 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
     scale = 0.5
 
     ## Load csv file with "no head"
-    _, ext = os.path.splitext(position)
+    _, ext = os.path.splitext(position_path)
     if ext == ".csv":
-        tissue_position = pd.read_csv(position)
+        tissue_position = pd.read_csv(position_path)
         print(tissue_position)
         if tissue_position.shape[1] == 6:
             if 'cell_nums' not in tissue_position.columns.tolist():
                 ## For within spot
-                tissue_position = pd.read_csv(position, header=None).set_index(0)
+                tissue_position = pd.read_csv(position_path, header=None).set_index(0)
                 tissue_position.columns = ['in_tissue', 'array_row', 'array_col', 'pxl_row_in_fullres', 'pxl_col_in_fullres']
                 tissue_position = tissue_position.rename(
                     columns={
@@ -126,7 +128,7 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
                 tissue_position = tissue_position[tissue_position['in_tissue'] == 1]
             else:
                 ## For sing-nuclei file, dont need rename the colnums
-                tissue_position = pd.read_csv(position).set_index("Unnamed: 0")
+                tissue_position = pd.read_csv(position_path).set_index("Unnamed: 0")
                 # tissue_position = tissue_position.rename(
                 #     columns={
                 #         'pxl_row_in_fullres': 'pxl_col_in_fullres', 
@@ -135,7 +137,7 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
                 # )
         elif tissue_position.shape[1] == 5:
             ## For between spot or single nuclei
-            tissue_position = pd.read_csv(position).set_index("Unnamed: 0")
+            tissue_position = pd.read_csv(position_path).set_index("Unnamed: 0")
             tissue_position.columns = ['array_row', 'array_col', 'pxl_row_in_fullres', 'pxl_col_in_fullres']
             tissue_position = tissue_position.rename(
                 columns={
@@ -145,7 +147,7 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
             )
 
     elif ext == ".parquet":
-        tissue_position = (pd.read_parquet(position)
+        tissue_position = (pd.read_parquet(position_path)
                         .set_index('barcode')
                         .rename(columns={'pxl_row_in_fullres': 'pxl_col_in_fullres', 'pxl_col_in_fullres': 'pxl_row_in_fullres'})
                         .query('in_tissue == 1'))
@@ -168,7 +170,7 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
     )
     # https://github.com/mahmoodlab/HIPT/blob/master/HIPT_4K/hipt_4k.py
     import sys
-    sys.path.append("./FineST/FineST")
+    sys.path.append("./FineST")
     from HIPT.HIPT_4K import vision_transformer as vits
     ###################################################################################################
     # Note: tissue_position["pxl_row_in_fullres"].max(), tissue_position["pxl_col_in_fullres"].max()
@@ -178,7 +180,7 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
 
     ## Load image
     if str(scale_image) == 'True':
-        image_obj = Image.open(imagefile)
+        image_obj = Image.open(rawimage_path)
         image = np.array(image_obj)
 
         if image.ndim == 3 and image.shape[-1] == 4:
@@ -191,7 +193,7 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
         logger.info(f'Rescaling image DONE!...')
 
     elif str(scale_image) == 'False':      
-        image = Image.open(imagefile)
+        image = Image.open(rawimage_path)
         # image_width, image_height = image.size
 
     image_width, image_height = image.size
@@ -205,7 +207,7 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
     ## Create patches
     # patch_size = 32 for Visium HD, patch_size = 64 for Visium (V2)
     patch_size = int(patch_size)
-    os.makedirs(output_path_img, exist_ok=True)
+    os.makedirs(output_img, exist_ok=True)
 
     start_time = time.time()
     for i, point in enumerate(coordinates):
@@ -233,11 +235,11 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
         if i % step == 0:
             # print(f"patch_name: {i}, {patch_name}")
             logger.info(f"patch_name: {i}, {patch_name}")
-        patch.save(os.path.join(output_path_img, patch_name))
+        patch.save(os.path.join(output_img, patch_name))
 
     end_time = time.time()
     execution_time = end_time - start_time
-    logger.info(f"The image segment execution time for the loop is: {execution_time} seconds")
+    logger.info(f"Image segmentation time: {execution_time:.2f} seconds")
 
 
     ######################################################################
@@ -320,14 +322,14 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
     # ])
 
     # Process patches
-    os.makedirs(output_path_pth, exist_ok=True)
-    patches_list = os.listdir(output_path_img)
+    os.makedirs(output_pth, exist_ok=True)
+    patches_list = os.listdir(output_img)
 
     start_time = time.time()
     for i, patch in enumerate(patches_list):
 
         patch_base_name, extension = os.path.splitext(patch)
-        patch_path = os.path.join(output_path_img, patch)
+        patch_path = os.path.join(output_img, patch)
         patch_image = Image.open(patch_path)
 
         if str(method) == 'Virchow2':
@@ -355,45 +357,60 @@ def main(dataset, jsonfile, position, imagefile, scale_image, method,
 
         if i % step == 0:
             logger.info(f"saved_name: {i}, {saved_name}")
-        saved_path = os.path.join(output_path_pth, saved_name)
+        saved_path = os.path.join(output_pth, saved_name)
         torch.save(subtensors_list, saved_path)
 
     end_time = time.time()
     execution_time = end_time - start_time
-    logger.info(f"The image feature extract time for the loop is: {execution_time} seconds")
+    logger.info(f"Feature extraction time: {execution_time:.2f} seconds")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', required=True, help='Dataset name')
-    parser.add_argument('--jsonfile', required=False, help='Json file name')
-    parser.add_argument('--position', required=True, help='Position file name')
-    parser.add_argument('--imagefile', required=True, help='Image file name')
+    parser.add_argument('--position_path', required=True, help='Position file name')
+    parser.add_argument('--rawimage_path', required=True, help='Image file name')
     parser.add_argument('--scale_image', required=True, help='Image file name')
     parser.add_argument('--method', required=True, help='Image feature extract method')
-    parser.add_argument('--output_path_img', required=True, help='Output image path')
-    parser.add_argument('--output_path_pth', required=True, help='Output path')
     parser.add_argument('--patch_size', required=True, help='Patch size for image segmentation')
-    parser.add_argument('--logging_folder', required=True, help='Logging folder path')
+    parser.add_argument('--output_img', required=True, help='Output image path')
+    parser.add_argument('--output_pth', required=True, help='Output path')
+    parser.add_argument('--logging', required=True, help='Logging folder path')
     args = parser.parse_args()
 
-    main(args.dataset, args.jsonfile, args.position, args.imagefile, args.scale_image, args.method, 
-         args.output_path_img, args.output_path_pth, args.patch_size, args.logging_folder)
+    main(args.dataset, args.position_path, args.rawimage_path, args.scale_image, args.method, args.patch_size, 
+         args.output_img, args.output_pth, args.logging)
     
 
 ## Python script
+
+##########################
+# NPC: sub-spot
+##########################
+# python ./demo/Image_feature_extraction.py \
+#    --dataset NPC \
+#    --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv  \
+#    --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+#    --scale_image False \
+#    --method Virchow2 \
+#    --patch_size 112 \
+#    --output_img FineST_tutorial_data/ImgEmbeddings/pth_112_14_image \
+#    --output_pth FineST_tutorial_data/ImgEmbeddings/pth_112_14 \
+#    --logging FineST_tutorial_data/ImgEmbeddings/
+
+
 ##########################
 # CRC 16um: 
 ##########################
 # time python ./FineST/HIPT_image_feature_extract_virchow2.py \
 #     --dataset HD_CRC_16um \
-#     --position ./Dataset/CRC16um/square_016um/tissue_positions.parquet \
-#     --imagefile ./Dataset/CRC16um/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
+#     --position_path ./Dataset/CRC16um/square_016um/tissue_positions.parquet \
+#     --rawimage_path ./Dataset/CRC16um/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
 #     --scale_image True \
 #     --method Virchow2 \
-#     --output_path_img ./Dataset/CRC16um/HIPT/HD_CRC_16um_pth_28_14_image_test \
-#     --output_path_pth ./Dataset/CRC16um/HIPT/HD_CRC_16um_pth_28_14_test \
+#     --output_img ./Dataset/CRC16um/HIPT/HD_CRC_16um_pth_28_14_image_test \
+#     --output_pth ./Dataset/CRC16um/HIPT/HD_CRC_16um_pth_28_14_test \
 #     --patch_size 28 \
-#     --logging_folder ./Logging/HIPT_HD_CRC_16um/
+#     --logging ./Logging/HIPT_HD_CRC_16um/
 
 
 ##########################
@@ -402,11 +419,11 @@ if __name__ == '__main__':
 # cd /mnt/lingyu/nfs_share2/Python/FineST/FineST_local/
 # time python ./FineST/HIPT_image_feature_extract_virchow2.py \
 #    --dataset AH_Patient1 \
-#    --position ./Dataset/NPC/StarDist/DataOutput/NPC1_allspot_p075_test/_position_all_tissue_sc.csv \
-#    --imagefile ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
+#    --position_path ./Dataset/NPC/StarDist/DataOutput/NPC1_allspot_p075_test/_position_all_tissue_sc.csv \
+#    --rawimage_path ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
 #    --scale_image False \
 #    --method Virchow2 \
-#    --output_path_img ./Dataset/NPC/HIPT/sc_Patient1_pth_14_14_image \
-#    --output_path_pth ./Dataset/NPC/HIPT/sc_Patient1_pth_14_14 \
+#    --output_img ./Dataset/NPC/HIPT/sc_Patient1_pth_14_14_image \
+#    --output_pth ./Dataset/NPC/HIPT/sc_Patient1_pth_14_14 \
 #    --patch_size 14 \
-#    --logging_folder ./Logging/HIPT_AH_Patient1/
+#    --logging ./Logging/HIPT_AH_Patient1/

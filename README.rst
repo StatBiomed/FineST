@@ -67,6 +67,11 @@ Verify the installation using the following command:
    >>> print(torch.cuda.is_available())
 
 
+**Tutorial**: 
+
+For a tutorial, please see: https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb
+
+
 Get Started for *Visium* or *Visium HD* data
 ============================================
 
@@ -74,7 +79,7 @@ Get Started for *Visium* or *Visium HD* data
 
 The source codes for reproducing the FineST analysis in this work are provided (see `demo` directory).
 All relevant materials involved in the reproducing codes are available 
-from `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8>`_.
+from `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8?usp=sharing>`_.
 
 * For *Visium*, using a single slice of 10x Visium human nasopharyngeal carcinoma (NPC) data.
 * For *Visium HD*, using a single slice of 10x Visium HD human colorectal cancer (CRC) data with 16-um bin.

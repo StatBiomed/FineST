@@ -16,6 +16,14 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 
 
+## set the device
+if torch.cuda.is_available():
+    dev = "cuda:0"
+else:
+    dev = "cpu"
+device = torch.device(dev)
+
+
 def create_mask(polygon, shape):
     """
     Create a mask for the given shape
@@ -142,7 +150,6 @@ def adata_nuclei_filter(adata_sp, img_path, whole_path, roi_path):
     return ad_sp_crop, coord_image, coord_cell
 
 
-
 def scale(cnts):
     """
     First performs column-wise scaling and then applies a global max scaling.
@@ -220,14 +227,6 @@ def setup_logger(model_save_folder):
     logger.addHandler(consoleHandler)
 
     return logger
-
-
-# ## set the device
-# if torch.cuda.is_available():
-#     dev = "cuda:0"
-# else:
-#     dev = "cpu"
-# device = torch.device(dev)
 
 
 ## define function

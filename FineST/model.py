@@ -138,7 +138,6 @@ def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_pa
     return all_dataset
 
 
-
 ###############################################
 # 2024.11.02 adjusted: add parameter： dataset
 # 2025.01.08 design for istar image embeddings
@@ -453,6 +452,7 @@ class ELU(nn.Module):
         self.beta = beta
     def forward(self, x):
         return self.activation(x) + self.beta
+
 
 ##############################
 # Spatial data embedding  

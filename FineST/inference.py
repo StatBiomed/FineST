@@ -171,7 +171,7 @@ def infer_model_fst(model, test_loader, logger,
     _, _, _, _, _, _, reconstructed_matrix_reshaped,
     input_coord_all) = perform_inference_image(model, test_loader, dataset_class=dataset_class)
     
-    print("--- %s seconds for inference within spots ---" % (time.time() - start_infer_time))
+    print(f"Inference within spots: {time.time() - start_infer_time:.4f} seconds")
     print("Reconstructed_matrix_reshaped shape: ", reconstructed_matrix_reshaped.shape)
     logger.info("Running inference task DONE!")
     

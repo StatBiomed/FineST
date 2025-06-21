@@ -1625,7 +1625,7 @@ def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, marker='o', s=2,
 # 2025.01.29 Add the infer and impt FineST
 ###########################################
 def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22, 
-              figsize=(9, 7), cnt_color=None, 
+              figsize=(9, 7), cnt_color=cnt_color, 
               trans=False, format='pdf', save_path=None):
     if isinstance(matrix_order_df, pd.DataFrame):
         fig, ax1 = plt.subplots(1, 1, figsize=figsize)
@@ -1692,8 +1692,7 @@ def subspot_expr(C, value, patch_size=56, dataset_class=None,
     ax.set_aspect('equal', 'box') 
 
     if save_path is not None:
-        fig.set_dpi(300)
-        plt.savefig(save_path, transparent=trans, format=format, bbox_inches='tight')
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
 
     plt.show()
 

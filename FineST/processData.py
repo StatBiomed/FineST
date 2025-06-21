@@ -304,104 +304,21 @@ def get_allspot_coors(input_coord_all):
     return spatial_loc
 
 
-# def adata_LR(adata, file_path):
-#     LRgene = pd.read_csv(file_path)
-#     adata.var_names_make_unique()
-#     if isinstance(adata.X, np.ndarray):
-#         adata_matrix = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
-#     else:
-#         adata_matrix = pd.DataFrame(adata.X.A, index=adata.obs_names, columns=adata.var_names)
-#     available_genes = [gene for gene in LRgene['LR gene'].tolist() if gene in adata_matrix.columns]
-#     adataLR_matrix = adata_matrix[available_genes]
-#     adata._n_vars = adataLR_matrix.shape[1]
-#     adata.X = adataLR_matrix.values
-#     adata.var = adata.var.loc[available_genes]
-#     adata.var_names = adataLR_matrix.columns
-#     return adata
-
-
-# def adata_LR(adata, gene_list='LRgene'):
-
-#     file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline.csv'
-#     if gene_list == 'LRgene':
-#         LRgene = pd.read_csv(file_path)
-#     elif gene_list == 'HVgenes':    
-#         adata = adata_preprocess(adata, keep_raw=True, normalize=True, min_cells=0, target_sum=None, n_top_genes=None)
-#         LRgene = pd.DataFrame(adata.var[adata.var['highly_variable']].index, columns=['LR gene'])
-#     elif gene_list == 'LR_HV_genes':
-#         LRgene_df = pd.read_csv(file_path)
-#         LRgenes_set = set(LRgene_df['LR gene'])
-#         adata = adata_preprocess(adata, keep_raw=True, normalize=True, min_cells=0, target_sum=None, n_top_genes=None)
-#         HVgenes_set = set(adata.var[adata.var['highly_variable']].index)
-#         inter_genes = list(LRgenes_set & HVgenes_set)
-#         LRgene = pd.DataFrame(inter_genes, columns=['LR gene'])
-#     else:
-#         raise ValueError("Invalid gene_list. Choose from 'LRgene', 'HVgenes', or 'LR_HV_genes'.")
-
-#     adata.var_names_make_unique()
-#     if isinstance(adata.X, np.ndarray):
-#         adata_matrix = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
-#     else:
-#         adata_matrix = pd.DataFrame(adata.X.A, index=adata.obs_names, columns=adata.var_names)
-
-#     available_genes = [g for g in LRgene[LRgene.columns[0]].tolist() if g in adata_matrix.columns]
-#     adataLR_matrix = adata_matrix[available_genes]
-#     adata._n_vars = adataLR_matrix.shape[1]
-#     adata.X = adataLR_matrix.values
-#     adata.var = adata.var.loc[available_genes]
-#     adata.var_names = adataLR_matrix.columns
-
-#     return adata
-
-
-# def adata_LR(adata, gene_list='LR_gene'):
-#     """
-#     Filter AnnData to contain only specific gene sets.
-#     gene_list: 'LR_gene', 'HV_genes', or 'LR_HV_genes'
-#     """
-
-#     file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline.csv'
-#     adata.var_names_make_unique()  # Ensure unique variable names
-#     adata_raw = adata.copy() 
-    
-#     ## Select gene set
-#     if gene_list == 'LR_gene':
-#         LRgene = pd.read_csv(file_path)
-#         genes = set(LRgene.iloc[:, 0])
-#     elif gene_list == 'HV_genes':
-#         _, genes = adata_preprocess(adata_raw, n_top_genes=1000)
-#     elif gene_list == 'LR_HV_genes':
-#         LRgenes = set(pd.read_csv(file_path).iloc[:, 0])
-#         _, HVgenes = adata_preprocess(adata_raw, n_top_genes=1000)
-#         genes = LRgenes | HVgenes
-#     else:
-#         raise ValueError("gene_list must be 'LR_gene', 'HV_genes', or 'LR_HV_genes'.")
-
-#     ## Filter genes present in AnnData
-#     gene_filter = [g for g in genes if g in adata.var_names]
-#     adata._inplace_subset_var(gene_filter)
-
-#     return adata
-
-
 def adata_LR(adata, gene_list='LR_genes'):
-    """
-    Filter AnnData to contain only specific gene sets.
-    gene_list: 'LR_genes', 'HV_genes', or 'LR_HV_genes'
-    """
     adata.var_names_make_unique()
     file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline.csv'
 
     if gene_list == 'LR_genes':
-        LRgenes = set(pd.read_csv(file_path).iloc[:, 0])
+        LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
         genes = LRgenes
     elif gene_list == 'HV_genes':
         _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=1000)
-        genes = HVgenes
+        genes = list(HVgenes)
     elif gene_list == 'LR_HV_genes':
-        LRgenes = set(pd.read_csv(file_path).iloc[:, 0])
+        LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
         _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=1000)
-        genes = LRgenes | HVgenes
+        # Guarantee: Before LRgenes, HVgenes was removed.
+        genes = LRgenes + [g for g in HVgenes if g not in LRgenes]
     else:
         raise ValueError("gene_list must be 'LR_genes', 'HV_genes', or 'LR_HV_genes'.")
 
@@ -445,58 +362,6 @@ def adata_preprocess(
     return (adata, HVgenes) if n_top_genes is not None else adata
 
 
-# def adata_preprocess(adata, keep_raw=False, normalize=True, 
-#                      min_cells=10, target_sum=None, n_top_genes=None, species='human'):
-#     """
-#     Preprocesses AnnData object for single-cell RNA-seq data.
-#     Parameters:
-#         adata (anndata.AnnData): The annotated data matrix of shape n_obs x n_vars. 
-#         keep_raw (bool, optional): If True, a copy of the original data is saved. Default is False.
-#         min_cells (int, optional): Minimum number of cells expressed. Default is 10.
-#         target_sum (float, optional): If not None, normalize total counts per cell with this value. 
-#                                     If None, after normalization, each cell has a total count 
-#                                     equal to the median of the counts_per_cell before normalization. 
-#                                     Default is None.
-#         n_top_genes (int, optional): Number of highly-variable genes to keep. 
-#                                     If n_top_genes is not None, this number is kept as 
-#                                     highly-variable genes. Default is None.
-#         species (str, optional): The species of the dataset. If not 'human', certain steps are skipped.
-#     Returns:
-#         adata (anndata.AnnData): The processed annotated data matrix.
-#     """
-
-#     ## Set mitochondrial gene prefix based on species
-#     if species == 'human':
-#         adata.var["mt"] = adata.var_names.str.startswith("MT-")
-#     elif species == 'mouse':
-#         adata.var["mt"] = adata.var_names.str.startswith("mt-")
-#     else:
-#         raise ValueError("Unsupported species. Please specify 'human' or 'mouse'.")
-
-#     ## Calculate QC metrics if there are mitochondrial genes
-#     if adata.var["mt"].any():
-#         sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], inplace=True)
-        
-#     sc.pp.filter_genes(adata, min_cells=min_cells)
-
-#     if keep_raw:
-#         adata_raw = adata.copy()     # del adata.raw   
-
-#     if normalize:
-#         if target_sum is not None:
-#             sc.pp.normalize_total(adata_raw, target_sum=target_sum)
-#         else:
-#             sc.pp.normalize_total(adata_raw)
-
-#         sc.pp.log1p(adata_raw)
-
-#     if n_top_genes is not None:
-#         sc.pp.highly_variable_genes(adata_raw, flavor="seurat", n_top_genes=n_top_genes)
-#         HVgenes = set(adata_raw.var.index[adata_raw.var['highly_variable']])
-
-#     return adata, HVgenes
-
-
 def adata2matrix(adata, gene_hv):
     ## Access the matrix and convert it to a dense matrix
     if isinstance(adata.X, np.ndarray):
@@ -509,6 +374,42 @@ def adata2matrix(adata, gene_hv):
     matrix = matrix.set_index(matrix.columns[0])
     print(matrix.shape)
     return matrix
+
+
+def sort_matrix(adata, position_image, spotID_order, gene_hv):
+
+    ## Access the matrix and convert it to a dense matrix
+    if isinstance(adata.X, np.ndarray):
+        matrix = pd.DataFrame(adata.X)
+    else:
+        matrix = pd.DataFrame(adata.X.todense())
+    matrix.columns = gene_hv
+    spotID = np.array(pd.DataFrame(adata.obs['in_tissue']).index)
+    matrix.insert(0, '', spotID)   
+    matrix = matrix.set_index(matrix.columns[0])
+    print(matrix.shape)
+
+    ## Reset the index of the matrix and rename the first column
+    position_image_first_col = position_image.columns[0]
+    matrix = matrix.reset_index().rename(columns={matrix.index.name: position_image_first_col})
+    
+    ## Merge position_image and matrix based on the first column
+    sorted_matrix = pd.merge(position_image[[position_image_first_col]], matrix, 
+                             on=position_image_first_col, how="left")
+    
+    # ################################################
+    # # different: delete the same row For VisiumHD
+    # ################################################
+    # sorted_matrix = sorted_matrix.drop_duplicates(subset=position_image_first_col, keep='first')
+
+    matrix_order = np.array(sorted_matrix.set_index(position_image_first_col))
+    
+    ## Convert matrix_order to DataFrame and set the index and column names
+    matrix_order_df = pd.DataFrame(matrix_order)
+    matrix_order_df.index = spotID_order
+    matrix_order_df.columns = gene_hv
+    
+    return matrix_order, matrix_order_df
 
 
 def get_image_coord(file_paths, dataset_class):
@@ -583,30 +484,6 @@ def image_coord_merge(df, position, dataset_class):
         raise ValueError("The merging resulted in an empty DataFrame. Please check your input data.")
 
     return result
-
-
-def sort_matrix(matrix, position_image, spotID_order, gene_hv):
-    ## Reset the index of the matrix and rename the first column
-    position_image_first_col = position_image.columns[0]
-    matrix = matrix.reset_index().rename(columns={matrix.index.name: position_image_first_col})
-    
-    ## Merge position_image and matrix based on the first column
-    sorted_matrix = pd.merge(position_image[[position_image_first_col]], matrix, 
-                             on=position_image_first_col, how="left")
-    
-    # ################################################
-    # # different: delete the same row For VisiumHD
-    # ################################################
-    # sorted_matrix = sorted_matrix.drop_duplicates(subset=position_image_first_col, keep='first')
-    
-    matrix_order = np.array(sorted_matrix.set_index(position_image_first_col))
-    
-    ## Convert matrix_order to DataFrame and set the index and column names
-    matrix_order_df = pd.DataFrame(matrix_order)
-    matrix_order_df.index = spotID_order
-    matrix_order_df.columns = gene_hv
-    
-    return matrix_order, matrix_order_df
 
 
 def update_adata_coord(adata, matrix_order, position_image, 
@@ -691,7 +568,7 @@ def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=
         else:
             sudo_adata.X[i, :] = np.dot(weights, adata_know.X[nbs_indices[i]].todense())
 
-    print("--- %s seconds ---" % (time.time() - start_time))
+    print(f"Smoothing time: {time.time() - start_time:.4f} seconds")
 
     sudo_adata.obsm['spatial'] = adata_spot.obsm['spatial']
     sudo_adata.uns['spatial'] = adata.uns['spatial']

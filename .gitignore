@@ -16,8 +16,8 @@ Example/
 FineSTtest/
 Example/
 Dataset/
-Logging/
-tutorial/
+logging/
+# tutorial/
 build/
 docs/build/
 develop-eggs/

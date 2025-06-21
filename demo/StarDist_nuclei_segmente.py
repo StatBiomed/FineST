@@ -1,16 +1,3 @@
-## 2024.11.19 copy form SpatialScope/SpatialScope/src/Nuclei_Segmentation.py
-##            and made some modification to fit Visium HD super-resolution HE imgage.
-##            if it shows: FileNotFoundError: config file doesn't exist: 
-##            ~/.keras/models/StarDist2D/2D_versatile_he/config.json 
-##            Please: ~/.keras/models/StarDist2D/2D_versatile_he$ 
-##            cp -r 2D_versatile_he_extracted/config.json config.json
-## 2024.11.19 add ROI selected 
-## 2024.11.20 Adjust for roi_path=None, for Visium Data
-## 2024.02.06 Revised 'from .utils import *' using 'from FineST.utils import * '
-##            For NPC1, Omit 'sc.pp.filter_cells(sp_adata, min_counts=min_counts)', 
-##            Because for FineST result, the output is not count, is values
-## 2024.02.06 Try add the code: form 'adata_sn.adata' to 'csv'
-
 
 import scanpy as sc
 import squidpy as sq
@@ -26,12 +13,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from FineST.utils import *  # need install FineST package if put in /dome file not denpend FineST file
-
-## 2024.11.19 LLY add
 from matplotlib.path import Path
 import numpy as np
 from skimage import draw, measure, io
-
 
 
 class SpatialScopeNS:
@@ -96,7 +80,6 @@ class SpatialScopeNS:
         return mask, polygon
 
 
-
     def crop_img_adata(self):
         """
         Crop an image and an AnnData object based on a region of interest.
@@ -133,7 +116,7 @@ class SpatialScopeNS:
         cropped_img = img[minr:maxr, minc:maxc]
         self.loggings.info(f"cropped_img shape: \n{cropped_img.shape}")
 
-        # Save the cropped image
+        ## Save the cropped image
         io.imsave(os.path.join(self.out_dir, 'cropped_img.tif'), cropped_img)
 
         adata = sc.read_h5ad(self.adata_path)
@@ -160,7 +143,7 @@ class SpatialScopeNS:
             adata_roi.obsm["spatial"] = adata_roi.obsm["spatial"] - \
                                         np.array([roi_coords[0][1], roi_coords[0][0]])
 
-        # Save the cropped AnnData object
+        ## Save the cropped AnnData object
         adata_roi.write(os.path.join(self.out_dir, 'adata_roi.h5ad'))
         self.loggings.info(f"The adata_roi: \n{adata_roi}")
 
@@ -200,7 +183,7 @@ class SpatialScopeNS:
     #####################################################
     @staticmethod
     def stardist_2D_versatile_he(img, nms_thresh=None, prob_thresh=None):
-        #axis_norm = (0,1)   # normalize channels independently
+        # axis_norm = (0,1)   # normalize channels independently
         axis_norm = (0,1,2) # normalize channels jointly
         ## Make sure to normalize the input image beforehand or 
         ## supply a normalizer to the prediction function.
@@ -298,29 +281,16 @@ class SpatialScopeNS:
         coord_cell_filtered.columns = list(['pxl_row_in_fullres', 'pxl_col_in_fullres', 'spot_index', 'cell_index', 'cell_nums'])
         self.loggings.info(f"coord_cell_filtered: \n{coord_cell_filtered}")
         ## save coords position
-        coord_cell_filtered.to_csv(os.path.join(self.out_dir, "_position_all_tissue_sc.csv"))
+        coord_cell_filtered.to_csv(os.path.join(self.out_dir, "position_all_tissue_sc.csv"))
 
 
 if __name__ == "__main__":
     HEADER = """
     <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-    <> 
     <> Nuclei_Segmentation: SpatialScope Nuclei Segmentation
     <> Version: %s
     <> MIT License
-    <>
-    <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-    <> Software-related correspondence: %s or %s
-    <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-    <> example:
-        time python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
-                --tissue CRC16um_ROI_test \
-                --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
-                --roi_path ./VisiumHD/Dataset/Colon_Cancer/ResultsROIs/ROI4_shape.csv \
-                --adata_path ./VisiumHD/Dataset/Colon_Cancer_square_016um.h5ad \
-                --img_path ./VisiumHD/Dataset/Colon_Cancer/Visium_HD_Human_Colon_Cancer_tissue_image.btf
-
-    <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>  
+    <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> 
     """ 
     
     parser = argparse.ArgumentParser(description='simulation sour_sep')
@@ -363,18 +333,23 @@ if __name__ == "__main__":
     NS.NucleiSegmentation()
 
 
-
 ##########
-# NPC1
+# NPC
 ##########
 # conda activate FineST
-# time python ./FineST/FineST/demo/StarDist_nuclei_segmente.py \
-#         --tissue NPC1_allspot_p075_test \
-#         --out_dir ./FineST/FineST_local/Dataset/NPC/StarDist/DataOutput \
-#         --adata_path ./FineST/FineST_local/Dataset/ImputData/patient1/patient1_adata_imput_all_spot.h5ad \
-#         --img_path ./FineST/FineST_local/Dataset/NPC/patient1/20210809-C-AH4199551.tif \
-#         --prob_thresh 0.75
+# python ./demo/StarDist_nuclei_segmente.py \
+#     --tissue NPC_allspot_p075 \
+#     --out_dir FineST_tutorial_data/NucleiSegments \
+#     --adata_path FineST_tutorial_data/SaveData/adata_imput_all_spot.h5ad \
+#     --img_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+#     --prob_thresh 0.75
 
 ##########
 # CRC16
 ##########
+# python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
+#     --tissue CRC16um_ROI_test \
+#     --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
+#     --roi_path ./VisiumHD/Dataset/Colon_Cancer/ResultsROIs/ROI4_shape.csv \
+#     --adata_path ./VisiumHD/Dataset/Colon_Cancer_square_016um.h5ad \
+#     --img_path ./VisiumHD/Dataset/Colon_Cancer/Visium_HD_Human_Colon_Cancer_tissue_image.btf

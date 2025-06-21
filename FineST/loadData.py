@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 import time
-from .utils import *
+from .utils import *    # use device
 
 
 #######################################################################
@@ -64,7 +64,6 @@ def extract_test_data_image_between_spot(data_loader):
 
     input_coord_test = reduced_coord_list
     print(len(input_coord_test))
-    print("***** *****")
     
     print("Finished extractting image_between_spot data")    
     return input_image_test, input_coord_test
@@ -137,7 +136,7 @@ def checkNeighbors(cur_adata, neighbor_k, tree_type='KDTree', leaf_size=2):
         leaf_size: defalt 'leaf_size=2'
     Return 'dist' and 'ind' of positive samples.    
     '''
-    print("checkNeighbors.............")
+    # print("checkNeighbors.............")
     
     cur_coor = np.column_stack((cur_adata.obs['array_row'].values, cur_adata.obs['array_col'].values))
     if tree_type == 'BallTree':
@@ -182,11 +181,11 @@ def loadTrainTestData(train_loader, neighbor_k, tree_type='KDTree',
     array_col_list = []
 
     for batch in tqdm_object:
-        # Load data
+        ## Load data
         matrix_data.append(batch["reduced_expression"].clone().detach().cuda())
         image_data.append(batch["image"].clone().detach().cuda())
 
-        # Process each batch's spatial_coords
+        ## Process each batch's spatial_coords
         spatial_coords = batch["spatial_coords"]
         combined_coords = torch.stack((spatial_coords[0], spatial_coords[1]), dim=1)
         spatial_coords_list.append(combined_coords)
@@ -196,20 +195,20 @@ def loadTrainTestData(train_loader, neighbor_k, tree_type='KDTree',
         array_col = batch["array_col"]
         array_col_list.append(array_col)
 
-    # Matrix data
+    ## Matrix data
     matrix_tensor = torch.cat(matrix_data).to(device)
-    # Coord data
+    ## Coord data
     spatial_coords_list_all = torch.cat(spatial_coords_list).to(device)
     array_row_list_all = torch.cat(array_row_list).to(device)
     array_col_list_all = torch.cat(array_col_list).to(device)
-    # Image data
+    ## Image data
     image_tensor = torch.cat(image_data).to(device)
-    print('image_tensor:', image_tensor.shape)
+    # print('image_tensor:', image_tensor.shape)
     image_tensor = image_tensor.view(image_tensor.shape[0] * image_tensor.shape[1], image_tensor.shape[2])
     inputdata_reshaped, latent_image_reshape = reshape_latent_image(image_tensor, dataset_class)
     latent_representation_image_arr = latent_image_reshape.cpu().detach().numpy()
 
-    # Create adata_latent object
+    ## Create adata_latent object
     adata_latent = anndata.AnnData(X=latent_representation_image_arr)
     adata_latent.obsm['spatial'] = np.array(spatial_coords_list_all.cpu())
     adata_latent.obs['array_row'] = np.array(array_row_list_all.cpu())
@@ -217,12 +216,12 @@ def loadTrainTestData(train_loader, neighbor_k, tree_type='KDTree',
 
     train_genes = adata_latent.var_names
 
-    # Generate training data representation, training coordinate matrix, and positive sample information
+    ## Generate training data representation, training coordinate matrix, and positive sample information
     cur_train_data_mat = inputdata_reshaped
     cur_train_coors_mat = np.column_stack((adata_latent.obs['array_row'], adata_latent.obs['array_col']))
     cur_train_matrix_mat = matrix_tensor
 
-    # Generate positive pair information
+    ## Generate positive pair information
     pos_dist, pos_ind = checkNeighbors(adata_latent, neighbor_k, tree_type, leaf_size)
     cur_pos_info = {'pos dist': pos_dist, 'pos ind': pos_ind}
 
