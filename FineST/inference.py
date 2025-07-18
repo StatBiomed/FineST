@@ -6,7 +6,12 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 
-def perform_inference_image(model, test_loader, dataset_class='Visium64'):
+def perform_inference_image(model, test_loader, dataset_class='Visium64', device=None):
+    
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
+
     print("device",device)    
 
     ########################
@@ -21,7 +26,8 @@ def perform_inference_image(model, test_loader, dataset_class='Visium64'):
     image_profile = input_image_all.to(device)
     ## reshape image
     image_profile_reshape = image_profile.view(-1, image_profile.shape[2])  # [1331, 256, 384] --> [1331*256, 384]
-    input_image_exp = image_profile_reshape.clone().detach().to(device)     # SDU
+    # input_image_exp = image_profile_reshape.clone().detach().to(device)     # SDU
+    input_image_exp = image_profile_reshape.to(device)     # SDU
     
     ## useful model
     representation_matrix = model.matrix_encoder(matrix_profile)
@@ -71,7 +77,12 @@ def perform_inference_image(model, test_loader, dataset_class='Visium64'):
             input_coord_all)
 
 
-def perform_inference_image_between_spot(model, test_loader, dataset_class='Visium'):
+def perform_inference_image_between_spot(model, test_loader, dataset_class='Visium', device=None):
+
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
+
     print("device",device)    
 
     ########################
@@ -85,7 +96,8 @@ def perform_inference_image_between_spot(model, test_loader, dataset_class='Visi
     image_profile = input_image_all.to(device)
     ## reshape image
     image_profile_reshape = image_profile.view(-1, image_profile.shape[2])  # [adata.shape[0], 256, 384] --> [adata.shape[0]*256, 384]
-    input_image_exp = image_profile_reshape.clone().detach().to(device)     # SDU
+    # input_image_exp = image_profile_reshape.clone().detach().to(device)     # SDU
+    input_image_exp = image_profile_reshape.to(device)     # SDU
     ## useful model
     representation_image = model.image_encoder(input_image_exp) 
     ## cross decoder
@@ -161,7 +173,12 @@ def calculate_euclidean_distances(adata_spot, nbs):
 # 2025.01.24: add the infer model im main code
 #################################################
 def infer_model_fst(model, test_loader, logger, 
-                    dataset_class='Visium64'): 
+                    dataset_class='Visium64', device=None): 
+    
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
+
     model.to(device)
 
     logger.info("Running inference task...")

@@ -23,6 +23,7 @@ from scipy import stats
 from matplotlib import gridspec
 from scipy.spatial.distance import jensenshannon
 from matplotlib.ticker import MultipleLocator   # adjust axies
+from skimage.metrics import structural_similarity as ssim
 
 hv.extension('bokeh')
 hv.output(size=200)
@@ -52,8 +53,214 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import wilcoxon
-import numpy as np
-from scipy.stats import pearsonr
+
+
+###################################################
+# 2025.07.17 Update plot_pairs_dot using sender or receiver
+###################################################
+def plt_util_invert_y(title, title_font_size=14, tick_font_size=14, ax=None):
+    if ax is None:
+        ax = plt.gca()
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_title(title, fontsize=title_font_size)
+    ax.tick_params(axis='both', labelsize=tick_font_size)
+    ax.invert_yaxis()
+
+
+def quad_classification(sender, receiver, valid_mask):
+    sender = np.asarray(sender)
+    receiver = np.asarray(receiver)
+    valid_mask = np.asarray(valid_mask, dtype=bool)
+    
+    ## The original four categories
+    sender_valid = sender[valid_mask]
+    receiver_valid = receiver[valid_mask]
+    sender_thres = 0
+    receiver_thres = 0
+    # sender_thres = np.median(sender_valid)
+    # receiver_thres = np.median(receiver_valid)
+    # sender_thres = np.mean(sender_valid)
+    # receiver_thres = np.mean(receiver_valid)
+    cond_both_low = (sender < sender_thres) & (receiver < receiver_thres) & valid_mask
+    cond_sender_high = (sender >= sender_thres) & (receiver < receiver_thres) & valid_mask
+    cond_receiver_high = (sender < sender_thres) & (receiver >= receiver_thres) & valid_mask
+    cond_both_high = (sender >= sender_thres) & (receiver >= receiver_thres) & valid_mask
+
+    ## Added "Invalid Point" category
+    cond_invalid = ~valid_mask  # Position where valid_mask is False
+    return cond_both_low, cond_sender_high, cond_receiver_high, cond_both_high, cond_invalid
+
+
+import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
+import matplotlib.gridspec as gridspec
+def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r,
+                                 marker, marker_size, edgecolors, title_font_size=16, tick_font_size=16,
+                                 scale=True, mtx_sender=None, mtx_receiver=None, mask=None, mode='colorbar', **kwargs):
+    print('3 sub-plot: figsize=(32, 8)')
+    print('4 sub-plot: figsize=(44, 8)')
+
+    L = sample.uns['ligand'].loc[pair].dropna().values
+    R = sample.uns['receptor'].loc[pair].dropna().values
+    l1, l2 = len(L), len(R)
+
+    if isinstance(sample.obsm['spatial'], pd.DataFrame):
+        spatial_loc = sample.obsm['spatial'].values
+    else:
+        spatial_loc = sample.obsm['spatial']
+
+    n_plots = 1 + l1 + l2
+    if mode == 'quad':
+        gs = gridspec.GridSpec(1, n_plots, width_ratios=[1.53] + [2] * (n_plots - 1), wspace=0.25)
+    else:
+        gs = gridspec.GridSpec(1, n_plots, width_ratios=[2] * n_plots, wspace=0.25)
+
+    plt.figure(figsize=figsize)
+    # plt.subplot(1, 5, 1)
+    ax0 = plt.subplot(gs[0])
+
+    if mode == 'quad' and mtx_sender is not None and mtx_receiver is not None and mask is not None:
+
+        ## Four-category drawing
+        sender = mtx_sender.loc[pair]
+        receiver = mtx_receiver.loc[pair]
+        valid_mask = mask.loc[pair].astype(bool).values
+        cond_both_low, cond_sender_high, cond_receiver_high, cond_both_high, cond_invalid = quad_classification(sender.values, receiver.values, valid_mask)
+
+        color_dict = {
+            'both_low': '#e0e0e0',         # Light Gray
+            'sender_high': '#b22222',      # Red
+            'receiver_high': '#008b8b',    # Blue
+            # 'sender_high': '#F36C43',      # Red
+            # 'receiver_high': '#69C3A5',    # Blue
+            'both_high': '#deb887',        # Light yellow
+            'invalid': 'white',            # Invalid points are white
+        }
+        
+        plt.scatter(spatial_loc[cond_both_low, 0], spatial_loc[cond_both_low, 1],
+                    c=color_dict['both_low'], label='Both low', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+        plt.scatter(spatial_loc[cond_sender_high, 0], spatial_loc[cond_sender_high, 1],
+                    c=color_dict['sender_high'], label=f'{L[0]}_high', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+        plt.scatter(spatial_loc[cond_receiver_high, 0], spatial_loc[cond_receiver_high, 1],
+                    c=color_dict['receiver_high'], label=f'{R[0]}_High', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+        plt.scatter(spatial_loc[cond_both_high, 0], spatial_loc[cond_both_high, 1],
+                    c=color_dict['both_high'], label='Both high', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+        plt.scatter(spatial_loc[cond_invalid, 0], spatial_loc[cond_invalid, 1],
+                    c=color_dict['invalid'], label='Not significant', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+        ## Legend
+        legend_handles = [
+            mlines.Line2D([], [], color=color_dict['both_low'], marker='o', linestyle='None', markersize=10, label='Both low'),
+            mlines.Line2D([], [], color=color_dict['sender_high'], marker='o', linestyle='None', markersize=10, label='Sender high'),
+            mlines.Line2D([], [], color=color_dict['receiver_high'], marker='o', linestyle='None', markersize=10, label='Receiver high'),
+            mlines.Line2D([], [], color=color_dict['both_high'], marker='o', linestyle='None', markersize=10, label='Both high'),
+        ]
+        ax0.legend(handles=legend_handles, title='Exp', bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        
+        plt_util_invert_y(str(pair)+' Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots',
+                        title_font_size=title_font_size, tick_font_size=tick_font_size)
+
+    else:
+        ## colorbar model
+        scatter_kwargs = dict(x=spatial_loc[:, 0], y=spatial_loc[:, 1], c=spots.loc[pair],
+                              cmap=cmap, marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+        
+        if scale:
+            scatter_kwargs['vmax'] = 1
+            scatter_kwargs['vmin'] = 0
+        scatter_kwargs.update(kwargs)
+        scatter = plt.scatter(**scatter_kwargs)
+        colorbar = plt.colorbar(scatter, ax=ax0)
+        colorbar.ax.tick_params(labelsize=tick_font_size)
+        plt_util_invert_y(str(pair)+' Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots',
+                        title_font_size=title_font_size, tick_font_size=tick_font_size)
+
+    # axes = [plt.subplot(gs[i+1]) for i in range(4)]
+    axes = [plt.subplot(gs[i+1]) for i in range(l1 + l2)]
+    for l in range(l1):
+        ax = axes[l]
+        scatter = ax.scatter(spatial_loc[:, 0], spatial_loc[:, 1], c=sample[:, L[l]].X.toarray().flatten(),
+                             cmap=cmap_l, marker=marker, s=marker_size,
+                             edgecolors=edgecolors, linewidths=1, **kwargs)
+        colorbar = plt.colorbar(scatter, ax=ax)
+        colorbar.ax.tick_params(labelsize=tick_font_size)
+        plt_util_invert_y('Ligand: ' + L[l], title_font_size=title_font_size, tick_font_size=tick_font_size, ax=ax)
+
+    
+    for l in range(l2):
+        ax = axes[l1 + l]
+        scatter = ax.scatter(spatial_loc[:, 0], spatial_loc[:, 1], c=sample[:, R[l]].X.toarray().flatten(),
+                             cmap=cmap_r, marker=marker, s=marker_size,
+                             edgecolors=edgecolors, linewidths=1, **kwargs)
+        colorbar = plt.colorbar(scatter, ax=ax)
+        colorbar.ax.tick_params(labelsize=tick_font_size)
+        plt_util_invert_y('Ligand: ' + R[l], title_font_size=title_font_size, tick_font_size=tick_font_size, ax=ax)
+
+
+def plot_pairs_dot_class(sample, pairs_to_plot, SCS='p_value', mode=None, pdf=None, trans=False, figsize=(56, 8),
+                        # cmap='Greens', cmap_l='Purples', cmap_r='Purples',
+                        cmap='Greens', cmap_l='Spectral_r', cmap_r='Spectral_r',   
+                        # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', 
+                        marker='o', marker_size=5, edgecolors='lightgrey', **kwargs):
+
+    if sample.uns['local_stat']['local_method'] == 'z-score':
+        selected_ind = sample.uns['local_z_p'].index
+        spots = 1 - sample.uns['local_z_p']
+        index, columns = sample.uns['local_z_p'].index, sample.uns['local_z_p'].columns
+        mtx_sender = pd.DataFrame(sample.uns["local_stat"]['local_I'], index=columns, columns=index).T
+        mtx_receiver = pd.DataFrame(sample.uns["local_stat"]['local_I_R'], index=columns, columns=index).T
+        mtx_interaction = mtx_sender + mtx_receiver
+
+    if sample.uns['local_stat']['local_method'] == 'permutation':
+        selected_ind = sample.uns['local_perm_p'].index
+        spots = 1 - sample.uns['local_perm_p']
+        index, columns = sample.uns['local_z_p'].index, sample.uns['local_z_p'].columns
+        mtx_sender = pd.DataFrame(sample.uns["local_stat"]['local_I'], index=columns, columns=index).T
+        mtx_receiver = pd.DataFrame(sample.uns["local_stat"]['local_I_R'], index=columns, columns=index).T
+        mtx_interaction = mtx_sender + mtx_receiver
+
+    mask = spots.astype(bool).astype(int)
+
+    if SCS.lower() == 'p_value':
+        spot_data = spots
+        final_mode = 'colorbar'
+    elif SCS.lower() == 'r_local':
+        spot_data = abs(mtx_interaction) * mask
+        # spot_data = mtx_interaction * mask
+        final_mode = 'quad' if mode is None else mode
+    elif SCS.lower() == 'sender':
+        spot_data = abs(mtx_sender) * mask
+        # spot_data = mtx_sender * mask
+        final_mode = 'colorbar'
+    elif SCS.lower() == 'receiver':
+        spot_data = abs(mtx_receiver) * mask
+        # spot_data = mtx_receiver * mask
+        final_mode = 'colorbar'
+    else:
+        raise ValueError(f"Invalid spatial communication scores (SCSs) score: {SCS}")
+
+    if pdf is not None:
+        with PdfPages(pdf + '.pdf') as pdf_pages:
+
+            for pair in pairs_to_plot:
+                plot_selected_pair_dot_class(
+                    sample, pair, spot_data, selected_ind, figsize, cmap=cmap,
+                    cmap_l=cmap_l, cmap_r=cmap_r, marker=marker, marker_size=marker_size, edgecolors=edgecolors,
+                    mtx_sender=mtx_sender, mtx_receiver=mtx_receiver, mask=mask, mode=final_mode, **kwargs
+                )
+                plt.show()
+                plt.close()
+
+    else:
+        for pair in pairs_to_plot:
+            plot_selected_pair_dot_class(
+                sample, pair, spot_data, selected_ind, figsize, cmap=cmap,
+                cmap_l=cmap_l, cmap_r=cmap_r, marker=marker, marker_size=marker_size, edgecolors=edgecolors,
+                mtx_sender=mtx_sender, mtx_receiver=mtx_receiver, mask=mask, mode=final_mode, **kwargs
+            )
+            plt.show()
+            plt.close()
+
 
 
 ###################################################
@@ -488,6 +695,41 @@ def generate_colormap(number_of_distinct_colors, number_of_shades=7):
     ])
 
     return initial_cm
+
+
+def ssim_hist(visium_adata, pixel_adata, locs, method='Method', scale=True, 
+                           max_step=0.1, min_step=0.01,
+                           fig_size=(5, 4), trans=False, format='svg', label_fontsize=14,
+                           save_path=None):
+    genes = visium_adata.columns
+    ssim_dict = {}
+
+    for gene in genes:
+        orig_exp = vector2matrix(locs, np.array(visium_adata[gene]), shape=count_rows_and_cols(locs))
+        finest_exp = vector2matrix(locs, np.array(pixel_adata[gene]), shape=count_rows_and_cols(locs))
+        if scale:
+            ssim_index = compute_ssim_scale(orig_exp, finest_exp)
+        else:
+            ssim_index = compute_ssim(orig_exp, finest_exp)
+        ssim_dict[gene] = ssim_index
+
+    ssim_mean = np.mean(list(ssim_dict.values()))
+    print("Mean SSIM: ", ssim_mean)
+
+    plt.figure(figsize=fig_size)
+    ax = sns.histplot(list(ssim_dict.values()), bins=30, kde=True)
+    ax.xaxis.set_major_locator(MultipleLocator(max_step))
+    ax.xaxis.set_minor_locator(MultipleLocator(min_step))
+    plt.xlabel('SSIM', fontsize=label_fontsize)
+    plt.ylabel("Frequency", fontsize=label_fontsize)
+    plt.title("Histogram of SSIM", fontsize=label_fontsize)
+    if save_path is not None:
+        plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')  
+    plt.show()
+
+    ssim_df = pd.DataFrame(list(ssim_dict.values()), index=ssim_dict.keys(), columns=[f'{method}'])
+    
+    return ssim_dict, ssim_mean, ssim_df
 
 
 def cor_hist(adata, adata_df_infer, max_step=0.1, min_step=0.01,
@@ -1471,41 +1713,48 @@ def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=5, marker='s'
 #############################
 # 2025.02.07 update font size
 #############################
-def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r, 
-                           marker, marker_size, title_font_size=16, tick_font_size=16, **kwargs):
-    i = pd.Series(selected_ind == pair).idxmax()
+def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r,
+                           marker, marker_size, edgecolors, title_font_size=16, tick_font_size=16,
+                           scale=True, **kwargs):
     L = sample.uns['ligand'].loc[pair].dropna().values
     R = sample.uns['receptor'].loc[pair].dropna().values
     l1, l2 = len(L), len(R)
-    
+
     if isinstance(sample.obsm['spatial'], pd.DataFrame):
         spatial_loc = sample.obsm['spatial'].values
     else:
         spatial_loc = sample.obsm['spatial']
-    
+
     plt.figure(figsize=figsize)
     plt.subplot(1, 5, 1)
-    scatter = plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=spots.loc[pair], cmap=cmap,
-                vmax=1, marker=marker, s=marker_size, **kwargs)
+
+    scatter_kwargs = dict(x=spatial_loc[:, 0], y=spatial_loc[:, 1], c=spots.loc[pair],
+                          cmap=cmap, marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+    if scale:
+        scatter_kwargs['vmax'] = 1
+    scatter_kwargs.update(kwargs)
+    scatter = plt.scatter(**scatter_kwargs)
     colorbar = plt.colorbar(scatter)
     colorbar.ax.tick_params(labelsize=tick_font_size)
-    plt_util_invert('Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots', 
+    plt_util_invert('Moran: ' + str(sample.uns['local_stat']['n_spots'].loc[pair]) + ' spots',
                     title_font_size=title_font_size, tick_font_size=tick_font_size)
-    
+
     for l in range(l1):
         plt.subplot(1, 5, 2 + l)
-        scatter = plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,L[l]].X.toarray(),
-                    cmap=cmap_l, marker=marker, s=marker_size, **kwargs)
+        scatter = plt.scatter(spatial_loc[:, 0], spatial_loc[:, 1], c=sample[:, L[l]].X.toarray().flatten(),
+                              cmap=cmap_l, marker=marker, s=marker_size,
+                              edgecolors=edgecolors, linewidths=1, **kwargs)
         colorbar = plt.colorbar(scatter)
         colorbar.ax.tick_params(labelsize=tick_font_size)
-        plt_util_invert('Ligand: ' + L[l],  title_font_size=title_font_size, tick_font_size=tick_font_size)
+        plt_util_invert('Ligand: ' + L[l], title_font_size=title_font_size, tick_font_size=tick_font_size)
     for l in range(l2):
         plt.subplot(1, 5, 2 + l1 + l)
-        scatter = plt.scatter(spatial_loc[:,0], spatial_loc[:,1], c=sample[:,R[l]].X.toarray(),
-                    cmap=cmap_r, marker=marker, s=marker_size, **kwargs)
+        scatter = plt.scatter(spatial_loc[:, 0], spatial_loc[:, 1], c=sample[:, R[l]].X.toarray().flatten(),
+                              cmap=cmap_r, marker=marker, s=marker_size,
+                              edgecolors=edgecolors, linewidths=1, **kwargs)
         colorbar = plt.colorbar(scatter)
         colorbar.ax.tick_params(labelsize=tick_font_size)
-        plt_util_invert('Receptor: ' + R[l],  title_font_size=title_font_size, tick_font_size=tick_font_size)
+        plt_util_invert('Receptor: ' + R[l], title_font_size=title_font_size, tick_font_size=tick_font_size)
 
 
 def plt_util_invert(title, title_font_size=14, tick_font_size=14):
@@ -1516,43 +1765,66 @@ def plt_util_invert(title, title_font_size=14, tick_font_size=14):
     plt.gca().invert_yaxis()
 
 
-def plot_pairs_dot(sample, pairs_to_plot, pdf=None, trans=False, figsize=(56, 8),
-               cmap='Greens', cmap_l='Purples', cmap_r='Purples', 
-               marker='o', marker_size=5, **kwargs):
-               # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', marker_size=5, **kwargs):
+def plot_pairs_dot(sample, pairs_to_plot, SCS='p_value', pdf=None, trans=False, figsize=(56, 8),
+               # cmap='Greens', cmap_l='Spectral_r', cmap_r='Spectral_r',   
+               cmap='Greens', cmap_l='Purples', cmap_r='Purples',
+               # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', 
+               marker='o', marker_size=5, edgecolors='lightgrey', **kwargs):    # edgecolors
     if sample.uns['local_stat']['local_method'] == 'z-score':
         selected_ind = sample.uns['local_z_p'].index
         spots = 1 - sample.uns['local_z_p']
+        index, columns = sample.uns['local_z_p'].index, sample.uns['local_z_p'].columns
+        mtx_sender = pd.DataFrame(sample.uns["local_stat"]['local_I'], index=columns, columns=index).T
+        mtx_receiver = pd.DataFrame(sample.uns["local_stat"]['local_I_R'], index=columns, columns=index).T
+        mtx_interaction = mtx_sender + mtx_receiver
+
     if sample.uns['local_stat']['local_method'] == 'permutation':
         selected_ind = sample.uns['local_perm_p'].index
         spots = 1 - sample.uns['local_perm_p']
-    if pdf != None:
-        with PdfPages(pdf + '.pdf') as pdf:
+        index, columns = sample.uns['local_z_p'].index, sample.uns['local_z_p'].columns
+        mtx_sender = pd.DataFrame(sample.uns["local_stat"]['local_I'], index=columns, columns=index).T
+        mtx_receiver = pd.DataFrame(sample.uns["local_stat"]['local_I_R'], index=columns, columns=index).T
+        mtx_interaction = mtx_sender + mtx_receiver
+
+    mask = spots.astype(bool).astype(int)
+    if SCS.lower() == 'p_value':
+        spot_data = spots
+    elif SCS.lower() == 'r_local':
+        spot_data = abs(mtx_interaction) * mask
+        # print(spot_data.head())
+    elif SCS.lower() == 'sender':
+        spot_data = abs(mtx_sender) * mask
+    elif SCS.lower() == 'receiver':
+        spot_data = abs(mtx_receiver) * mask
+    else:
+        raise ValueError(f"Invalid spatial communication scores (SCSs) score: {SCS}")
+
+    if pdf is not None:
+        with PdfPages(pdf + '.pdf') as pdf_pages:
             for pair in pairs_to_plot:
-                plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap=cmap,
+                plot_selected_pair_dot(sample, pair, spot_data, selected_ind, figsize, cmap=cmap,
                                         cmap_l=cmap_l, cmap_r=cmap_r, 
-                                        marker=marker, marker_size=marker_size, **kwargs)
-                pdf.savefig(transparent=trans)
+                                        marker=marker, marker_size=marker_size, edgecolors=edgecolors, **kwargs)
+                pdf_pages.savefig(transparent=trans)
                 plt.show()
                 plt.close()
     else:
         for pair in pairs_to_plot:
-            plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap=cmap,
+            plot_selected_pair_dot(sample, pair, spot_data, selected_ind, figsize, cmap=cmap,
                                     cmap_l=cmap_l, cmap_r=cmap_r, 
-                                    marker=marker, marker_size=marker_size, **kwargs)
+                                    marker=marker, marker_size=marker_size, edgecolors=edgecolors, **kwargs)
             plt.show()
             plt.close()
-
 
 
 ###########################################
 # 2024.11.11 For all spot gene expression
 ###########################################
 def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, 
-                       gene_hv, label, marker='h', s=8, figsize=(9, 7), save_path=None):
+                       gene_hv, label, marker='h', s=8, figsize=(9, 7), cmap=cnt_color, save_path=None):
     def plot_gene_data_dot(spatial_loc, genedata, title, ax, s):
         scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=genedata, 
-                             cmap=cnt_color, marker=marker, s=s)   
+                             cmap=cmap, marker=marker, s=s)   
         ax.invert_yaxis()
         ax.set_title(title)
         return scatter
@@ -1574,7 +1846,6 @@ def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2,
         fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
     plt.show()
-
 
 ###########################################
 # 2024.11.11 Adjust comparision plot 
@@ -1699,13 +1970,24 @@ def subspot_expr(C, value, patch_size=56, dataset_class=None,
 
 ###########################################
 # 2024.11.08 Adjust
+# 2025.07.03 Support dataframe
 ###########################################
 def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, save_path=None):
 
-    if isinstance(adata.X, np.ndarray):
-        original_matrix = pd.DataFrame(adata.X)
+    # if isinstance(adata.X, np.ndarray):
+    #     original_matrix = pd.DataFrame(adata.X)
+    # else:
+    #     original_matrix = pd.DataFrame(adata.X.todense())
+
+    if isinstance(adata, pd.DataFrame):
+        original_matrix = adata.copy()
+    elif hasattr(adata, "X"):
+        if isinstance(adata.X, np.ndarray):
+            original_matrix = pd.DataFrame(adata.X, index=adata.obs_names, columns=adata.var_names)
+        else:
+            original_matrix = pd.DataFrame(adata.X.todense(), index=adata.obs_names, columns=adata.var_names)
     else:
-        original_matrix = pd.DataFrame(adata.X.todense())
+        raise ValueError("adata must be an AnnData object or pandas DataFrame.")
 
     original_matrix.columns = gene_hv
 
@@ -1748,7 +2030,7 @@ def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, 
 #####################################################################
 # 2024.11.16 add 'gene_only' for VisumHD 8um: only gene cor boxplot
 #####################################################################
-def mean_cor_box(adata, data_impt_reshape, gene_only=False, save_path=None):
+def mean_cor_box(adata, data_impt_reshape, logger, gene_only=False, save_path=None):
 
     if isinstance(adata.X, np.ndarray):
         matrix_profile = np.array(adata.X)
@@ -1760,6 +2042,7 @@ def mean_cor_box(adata, data_impt_reshape, gene_only=False, save_path=None):
                                           method='pearson', sample="spot")
         mean_corr_spot = np.mean(corr_spot)
         print('mean correlation of spots: ',mean_corr_spot)
+        logger.info(f"mean correlation of spots: {mean_corr_spot}")
 
     corr_gene = calculate_correlation(matrix_profile, data_impt_reshape, 
                                       method='pearson', sample="gene")
@@ -1768,6 +2051,7 @@ def mean_cor_box(adata, data_impt_reshape, gene_only=False, save_path=None):
     mean_corr_gene = np.mean(corr_gene)
 
     print('mean correlation of genes: ', mean_corr_gene)
+    logger.info(f"mean correlation of genes: {mean_corr_gene}")
 
     data = pd.DataFrame({
         'Type': (

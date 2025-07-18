@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 import time
-from .utils import *    # use device
+from .utils import *    # use device and reshape_latent_image
 
 
 #######################################################################
@@ -117,8 +117,10 @@ def loadBatchData(train_image_mat, train_matrix_mat, train_coors_mat, batch_size
      
         tmp_index_list.extend(pos_index_list)
         cur_index_list = np.asarray(tmp_index_list)
-        cur_batch_mat = np.take(train_image_mat.cpu(), cur_index_list, axis=0)
-        cur_matrix_mat = np.take(train_matrix_mat.cpu(), cur_index_list, axis=0)
+        # cur_batch_mat = np.take(train_image_mat.cpu(), cur_index_list, axis=0)
+        # cur_matrix_mat = np.take(train_matrix_mat.cpu(), cur_index_list, axis=0)
+        cur_batch_mat = np.take(train_image_mat.detach().cpu(), cur_index_list, axis=0)
+        cur_matrix_mat = np.take(train_matrix_mat.detach().cpu(), cur_index_list, axis=0)
         
         yield cur_batch_mat, cur_matrix_mat, neighbor_index, cur_index_list        
 
@@ -170,7 +172,11 @@ def checkNeighbors(cur_adata, neighbor_k, tree_type='KDTree', leaf_size=2):
 # 2024.9.16 NameError: name 'loadTrainTestData' is not defined
 #################################################################
 def loadTrainTestData(train_loader, neighbor_k, tree_type='KDTree', 
-                      leaf_size=2, dataset_class='Visium16'):
+                      leaf_size=2, dataset_class='Visium16', device=None):
+    
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
     
     tqdm_object = tqdm(train_loader, total=len(train_loader))
 
@@ -182,8 +188,10 @@ def loadTrainTestData(train_loader, neighbor_k, tree_type='KDTree',
 
     for batch in tqdm_object:
         ## Load data
-        matrix_data.append(batch["reduced_expression"].clone().detach().cuda())
-        image_data.append(batch["image"].clone().detach().cuda())
+        # matrix_data.append(batch["reduced_expression"].clone().detach().cuda())
+        # image_data.append(batch["image"].clone().detach().cuda())
+        matrix_data.append(batch["reduced_expression"].to(device))
+        image_data.append(batch["image"].clone().to(device))
 
         ## Process each batch's spatial_coords
         spatial_coords = batch["spatial_coords"]

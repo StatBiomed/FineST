@@ -28,7 +28,11 @@ def save_model(model, dir_name, params, optimizer, LOSS):
 #################################################
 # 2025.01.24: add the Train model im main code
 #################################################
-def train_model(params, model, train_loader, optimizer, cur_epoch, l, tree_type, leaf_size, dataset_class): 
+def train_model(params, model, train_loader, optimizer, cur_epoch, l, tree_type, leaf_size, dataset_class, device=None): 
+
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
     
     print("train model")    
     
@@ -99,7 +103,11 @@ def train_model(params, model, train_loader, optimizer, cur_epoch, l, tree_type,
     return LOSS
 
 
-def test_model(params, model, test_loader, l, tree_type, leaf_size, dataset_class): 
+def test_model(params, model, test_loader, l, tree_type, leaf_size, dataset_class, device=None): 
+
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
     
     print("test model")
     

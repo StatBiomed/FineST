@@ -14,14 +14,129 @@ from skimage import draw, measure, io
 import squidpy as sq
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
+import torch
+import gc
+import scanpy as sc
+from scipy.spatial import cKDTree
 
 
 ## set the device
-if torch.cuda.is_available():
-    dev = "cuda:0"
-else:
-    dev = "cpu"
-device = torch.device(dev)
+import os
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"  
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
+## set the random seed
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        print("CUDA is available. GPU:", torch.cuda.get_device_name(torch.cuda.current_device()))
+    else:
+        print("CUDA is not available. Using CPU.")
+
+
+def map_subspot_to_nuclei(adata_subspot, adata_nuclei, 
+                          inherit_uns_from="subspot", spatial_key="spatial"):
+    """
+    Map each subspot to its nearest nuclei and keep unique mappings.
+
+    Parameters
+    ----------
+    adata_subspot : AnnData
+        AnnData object containing subspot data (to be mapped).
+    adata_nuclei : AnnData
+        AnnData object containing nuclei data (reference).
+    spatial_key : str
+        Key in obsm for spatial coordinates.
+
+    Returns
+    -------
+    adata_map : AnnData
+        AnnData object with only the uniquely mapped subspots, 
+        including spatial coordinates.
+    """
+    ## Build tree for nuclei coordinates, find nearest nuclei index for each subspot
+    tree = cKDTree(adata_nuclei.obsm[spatial_key])
+    _, closest_indices = tree.query(adata_subspot.obsm[spatial_key], k=1)
+    
+    ## Get the corresponding coordinates of mapped nuclei, Keep only unique mappings
+    mapped_coords = adata_nuclei.obsm[spatial_key][closest_indices]
+    _, unique_idx = np.unique(mapped_coords, axis=0, return_index=True)
+    
+    ## Construct new AnnData object with unique mappings
+    adata_map = sc.AnnData(
+        adata_subspot.X[unique_idx],
+        var=adata_subspot.var.copy(),
+        obs=adata_subspot.obs.iloc[unique_idx].copy()
+    )
+    adata_map.obsm[spatial_key] = mapped_coords[unique_idx]
+    adata_map.var_names = adata_subspot.var_names
+
+    # Copy .uns["spatial"]
+    if inherit_uns_from == "subspot":
+        adata_map.uns["spatial"] = adata_subspot.uns["spatial"].copy()
+    elif inherit_uns_from == "nuclei":
+        adata_map.uns["spatial"] = adata_nuclei.uns["spatial"].copy()
+    else:
+        raise ValueError("inherit_uns_from must be 'subspot' or 'nuclei'.")
+
+    return adata_map
+
+
+def list_gpu_tensors(scope_vars):
+    """
+    List all GPU tensors in the given scope.
+    :param scope_vars: Use globals() or locals() to pass the variable dictionary.
+    :return: [(variable_name, variable_object, size_in_MB, shape), ...], sorted by size descending.
+    """
+    results = []
+    for name, var in scope_vars.items():
+        if isinstance(var, torch.Tensor) and var.is_cuda:
+            size_mb = var.element_size() * var.nelement() / 1024 / 1024  # in MB
+            results.append((name, var, size_mb, tuple(var.shape)))
+    return sorted(results, key=lambda x: -x[2])
+
+
+def release_gpu_tensors(scope_vars):
+    """
+    Delete all GPU tensor variables in the given scope and free GPU memory.
+    :param scope_vars: Use globals() or locals() to pass the variable dictionary.
+    """
+    gpu_tensors = list_gpu_tensors(scope_vars)
+    if not gpu_tensors:
+        print("No GPU tensors detected.")
+        return
+    print("Releasing the following GPU tensors:")
+    for name, var, mb, shape in gpu_tensors:
+        print(f"{name:20s}  {mb:.2f} MB  shape={shape}")
+        scope_vars[name] = None  # Remove reference from the scope
+        del var                  # Delete the variable
+    gc.collect()
+    torch.cuda.empty_cache()
+    print("Released GPU memory occupied by the above variables.")
+
+
+##################################
+# 2025.07.04 For SSIM calculation
+##################################
+def vector2matrix(locs, cnts, shape):
+    x_reconstructed = np.full(shape, np.nan)
+    for loc, cnt in zip(locs, cnts):
+        x_reconstructed[loc[0], loc[1]] = cnt
+    return x_reconstructed
+
+def count_rows_and_cols(locs):
+    min_row, max_row = np.min(locs[:, 0]), np.max(locs[:, 0])
+    min_col, max_col = np.min(locs[:, 1]), np.max(locs[:, 1])
+    num_rows = max_row - min_row + 1
+    num_cols = max_col - min_col + 1
+    return (num_rows, num_cols)
 
 
 def create_mask(polygon, shape):
@@ -193,17 +308,6 @@ def configure_logging(logger_name):
     sh.setFormatter(formatter)
     importer_logger.addHandler(sh)
     return importer_logger
-
-
-## set the random seed
-def setup_seed(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
 
 
 ## set the logging

@@ -304,7 +304,7 @@ def get_allspot_coors(input_coord_all):
     return spatial_loc
 
 
-def adata_LR(adata, gene_list='LR_genes'):
+def adata_LR(adata, gene_list='LR_genes', n_top_genes=500):
     adata.var_names_make_unique()
     file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline.csv'
 
@@ -312,11 +312,11 @@ def adata_LR(adata, gene_list='LR_genes'):
         LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
         genes = LRgenes
     elif gene_list == 'HV_genes':
-        _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=1000)
+        _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=n_top_genes)
         genes = list(HVgenes)
     elif gene_list == 'LR_HV_genes':
         LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
-        _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=1000)
+        _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=n_top_genes)
         # Guarantee: Before LRgenes, HVgenes was removed.
         genes = LRgenes + [g for g in HVgenes if g not in LRgenes]
     else:
@@ -357,7 +357,7 @@ def adata_preprocess(
     HVgenes = None
     if n_top_genes is not None:
         sc.pp.highly_variable_genes(adata, flavor="seurat", n_top_genes=n_top_genes)
-        HVgenes = set(adata.var.index[adata.var['highly_variable']])
+        HVgenes = list(adata.var.index[adata.var['highly_variable']])
 
     return (adata, HVgenes) if n_top_genes is not None else adata
 

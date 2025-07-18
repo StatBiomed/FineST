@@ -17,7 +17,7 @@ FineSTtest/
 Example/
 Dataset/
 logging/
-# tutorial/
+tutorial_local/
 build/
 docs/build/
 develop-eggs/

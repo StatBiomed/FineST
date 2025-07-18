@@ -12,6 +12,61 @@ import pyreadr
 import requests
 
 
+#######################################
+# 2025.07.18 Add LR extraction 
+#######################################
+def extract_LR(species, datahost='package'):
+    """
+    Extract regulatory network data for mouse or human.
+    
+    Parameters:
+        species (str): 'mouse' or 'human'
+        datahost (str): 'package' or 'web', where to load data from
+
+    Returns:
+        pd.DataFrame: The regulatory network DataFrame
+
+    Raises:
+        ValueError: If species is not supported
+        FileNotFoundError: If local file does not exist
+    """
+    # Supported species and corresponding file names
+    species_files = {'mouse': 'mouse-interaction_input_CellChatDB.csv', 'human': 'human-interaction_input_CellChatDB.csv'}
+
+    if species not in species_files:
+        raise ValueError(f"Species type: {species} is not supported currently. Please check.")
+
+    file_name = species_files[species]
+    data_dir = './FineST/datasets/LR_data/'
+    file_path = os.path.join(data_dir, file_name)
+
+    if datahost == 'package':
+        # Load from local package
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"The file {file_path} does not exist!")
+        regnetwork = pd.read_csv(file_path, index_col=0)
+    else:
+        # Download from web
+        urls = {
+            'mouse': 'https://figshare.com/ndownloader/files/36638916',
+            'human': 'https://figshare.com/ndownloader/files/36638940'
+        }
+        url = urls[species]
+        # Download the file
+        response = requests.get(url)
+        if response.status_code != 200:
+            raise ConnectionError(f"Failed to download file from {url}")
+        os.makedirs(data_dir, exist_ok=True)
+        with open(file_path, 'wb') as f:
+            f.write(response.content)
+        try:
+            regnetwork = pd.read_csv(file_path)
+        finally:
+            # Ensure file is removed even if reading fails
+            os.remove(file_path)
+    return regnetwork
+
+
 def topLRpairs(adata, spa_coexp_pair, num):
     """
     Get the top ligand-receptor pairs based on the global intensity from adata.
@@ -29,10 +84,65 @@ def topLRpairs(adata, spa_coexp_pair, num):
 
 
 #######################################
+# 2025.07.07 Add RegNetwork extraction 
+#######################################
+def extract_RegNetwork(species, datahost='package'):
+    """
+    Extract regulatory network data for mouse or human.
+    
+    Parameters:
+        species (str): 'mouse' or 'human'
+        datahost (str): 'package' or 'web', where to load data from
+
+    Returns:
+        pd.DataFrame: The regulatory network DataFrame
+
+    Raises:
+        ValueError: If species is not supported
+        FileNotFoundError: If local file does not exist
+    """
+    # Supported species and corresponding file names
+    species_files = {'mouse': 'Regnetwork_mouse.csv', 'human': 'Regnetwork_human.csv'}
+
+    if species not in species_files:
+        raise ValueError(f"Species type: {species} is not supported currently. Please check.")
+
+    file_name = species_files[species]
+    data_dir = './FineST/datasets/RegNetwork/'
+    file_path = os.path.join(data_dir, file_name)
+
+    if datahost == 'package':
+        # Load from local package
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"The file {file_path} does not exist!")
+        regnetwork = pd.read_csv(file_path)
+    else:
+        # Download from web
+        urls = {
+            'mouse': 'https://regnetworkweb.org/download/human.zip',
+            'human': 'https://regnetworkweb.org/download/mouse.zip'
+        }
+        url = urls[species]
+        # Download the file
+        response = requests.get(url)
+        if response.status_code != 200:
+            raise ConnectionError(f"Failed to download file from {url}")
+        os.makedirs(data_dir, exist_ok=True)
+        with open(file_path, 'wb') as f:
+            f.write(response.content)
+        try:
+            regnetwork = pd.read_csv(file_path)
+        finally:
+            # Ensure file is removed even if reading fails
+            os.remove(file_path)
+    return regnetwork
+
+
+#######################################
 # 2024.11.28 Add code of LR-TF
 # , datahost='builtin' -- !!
 #######################################
-def extract_tf(species, datahost='package'):
+def extract_TF(species, datahost='package'):
     """
     Find overlapping LRs from CellChatDB
     Parameters:
@@ -134,6 +244,72 @@ def top_pattern_LR2TF(tmp, ligand_list, receptor_list, top_num=20):
     return subdf
 
 
+#####################################################
+# 2025.07.18 Add pattern_LR2TF2TG with unique adata  
+#####################################################
+def pattern_LR2TF2TG_unique(histology_results, pattern_num, adata, LR_database, R_TF_database, TF_TG_database):
+
+    ## RegNetwork 
+    RegNetwork_unique = TF_TG_database
+    if adata is not None:
+        RegNetwork_unique = RegNetwork_unique.query("tf in @adata.var_names and target in @adata.var_names").reset_index(drop=True)
+    print(f"{RegNetwork_unique.shape[0]} edges of data-specific-RegNetwork, "
+          f"{RegNetwork_unique['tf'].nunique()} TFs & {RegNetwork_unique['target'].nunique()} Targets")
+    RegNetwork_unique.head()
+
+    ## extract LR pairs in each pattern and split pairs
+    LR_hist = histology_results.loc[histology_results['pattern'] == pattern_num, 'g']
+    ## select overlap pairs of LR and histology_results within the given pattern and then merge two datasets
+    LRpattern = LR_database[LR_database.index.isin(LR_hist)]
+    histLRpattern = pd.merge(histology_results, LRpattern, left_on='g', right_on='interaction_name', how='inner')
+    print(f"{histLRpattern.shape[0]} LR pairs in Pattern{pattern_num}")
+    histLRpattern.head()
+    
+    rows = []
+    for _, row in histLRpattern.iterrows():
+        if row['receptor'].count('_') == 1:
+            gene0 = row['ligand']    # ligand: 1 
+            gene1, gene2 = row['receptor'].split('_')    # receptor: 1 or 2
+            for gene in (gene1, gene2):
+                new_row = row.copy()
+                new_row['g'] = f"{gene0}_{gene}"
+                rows.append(new_row)
+        else:
+            rows.append(row)
+            
+    pattern_results = pd.DataFrame(rows).reset_index(drop=True)
+    print(f'{pattern_results.shape} LRI information within Pattern{pattern_num}.')
+
+    ## see unique ligand and receptor in each pattern 
+    LR_pattern = pattern_results[pattern_results['pattern']==pattern_num]['g']
+    ligand = [gene for pair in LR_pattern for gene in pair.split('_')[0:1]]
+    print(f'{len(set(ligand))} unique ligands in Pattern{pattern_num}.')
+    receptor = [gene for pair in LR_pattern for gene in pair.split('_')[1:]]
+    print(f'{len(set(receptor))} unique receptors in Pattern{pattern_num}.')
+
+    ## extract Reeptor-TF, using unique receptor
+    R_TFdata_df = R_TF_database[R_TF_database['receptor'].isin(receptor)]
+    print(f'{R_TFdata_df.shape[0]} edges from Receptor to TF.')
+    R_TFdata_df.head()
+    
+    result = pd.DataFrame(list(zip(ligand, receptor)), columns=['ligand', 'receptor'])
+    L_R_TF_pathway = result.merge(R_TFdata_df, on='receptor', how='left').dropna()
+    print(f'{L_R_TF_pathway.shape[0]} pairs of R-TF in Pattern{pattern_num}.')
+
+    ## see unique TF and extract TF-TGs
+    tf_comm = [gene for gene in L_R_TF_pathway['tf']]
+    print(f'{len(set(tf_comm))} unique TFs in Pattern{pattern_num}.')
+    R_TFdata_TG_df = RegNetwork_unique[RegNetwork_unique['tf'].isin(tf_comm)]
+    print(f'{R_TFdata_TG_df.shape[0]} pairs of TF-Target.')
+    
+    L_R_TF_TG_pathway = (L_R_TF_pathway.merge(R_TFdata_TG_df, on='tf', how='right').dropna().drop_duplicates()
+                                       .rename(columns={"ligand": "Ligand", "receptor": "Receptor", "tf": "TF", "target": "Target"}))
+    print(f'{L_R_TF_TG_pathway.shape[0]} pairs of L-R-TF-TG.')
+    L_R_TF_TG_pathway.head()
+
+    return histLRpattern, pattern_results, L_R_TF_pathway, L_R_TF_TG_pathway
+
+
 def pattern_LR2TF2TG(histology_results, pattern_num, R_TFdatabase, TF_TGdatabase):
     """
     Input DataFrame, checks if column 'g' contains '_', then splits 'g' column into two new rows
@@ -180,13 +356,13 @@ def pattern_LR2TF2TG(histology_results, pattern_num, R_TFdatabase, TF_TGdatabase
     tf_comm = [gene for gene in comm['tf']]
     print("This pattern contain %s unique tf", len(set(tf_comm)))
     R_TFdata_TG_df = TF_TGdatabase[TF_TGdatabase['tf'].isin(tf_comm)]
-    R_TFdata_TG_df
+    print(R_TFdata_TG_df.head())
     comm_all = comm.merge(R_TFdata_TG_df, on='tf', how='right')
     comm_all = comm_all.dropna().drop_duplicates()
-    comm_all
+    print(comm_all.head())
     
-    tmp = comm_all[["ligand","receptor","tf", "target", "tf_PPR"]]
-    tmp = tmp.rename(columns={"ligand": "Ligand", "receptor": "Receptor", "tf": "tf", "target": "Target", "tf_PPR": "value"})
+    tmp = comm_all[["ligand", "receptor","tf", "target", "tf_PPR"]]
+    tmp = tmp.rename(columns={"ligand": "Ligand", "receptor": "Receptor", "tf": "TF", "target": "Target", "tf_PPR": "PPR_value"})
     tmp = tmp.drop_duplicates()
     
     return tmp
@@ -406,25 +582,25 @@ def weight_matrix(adata_impt_all, l, cutoff, single_cell=False, n_nearest_neighb
 #######################################
 # 2024.11.11.Adjust code of SpatialDM
 #######################################
-def pathway_analysis(sample=None,
+def pathway_analysis(adata=None,
                     all_interactions=None,
                     groups=None, cut_off=None,  # LLY add
         interaction_ls=None, name=None, dic=None):
     """
     Compute enriched pathways for a list of pairs or a dic of SpatialDE results.
     Parameters:
-        sample: spatialdm obj
+        adata: spatialdm obj
         ls: a list of LR interaction names for the enrichment analysis
-        path_name: str. For later recall sample.path_summary[path_name]
+        path_name: str. For later recall adata.path_summary[path_name]
         dic: a dic of SpatialDE results (See tutorial)
     """
     if interaction_ls is not None:
         dic = {name: interaction_ls}
-    if sample is not None:
+    if adata is not None:
         ## the old one
-        all_interactions = sample.uns['geneInter']
+        all_interactions = adata.uns['geneInter']
         ## Load the original object from a pickle file when needed
-        # with open(sample.uns["geneInter"], "rb") as f:
+        # with open(adata.uns["geneInter"], "rb") as f:
         #     all_interactions = pickle.load(f)
 
     # print(all_interactions)
@@ -455,8 +631,8 @@ def pathway_analysis(sample=None,
     result_pattern = pd.DataFrame(result_pattern).set_index(1)    # Convert result to dataframe, set the index to the second column
     result_pattern.columns = ['fisher_p', 'module_size', 'overlap_size', 'selected_inters', 'name', 'query_set_size', 'negneg']   
     
-    if sample is not None:
-        sample.uns['pathway_summary'] = result    
+    if adata is not None:
+        adata.uns['pathway_summary'] = result    
 
     #################################################################################
     # copy form Function dot_path(), get all pathway information

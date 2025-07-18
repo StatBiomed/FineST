@@ -649,30 +649,34 @@ class FineSTModel(nn.Module):
 #                 recon_mat_mean, recon_mat_disp, recon_mat_pi)
 
 
-def load_model(dir_name, parameter_file_path, params, gene_hv):    
-    save_folder = os.path.join(dir_name, "epoch_"+str(params["training_epoch"])+".pt")
-    if(dev=="cpu"):
-        checkpoint = torch.load(save_folder,map_location="cpu")
-    else:
-        checkpoint = torch.load(save_folder)
+def load_model(dir_name, parameter_file_path, gene_hv, device=None):    
     
-    model_state_dict = checkpoint['model_state_dict']
-    
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
+
     ## load parameter settings
     with open(parameter_file_path,"r") as json_file:
         params = json.load(json_file)
     params['n_input_matrix'] = len(gene_hv)
     # params['n_input_image'] = 384
     
+    save_folder = os.path.join(dir_name, "epoch_"+str(params["training_epoch"])+".pt")
+    if(device=="cpu"):
+        checkpoint = torch.load(save_folder,map_location="cpu")
+    else:
+        checkpoint = torch.load(save_folder)
+    model_state_dict = checkpoint['model_state_dict']
+
     ## init the model
     model = FineSTModel(n_input_matrix=params['n_input_matrix'],
-                              n_input_image=params['n_input_image'],
-                              n_encoder_hidden_matrix=params["n_encoder_hidden_matrix"],
-                              n_encoder_hidden_image=params["n_encoder_hidden_image"],
-                              n_encoder_latent=params["n_encoder_latent"],
-                              n_projection_hidden=params["n_projection_hidden"],
-                              n_projection_output=params["n_projection_output"],
-                              n_encoder_layers=params["n_encoder_layers"]).to(device)    
+                        n_input_image=params['n_input_image'],
+                        n_encoder_hidden_matrix=params["n_encoder_hidden_matrix"],
+                        n_encoder_hidden_image=params["n_encoder_hidden_image"],
+                        n_encoder_latent=params["n_encoder_latent"],
+                        n_projection_hidden=params["n_projection_hidden"],
+                        n_projection_output=params["n_projection_output"],
+                        n_encoder_layers=params["n_encoder_layers"]).to(device)    
     ## load model states
     model.load_state_dict(model_state_dict)    
     return model
