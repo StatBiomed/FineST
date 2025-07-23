@@ -194,7 +194,7 @@ def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cma
                              edgecolors=edgecolors, linewidths=1, **kwargs)
         colorbar = plt.colorbar(scatter, ax=ax)
         colorbar.ax.tick_params(labelsize=tick_font_size)
-        plt_util_invert_y('Ligand: ' + R[l], title_font_size=title_font_size, tick_font_size=tick_font_size, ax=ax)
+        plt_util_invert_y('Receptor: ' + R[l], title_font_size=title_font_size, tick_font_size=tick_font_size, ax=ax)
 
 
 def plot_pairs_dot_class(sample, pairs_to_plot, SCS='p_value', mode=None, pdf=None, trans=False, figsize=(56, 8),
@@ -248,6 +248,7 @@ def plot_pairs_dot_class(sample, pairs_to_plot, SCS='p_value', mode=None, pdf=No
                     cmap_l=cmap_l, cmap_r=cmap_r, marker=marker, marker_size=marker_size, edgecolors=edgecolors,
                     mtx_sender=mtx_sender, mtx_receiver=mtx_receiver, mask=mask, mode=final_mode, **kwargs
                 )
+                pdf_pages.savefig(transparent=trans)
                 plt.show()
                 plt.close()
 

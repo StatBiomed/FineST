@@ -304,9 +304,14 @@ def get_allspot_coors(input_coord_all):
     return spatial_loc
 
 
-def adata_LR(adata, gene_list='LR_genes', n_top_genes=500):
+def adata_LR(adata, gene_list='LR_genes', species='human', n_top_genes=500):
     adata.var_names_make_unique()
-    file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline.csv'
+    if species == 'human':
+        file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'
+    elif species == 'mouse':
+        file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_mouse.csv'
+    else:
+        raise ValueError("species must be 'human' or 'mouse'.")
 
     if gene_list == 'LR_genes':
         LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
