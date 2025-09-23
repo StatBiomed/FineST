@@ -51,19 +51,10 @@ Verify the installation using the following command:
    >>> print(torch.cuda.is_available())
    True
 
-The FineST conda environment can be used for the fellowing **Tutorial** by:
+.. Installation using PyPI
+.. =======================
 
-.. code-block:: text
-
-   python -m pip install ipykernel
-   python -m ipykernel install --user --name=FineST
-
-For a **Tutorial**, please see: https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb
-
-Installation using PyPI
-=======================
-
-FineST is available through `PyPI <https://pypi.org/project/FineST/>`_.
+FineST package is available through `PyPI <https://pypi.org/project/FineST/>`_.
 To install, type the following command line and add ``-U`` for updates:
 
 .. code-block:: bash
@@ -76,6 +67,15 @@ development) version (time: < 1 min):
 .. code-block:: bash
 
    pip install -U git+https://github.com/StatBiomed/FineST
+
+The FineST conda environment can be used for the fellowing **Tutorial** by:
+
+.. code-block:: text
+
+   python -m pip install ipykernel
+   python -m ipykernel install --user --name=FineST
+
+For a **Tutorial**, please see: https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb
 
 
 Get Started for *Visium* or *Visium HD* data
