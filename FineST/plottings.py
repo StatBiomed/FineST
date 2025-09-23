@@ -100,6 +100,7 @@ def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cma
                                  scale=True, mtx_sender=None, mtx_receiver=None, mask=None, mode='colorbar', **kwargs):
     print('3 sub-plot: figsize=(32, 8)')
     print('4 sub-plot: figsize=(44, 8)')
+    print('4 sub-plot: figsize=(55, 8)')
 
     L = sample.uns['ligand'].loc[pair].dropna().values
     R = sample.uns['receptor'].loc[pair].dropna().values
@@ -968,7 +969,7 @@ def rmse(y_pred, y_mean_pred):
 
 
 def plot_PCC_revised(df1, df2, column_name, x_label, y_label, gene_set=None, title=None, 
-                             max_step=0.2, min_step=0.1, fig_size=(6, 5), 
+                             max_step=0.2, min_step=0.1, fig_size=(6, 5), mark=False,
                              trans=False, format='pdf', save_path=None):
     
     merged_df = pd.merge(df1, df2, on=column_name)
@@ -1017,13 +1018,22 @@ def plot_PCC_revised(df1, df2, column_name, x_label, y_label, gene_set=None, tit
     ## Remove x-axis tick labels
     x_hist.set_xlabel("")
     y_hist.set_ylabel("")
-
+    
     # Adjust the font size of the tick labels
     x_hist.tick_params(axis='both', which='major', labelsize=12)
     # x_hist.tick_params(axis='both', which='minor', labelsize=10)
     y_hist.tick_params(axis='both', which='major', labelsize=12)
     # y_hist.tick_params(axis='both', which='minor', labelsize=10)
 
+    ## Calculate the top 5 genes that FineST has higher than iStar
+    if mark:
+        merged_df['diff'] = merged_df[y_label] - merged_df[x_label]
+        top5 = merged_df.nlargest(5, 'diff')
+        for idx, row in top5.iterrows():
+            main_ax.scatter(row[x_label], row[y_label], zorder=5)    # c='orange', edgecolors='black', s=90, 
+            main_ax.annotate(row[column_name], (row[x_label], row[y_label]), 
+                             textcoords="offset points", xytext=(0, 8), ha='center', fontsize=12, color='black')
+    
     ## mark genes
     # genes_to_annotate = ['TGFB1', 'BMP2']
     genes_to_annotate = gene_set if gene_set is not None else []
@@ -1972,8 +1982,60 @@ def subspot_expr(C, value, patch_size=56, dataset_class=None,
 ###########################################
 # 2024.11.08 Adjust
 # 2025.07.03 Support dataframe
+# 2025.08.01 Support log axis
 ###########################################
-def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, save_path=None):
+def sele_gene_cor_log(
+    visium_adata, pixel_adata, gene, 
+    xlabel="Visium transcript count", ylabel="iStar transcript count", format='pdf', save_path=None
+):
+
+    x = np.array(visium_adata[gene])
+    y = np.array(pixel_adata[gene])
+
+    mask = (x > 0) & (y > 0)
+    x = x[mask]
+    y = y[mask]
+    corr, p_value = pearsonr(x, y)
+    print("corr, p_value: ", corr, p_value)
+
+    fig, ax = plt.subplots(figsize=(3,3))
+    ax.scatter(x, y, s=5)
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.spines.right.set_visible(False)
+    ax.spines.top.set_visible(False)
+    ax.yaxis.set_ticks_position("left")
+    ax.xaxis.set_ticks_position("bottom")
+    # ax.annotate(f"Pearson's R: {corr:.3f}", xy=(0.55, 0.05), xycoords="axes fraction", fontsize=12)
+
+
+    x_log = np.log10(x).reshape(-1, 1)
+    y_log = np.log10(y)
+    model = LinearRegression()
+    model.fit(x_log, y_log)
+    xx_log = np.linspace(x_log.min(), x_log.max(), 1000).reshape(-1, 1)
+    yy_log = model.predict(xx_log)
+    
+    ax.plot(10**xx_log.flatten(), 10**yy_log, 'r--', label="R=%.3f" %corr)
+    ax.legend()
+
+    if save_path is not None:
+        fig.savefig(save_path, format=format, dpi=300, bbox_inches='tight')
+
+    plt.show()
+
+    return corr, p_value
+
+
+###########################################
+# 2024.11.08 Adjust
+# 2025.07.03 Support dataframe
+###########################################
+def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, 
+                  figure_size=None, save_path=None):
 
     # if isinstance(adata.X, np.ndarray):
     #     original_matrix = pd.DataFrame(adata.X)
@@ -2001,7 +2063,10 @@ def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, 
     g = sns.JointGrid(x=genedata1[:, 0], y=genedata2[:, 0], space=0, height=size)
     g = g.plot_joint(sns.scatterplot)
     g = g.plot_marginals(sns.kdeplot, shade=True)
-
+    
+    if figure_size is not None:
+        g.fig.set_size_inches(*figure_size)
+    
     pearson_corr, _ = pearsonr(genedata1[:, 0], genedata2[:, 0])
     cosine_sim = cosine_similarity(genedata1.reshape(1, -1), genedata2.reshape(1, -1))[0][0]
 
@@ -2013,7 +2078,7 @@ def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, 
 
     r2_value = r2_score(genedata2, lr.predict(genedata1))
 
-    g.ax_joint.annotate(f'Pearson Correlation: {pearson_corr:.3f}\nCosine Similarity: {cosine_sim:.3f}\nR²: {r2_value:.3f}', 
+    g.ax_joint.annotate(f'Pearson: {pearson_corr:.3f}\nCosine: {cosine_sim:.3f}\nR²: {r2_value:.3f}', 
                     xy=(0.4, 0.1), xycoords='axes fraction', fontsize=10)
 
     g.ax_joint.set_xlabel('Original Expression')

@@ -22,8 +22,45 @@ It comprises three components (*Training*-*Imputation*-*Discovery*) after HE ima
 .. 1. global selection `spatialdm_global` to identify significantly interacting LR pairs;
 .. 2. local selection `spatialdm_local` to identify local spots for each interaction.
 
-Installation
-============
+Installation using Conda
+========================
+
+.. code-block:: bash
+
+   git clone https://github.com/StatBiomed/FineST.git
+   conda create --name FineST python=3.8
+   conda activate FineST
+   cd FineST
+   pip install -r requirements.txt
+
+.. Typically installation is completed within a few minutes. 
+.. Then install pytorch, refer to `pytorch installation <https://pytorch.org/get-started/locally/>`_.
+
+.. .. code-block:: bash
+
+..    conda install pytorch=1.7.1 torchvision torchaudio cudatoolkit=11.0 -c pytorch
+
+Verify the installation using the following command:
+
+.. code-block:: text
+
+   python
+   >>> import torch
+   >>> print(torch.__version__)
+   2.1.2+cu121 (or your installed version)
+   >>> print(torch.cuda.is_available())
+   True
+
+The FineST conda environment can be used for the fellowing **Tutorial** by:
+.. code-block:: text
+
+   python -m pip install ipykernel
+   python -m ipykernel install --user --name=FineST
+
+For a **Tutorial**, please see: https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb
+
+Installation using PyPI
+=======================
 
 FineST is available through `PyPI <https://pypi.org/project/FineST/>`_.
 To install, type the following command line and add ``-U`` for updates:
@@ -38,38 +75,6 @@ development) version (time: < 1 min):
 .. code-block:: bash
 
    pip install -U git+https://github.com/StatBiomed/FineST
-
-Installation using Conda
-========================
-
-.. code-block:: bash
-
-   $ git clone https://github.com/StatBiomed/FineST.git
-   $ conda create --name FineST python=3.8
-   $ conda activate FineST
-   $ cd FineST
-   $ pip install -r requirements.txt
-
-Typically installation is completed within a few minutes. 
-Then install pytorch, refer to `pytorch installation <https://pytorch.org/get-started/locally/>`_.
-
-.. code-block:: bash
-
-   $ conda install pytorch=1.7.1 torchvision torchaudio cudatoolkit=11.0 -c pytorch
-
-Verify the installation using the following command:
-
-.. code-block:: text
-
-   python
-   >>> import torch
-   >>> print(torch.__version__)
-   >>> print(torch.cuda.is_available())
-
-
-**Tutorial**: 
-
-For a tutorial, please see: https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb
 
 
 Get Started for *Visium* or *Visium HD* data
