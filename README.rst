@@ -52,6 +52,7 @@ Verify the installation using the following command:
    True
 
 The FineST conda environment can be used for the fellowing **Tutorial** by:
+
 .. code-block:: text
 
    python -m pip install ipykernel
