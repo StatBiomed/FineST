@@ -55,18 +55,21 @@ Verify the installation using the following command:
 .. =======================
 
 FineST package is available through `PyPI <https://pypi.org/project/FineST/>`_.
-To install, type the following command line and add ``-U`` for updates:
+.. To install, type the following command line and add ``-U`` for updates:
 
 .. code-block:: bash
 
    pip install -U FineST
 
-Alternatively, install from this GitHub repository for latest (often
-development) version (time: < 1 min):
-
-.. code-block:: bash
-
+   ## Alternatively, install from GitHub for latest version:
    pip install -U git+https://github.com/StatBiomed/FineST
+
+.. Alternatively, install from this GitHub repository for latest (often
+.. development) version (time: < 1 min):
+
+.. .. code-block:: bash
+
+..    pip install -U git+https://github.com/StatBiomed/FineST
 
 The FineST conda environment can be used for the fellowing **Tutorial** by:
 
@@ -75,7 +78,11 @@ The FineST conda environment can be used for the fellowing **Tutorial** by:
    python -m pip install ipykernel
    python -m ipykernel install --user --name=FineST
 
-For a **Tutorial**, please see: https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb
+For a **Tutorial** using pre-trained ``Virchow2``, please see: https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb. 
+
+When using ``Virchow2``, token approval from Hugging Face may take several days. 
+In the meantime, you can use ``HIPT``, which requires no token and is available immediately. 
+Please see: https://github.com/StatBiomed/FineST/blob/main/tutorial/NPC_Train_Impute_demo_HIPT.ipynb.
 
 
 Get Started for *Visium* or *Visium HD* data
