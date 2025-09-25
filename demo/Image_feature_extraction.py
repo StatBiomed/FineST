@@ -286,32 +286,36 @@ def main(dataset, position_path, rawimage_path, scale_image, method, patch_size,
         return model256
 
     # Load model
-    weight_path = "https://github.com/mahmoodlab/HIPT/blob/master/HIPT_4K/Checkpoints/vit256_small_dino.pth"
-    model = get_vit256(pretrained_weights = weight_path)
+    if str(method) == 'HIPT':
+        print("Method: ", str(method))    
+        weight_path = "https://github.com/mahmoodlab/HIPT/blob/master/HIPT_4K/Checkpoints/vit256_small_dino.pth"
+        model = get_vit256(pretrained_weights = weight_path)
 
-    # https://github.com/mahmoodlab/HIPT/blob/a9b5bb8d159684fc4c2c497d68950ab915caeb7e/HIPT_4K/hipt_model_utils.py#L111
-    def eval_transforms():
-        mean, std = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
-        eval_t = transforms.Compose([transforms.ToTensor(), 
-                                     transforms.Normalize(mean = mean, std = std)])
-        return eval_t
+        # https://github.com/mahmoodlab/HIPT/blob/a9b5bb8d159684fc4c2c497d68950ab915caeb7e/HIPT_4K/hipt_model_utils.py#L111
+        def eval_transforms():
+            mean, std = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
+            eval_t = transforms.Compose([transforms.ToTensor(), 
+                                        transforms.Normalize(mean = mean, std = std)])
+            return eval_t
+        
+    elif str(method) == 'Virchow2':  
+        print("Method: ", str(method))    
+        ######################################################################
+        # Virchow2(): 
+        # from size '3 x patch_size x patch_size' to size '1 x 1280' (14*14)
+        ######################################################################
+        # Virchow2, need to specify MLP layer and activation function for proper init
+        model = timm.create_model("hf-hub:paige-ai/Virchow2", pretrained=True, 
+                                mlp_layer=SwiGLUPacked, act_layer=torch.nn.SiLU)
+        model.to(device)
+        model = model.eval()
 
-    ######################################################################
-    # Virchow2(): 
-    # from size '3 x patch_size x patch_size' to size '1 x 1280' (14*14)
-    ######################################################################
-    # Virchow2, need to specify MLP layer and activation function for proper init
-    model = timm.create_model("hf-hub:paige-ai/Virchow2", pretrained=True, 
-                              mlp_layer=SwiGLUPacked, act_layer=torch.nn.SiLU)
-    model.to(device)
-    model = model.eval()
-
-    # https://github.com/huggingface/pytorch-image-models/blob/main/timm/data/constants.py#L3
-    def eval_transforms_Virchow2():
-        mean, std = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
-        eval_t = transforms.Compose([transforms.ToTensor(), 
-                                     transforms.Normalize(mean = mean, std = std)])
-        return eval_t
+        # https://github.com/huggingface/pytorch-image-models/blob/main/timm/data/constants.py#L3
+        def eval_transforms_Virchow2():
+            mean, std = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+            eval_t = transforms.Compose([transforms.ToTensor(), 
+                                        transforms.Normalize(mean = mean, std = std)])
+            return eval_t
 
     # transforms = create_transform(**resolve_data_config(model.pretrained_cfg, model=model))
     # ## Create transforms and Normalize to match the expected input format of the model
@@ -339,7 +343,7 @@ def main(dataset, position_path, rawimage_path, scale_image, method, patch_size,
             subtensors = lay[:, 5:]    # size: 1 x 256 x 1280, tokens 1-4 are register tokens so we ignore those
             subtensors_list = torch.split(subtensors, 1, dim=1)
    
-        elif str(method) == 'HIPT':        
+        elif str(method) == 'HIPT':      
             p_image = eval_transforms()(patch_image).unsqueeze(dim=0).to(device)    # torch.Size([1, 3, 64, 64])
             lay = model.get_intermediate_layers(p_image, 1)[0]                      # torch.Size([1, 17, 384])
             subtensors = lay[:, :, :]                                               # torch.Size([1, 17, 384])
