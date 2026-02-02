@@ -55,7 +55,8 @@ Verify the installation using the following command:
 .. =======================
 
 FineST package is available through `PyPI <https://pypi.org/project/FineST/>`_.
-To install, type the following command line and add ``-U`` for updates:
+
+.. To install, type the following command line and add ``-U`` for updates:
 
 .. code-block:: bash
 
@@ -78,11 +79,38 @@ The FineST conda environment can be used for the fellowing **Tutorial** by:
    python -m pip install ipykernel
    python -m ipykernel install --user --name=FineST
 
-For a **Tutorial** using pre-trained ``Virchow2``, please see: https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb. 
+For a **Tutorial** using pre-trained ``Virchow2``, please see: `NPC_Train_Impute_demo.ipynb <https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb>`_. 
 
-When using ``Virchow2``, token approval from Hugging Face may take several days. 
-In the meantime, you can use ``HIPT``, which requires no token and is available immediately. 
-Please see: https://github.com/StatBiomed/FineST/blob/main/tutorial/NPC_Train_Impute_demo_HIPT.ipynb.
+When using ``Virchow2``, token approval from `Hugging Face <https://huggingface.co/paige-ai/Virchow2>`_ may take several days. 
+Immediately, you can use ``vit256`` from `HIPT <https://github.com/mahmoodlab/HIPT>`_ that requires no token, 
+please see: `NPC_Train_Impute_demo_HIPT.ipynb <https://github.com/StatBiomed/FineST/blob/main/tutorial/NPC_Train_Impute_demo_HIPT.ipynb>`_.
+
+
+ROI selection via Napair
+========================
+
+.. code-block:: bash
+
+   from PIL import Image
+   Image.MAX_IMAGE_PIXELS = None
+   import matplotlib.pyplot as plt
+   import napari
+
+   image = plt.imread("FineST_tutorial_data/20210809-C-AH4199551.tif")
+   viewer = napari.view_image(image, channel_axis=2, ndisplay=2)
+   napari.run()
+
+**Usage illustrations**: 
+
+For practical application of `Napair <https://github.com/napari/napari>`_ , please see vedio from `Google Drive <https://drive.google.com/file/d/1y3sb_Eemq3OV2gkxwu4gZBhLFp-gpzpH/view?usp=sharing>`_.
+
+* When open napari, a new layer named *shapes* is automatically added.
+* Select the ``Add Polygons`` tool to create Region of Interest (ROI).
+* Draw one desired ROI on HE image [support multiple polygons within same layer].
+* [Optionally] Rename the ROI layer to a more descriptive name, such as *ROI 1*.
+
+For a **Tutorial** extracting *adata_roi.h5ad* within ROI using ``fst.crop_img_adata()``, please see
+`Crop image of ROI <https://finest-rtd-tutorial.readthedocs.io/en/latest/Crop_ROI_Boundary_image.html>`_.
 
 
 Get Started for *Visium* or *Visium HD* data
