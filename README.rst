@@ -55,7 +55,7 @@ Verify the installation using the following command:
 .. =======================
 
 FineST package is available through `PyPI <https://pypi.org/project/FineST/>`_.
-.. To install, type the following command line and add ``-U`` for updates:
+To install, type the following command line and add ``-U`` for updates:
 
 .. code-block:: bash
 

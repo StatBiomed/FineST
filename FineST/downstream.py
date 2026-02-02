@@ -44,7 +44,7 @@ def extract_LR(species, datahost='package'):
         # Load from local package
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"The file {file_path} does not exist!")
-        regnetwork = pd.read_csv(file_path, index_col=0)
+        LR_pair = pd.read_csv(file_path, index_col=0)
     else:
         # Download from web
         urls = {
@@ -60,11 +60,11 @@ def extract_LR(species, datahost='package'):
         with open(file_path, 'wb') as f:
             f.write(response.content)
         try:
-            regnetwork = pd.read_csv(file_path)
+            LR_pair = pd.read_csv(file_path)
         finally:
             # Ensure file is removed even if reading fails
             os.remove(file_path)
-    return regnetwork
+    return LR_pair
 
 
 def topLRpairs(adata, spa_coexp_pair, num):
@@ -141,6 +141,7 @@ def extract_RegNetwork(species, datahost='package'):
 #######################################
 # 2024.11.28 Add code of LR-TF
 # , datahost='builtin' -- !!
+# 2025.11.24 Add species='mouse'
 #######################################
 def extract_TF(species, datahost='package'):
     """
@@ -161,12 +162,12 @@ def extract_TF(species, datahost='package'):
         else:
             raise ValueError("Species type: {} is not supported currently. Please check.".format(species))
         
-        filepath = datapath + 'TF_PPRhuman.rda'
+        filepath = datapath + 'TF_PPR' + species + '.rda'
         
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"The file {filepath} does not exist!")
         
-        LR_TF = pyreadr.read_r(filepath)['TF_PPRhuman']
+        LR_TF = pyreadr.read_r(filepath)['TF_PPR' + species]
 
     else:
         if species == 'mouse':
@@ -179,14 +180,14 @@ def extract_TF(species, datahost='package'):
         # specify where to download the file
         # download_path = '/mnt/lingyu/nfs_share2/Python/FineST/FineST/FineST/datasets/TF_data/temp.rda'
         # download_path = './datasets/TF_data/'
-        download_path = './FineST/datasets/TF_data/human-TF_PPRhuman.rda'
+        download_path = './FineST/datasets/TF_data/' + species + '-TF_PPR' + species + '.rda'
         
         # download the file
         r = requests.get(url)
         with open(download_path, 'wb') as f:
             f.write(r.content)
 
-        LR_TF = pyreadr.read_r(download_path)['TF_PPRhuman']
+        LR_TF = pyreadr.read_r(download_path)['TF_PPR' + species]
 
         # remove the downloaded file after use
         os.remove(download_path)
