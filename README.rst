@@ -1,21 +1,21 @@
-===================================================================================================================
-Scalable discovery of nucleus-resolved ligand-receptor interaction by fusing spatial RNA-seq and histology images
-===================================================================================================================
+==========================================================================================================================
+FineST: Contrastive learning integrates histology and spatial transcriptomics for nuclei-resolved ligand-receptor analysis
+==========================================================================================================================
 
-This software package impletements FineST (Fine-grained Spatial Transcriptomic), which could 
-**identify super-resolved ligand-receptor interactions with spatial co-expression** (i.e., spatial association) 
-from a spot-level to a sub-spot level or single-cell level.
+This software package impletements **FineST** (**F**ine-grained **S**patial **T**ranscriptomic), which  
+**identifies super-resolved ligand-receptor interactions with spatial co-expression** 
+refining *spot* to *sub-spot* or *single-cell* resolution.
 
 .. image:: https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework_all_update.png?raw=true
    :width: 800px
    :align: center
 
-It comprises three components (*Training*-*Imputation*-*Discovery*) after HE image feature is extracted: 
+**FineST** comprises three components (*Training*-*Imputation*-*Discovery*) after *HE image feature extraction*: 
 
 * Step0: HE image feature extraction
-* Step1: **Training** FineST on the within spots
-* Step2: Super-resolution spatial RNA-seq **imputation**
-* Step3: Fine-grained LR pair and CCC pattern **discovery**
+* Step1: **Training** FineST on the *within spots*
+* Step2: Super-resolution spatial RNA-seq **imputation** at *sub-spot* or *single-cell* level
+* Step3: Fast fine-grained ligand-receptor pair and cell-cell communication pattern **discovery**
 
 .. It comprises two main steps:
 
@@ -80,9 +80,8 @@ The FineST conda environment can be used for the fellowing **Tutorial** by:
    python -m ipykernel install --user --name=FineST
 
 For a **Tutorial** using pre-trained ``Virchow2``, please see: `NPC_Train_Impute_demo.ipynb <https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb>`_. 
-
-When using ``Virchow2``, token approval from `Hugging Face <https://huggingface.co/paige-ai/Virchow2>`_ may take several days. 
-Immediately, you can use ``vit256`` from `HIPT <https://github.com/mahmoodlab/HIPT>`_ that requires no token, 
+Note that access to ``Virchow2`` on `Hugging Face <https://huggingface.co/paige-ai/Virchow2>`_ requires a token, and approval may take several days.. 
+For immediate use without a token, we recommend ``vit256`` from `HIPT <https://github.com/mahmoodlab/HIPT>`_ , 
 please see: `NPC_Train_Impute_demo_HIPT.ipynb <https://github.com/StatBiomed/FineST/blob/main/tutorial/NPC_Train_Impute_demo_HIPT.ipynb>`_.
 
 
@@ -102,7 +101,7 @@ ROI selection via Napair
 
 **Usage illustrations**: 
 
-For practical application of `Napair <https://github.com/napari/napari>`_ , please see vedio from `Google Drive <https://drive.google.com/file/d/1y3sb_Eemq3OV2gkxwu4gZBhLFp-gpzpH/view?usp=sharing>`_.
+For practical application of `Napair <https://github.com/napari/napari>`_ , please see **Tutorial** vedio from `Google Drive <https://drive.google.com/file/d/1y3sb_Eemq3OV2gkxwu4gZBhLFp-gpzpH/view?usp=sharing>`_.
 
 * When open napari, a new layer named *shapes* is automatically added.
 * Select the ``Add Polygons`` tool to create Region of Interest (ROI).
@@ -441,6 +440,19 @@ The full manual is at `FineST tutorial <https://finest-rtd-tutorial.readthedocs.
 * `iStar on demo data`_.
 
 .. _iStar on demo data: docs/source/Demo_results_istar_check.ipynb
+
+
+Citation
+========
+
+If you use FineST (Accepted in principle by Nature Comm) in your research, please cite:
+.. code-block:: text
+
+   @misc{FineST,
+      author={Li, Lingyu and Wang, Tianjie and Liang, Zhuo and Yu, Huajian and Ma, Stephanie and Yu, Lequan and Huang, Yuanhua},
+      title={{FineST: Contrastive learning integrates histology and spatial transcriptomics for nuclei-resolved ligand-receptor analysis}},
+      year={2026},
+      note = {\url{https://github.com/StatBiomed/FineST}}
 
 
 Contact Information
