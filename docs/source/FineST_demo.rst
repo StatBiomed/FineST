@@ -18,45 +18,46 @@ Training-Inferring/Imputation-Evaluation based on Geometric Segmentation
 Step1: Training FineST on the within spots
 ------------------------------------------
 
-On *Visium* dataset, if the trained weights (i.e. **weight_save_path**) have been obtained, 
-just run the following command.
-Otherwise, if you want to newly train a model, 
-you can omit **weight_save_path** from the following command.
-
-On *VisiumHD* dataset, remember set ``dataset_class`` as ``'VisiumHD' `` (--dataset_class 'Visium')
+Train FineST model on within-spots to learn the mapping from image features to gene expression. 
+If pre-trained weights are available, set ``--weight_save_path`` to skip training.
 
 .. code-block:: bash
 
-   python ./FineST/FineST/demo/FineST_train_infer.py \
-      --system_path '/mnt/lingyu/nfs_share2/Python/' \
-      --weight_path 'FineST/FineST_local/Finetune/' \
-      --parame_path 'FineST/FineST/parameter/parameters_NPC_P10125.json' \
-      --dataset_class 'Visium' \
+   python ./demo/Step1_FineST_train_infer.py \
+      --system_path '/home/lingyu/ssd/Python/FineST/FineST/' \
+      --parame_path 'parameter/parameters_NPC_HIPT.json' \
+      --dataset_class 'Visium16' \
+      --image_class 'HIPT' \
       --gene_selected 'CD70' \
-      --LRgene_path 'FineST/FineST/Dataset/LRgene/LRgene_CellChatDB_baseline.csv' \
-      --visium_path 'FineST/FineST/Dataset/NPC/patient1/tissue_positions_list.csv' \
-      --image_embed_path 'NPC/Data/stdata/ZhuoLiang/LLYtest/AH_Patient1_pth_64_16/' \
-      --spatial_pos_path 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/position_order.csv' \
-      --reduced_mtx_path 'FineST/FineST_local/Dataset/NPC/ContrastP1geneLR/harmony_matrix.npy' \
-      --weight_save_path 'FineST/FineST_local/Finetune/20240125140443830148' \
-      --figure_save_path 'FineST/FineST_local/Dataset/NPC/Figures/' 
+      --LRgene_path 'FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv' \
+      --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
+      --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/pth_64_16' \
+      --spatial_pos_path 'FineST_tutorial_data/OrderData/position_order.csv' \
+      --reduced_mtx_path 'FineST_tutorial_data/OrderData/matrix_order.npy' \
+      --figure_save_path 'FineST_tutorial_data/Figures/' \
+      --save_data_path 'FineST_tutorial_data/SaveData/' \
+      --patch_size 64 \
+      --weight_w 0.5 
 
-``FineST_train_infer.py`` is used to train and evaluate the FineST model using Pearson Correlation, it outputs:
+**Key parameters:**
+* ``--dataset_class``: ``'Visium16'`` (HIPT, patch_size=64), ``'Visium64'`` (Virchow2, patch_size=112), or ``'VisiumHD'``
+* ``--image_class``: ``'HIPT'`` or ``'Virchow2'`` (must match Step0)
+* ``--weight_save_path``: (optional) Path to pre-trained weights to skip training
 
-* Average correlation of all spots: 0.8534651812923978
-* Average correlation of all genes: 0.8845136777311445
+**Expected output:**
+* Average correlation of all spots: ~0.85
+* Average correlation of all genes: ~0.88
 
 **Input files:**
-
-* ``parameters_NPC_P10125.json``: The model parameters.
-* ``LRgene_CellChatDB_baseline.csv``: The genes involved in Ligand or Receptor from CellChatDB.
-* ``tissue_positions_list.csv``: It can be found in the spatial folder of 10x Visium outputs.
-* ``AH_Patient1_pth_64_16``: Image feature of within-spots from ``HIPT_image_feature_extract.py``.
-* ``position_order.csv``: Ordered tissue positions list, according to image patches' coordinates.
-* ``harmony_matrix.npy``: Ordered gene expression matrix, according to image patches' coordinates.
-* ``20240125140443830148``: The trained weights. Just omit it if you want to newly train a model.
+* ``parameters_NPC_HIPT.json`` or ``parameters_NPC_virchow2.json``: The model parameters
+* ``LRgene_CellChatDB_baseline.csv``: Ligand-receptor genes from CellChatDB
+* ``tissue_positions_list.csv``: Visium spot positions (from 10x Visium spatial folder)
+* Image embeddings folder (e.g., ``pth_64_16`` for HIPT or ``pth_112_14`` for Virchow2): From ``Image_feature_extraction.py``
 
 **Output files:**
-
-* ``Finetune``: The logging results ``model.log`` and trained weights ``epoch_50.pt`` (.log and .pt)
-* ``Figures``: The visualization plots, used to see whether the model trained well or not (.pdf)
+* ``Figures/weights[timestamp]/``: Trained model weights (.pt) and logs (.log)
+* ``Figures/Results[timestamp].log``: Complete execution log
+* ``Figures/``: Visualization plots (.pdf, .svg)
+* ``SaveData/``: Processed AnnData files (adata_count.h5ad, adata_norml.h5ad, adata_infer.h5ad, etc.)
+* ``OrderData/position_order.csv``: Ordered tissue positions
+* ``OrderData/matrix_order.npy``: Ordered gene expression matrix

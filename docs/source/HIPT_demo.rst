@@ -2,140 +2,122 @@ Geometric segmentation
 ======================
 
 Image embedding extraction
----------------------------
+--------------------------
 
-**Usage illustrations**: 
-
-* For *Visium*, use one slice - 10x Visium human nasopharyngeal carcinoma (NPC) data.
-
-* For *Visium HD*, use one slice - 10x Visium HD human colorectal cancer (CRC) data with 16um bin.
-
-
-Step0: For *Visium*
+Step0: HE image feature extraction (for *Visium*)
 -------------------------------------------------
 
-*Visium (v1)* measures about 5k spots across the entire tissue area. 
-The diameter of each individual spot is roughly 55 micrometers (um), 
-while the center-to-center distance between two adjacent spots is about 100 um.
-In order to capture the gene expression profile across the whole tissue ASSP, 
+For *Visium* data (~5k spots, 55-um spot diameter, 100-um center-to-center distance), 
+we first interpolate additional spots between the original measured spots to increase spatial resolution. 
 
-**Firstly**, interpolate ``between spots`` in horizontal and vertical directions, 
-using ``Spot_interpolate.py``.
+**Step 0.1: Interpolate between spots**
+
+Interpolate additional spots in horizontal and vertical directions:
+
+.. code-block:: bash
+      
+   python ./demo/Spot_interpolation.py \
+      --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv
+
+**Input:** ``tissue_positions_list.csv`` (original within-spots)  
+**Output:** ``tissue_positions_list_add.csv`` (interpolated between-spots, ~3x original)
+
+**Step 0.2: Extract image features for within-spots**
+
+
+**Option A: Using HIPT** (recommended for quick start, no token required)
 
 .. code-block:: bash
 
-   python ./FineST/demo/Spot_interpolate.py \
-      --data_path ./Dataset/NPC/ \
-      --position_list tissue_positions_list.csv \
-      --dataset patient1 
+   python ./demo/Image_feature_extraction.py \
+      --dataset NPC \
+      --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv \
+      --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+      --scale_image False \
+      --method HIPT \
+      --patch_size 64 \
+      --output_img FineST_tutorial_data/ImgEmbeddings/pth_64_16_image \
+      --output_pth FineST_tutorial_data/ImgEmbeddings/pth_64_16 \
+      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
+      --scale 0.5
 
-``Spot_interpolate.py`` also output the execution time and spot number ratio:
-
-* The spots feature interpolation time is: 2.549 seconds
-* # of interpolated between-spots are: 2.786 times vs. original within-spots
-* # 0f final all spots are: 3.786 times vs. original within-spots
-
-
-**Input file:**
-
-* ``tissue_positions_list.csv``: Spot locations
-
-**Output files:**
-
-* ``_position_add_tissue.csv``: Spot locations of the ``between spots`` (m ~= 3n)
-* ``_position_all_tissue.csv``: Spot locations of all ``between spots`` and ``within spots``
-
-
-**Then** extracte the ``within spots`` HE image feature embeddings using ``Image_feature_extraction.py``.
+**Option B: Using Virchow2** (requires Hugging Face token)
 
 .. code-block:: bash
 
-   python ./FineST/demo/Image_feature_extraction.py \
-      --dataset AH_Patient1 \
-      --position ./Dataset/NPC/patient1/tissue_positions_list.csv \
-      --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
+   python ./demo/Image_feature_extraction.py \
+      --dataset NPC \
+      --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv \
+      --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
       --scale_image False \
       --method Virchow2 \
-      --output_path_img ./Dataset/NPC/HIPT/AH_Patient1_pth_112_14_image \
-      --output_path_pth ./Dataset/NPC/HIPT/AH_Patient1_pth_112_14 \
       --patch_size 112 \
-      --logging_folder ./Logging/HIPT_AH_Patient1/
+      --output_img FineST_tutorial_data/ImgEmbeddings/pth_112_14_image \
+      --output_pth FineST_tutorial_data/ImgEmbeddings/pth_112_14 \
+      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
+      --scale 0.5
 
-``Image_feature_extraction.py`` also output the execution time:
+**Step 0.3: Extract image features for between-spots**
 
-* The image segment execution time for the loop is: 3.493 seconds
-* The image feature extract time for the loop is: 13.374 seconds
+Similarly extract features for the interpolated between-spots:
 
-
-**Input files:**
-
-* ``20210809-C-AH4199551.tif``: Raw histology image
-* ``tissue_positions_list.csv``: "Within spot" (Original in_tissue spots) locations
-
-**Output files:**
-
-* ``AH_Patient1_pth_112_14_image``: Segmeted "Within spot" histology image patches (.png)
-* ``AH_Patient1_pth_112_14``: Extracted "Within spot" image feature embeddiings for each patche (.pth)
-
-
-**Similarlly**, extracte the ``between spots`` HE image feature embeddings using ``Image_feature_extraction.py``.
+**Option A: Using HIPT**
 
 .. code-block:: bash
 
-   python ./FineST/demo/Image_feature_extraction.py \
-      --dataset AH_Patient1 \
-      --position ./Dataset/NPC/patient1/patient1_position_add_tissue.csv \
-      --image ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
+   python ./demo/Image_feature_extraction.py \
+      --dataset NEW_NPC \
+      --position_path FineST_tutorial_data/spatial/tissue_positions_list_add.csv \
+      --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+      --scale_image False \
+      --method HIPT \
+      --patch_size 64 \
+      --output_img FineST_tutorial_data/ImgEmbeddings/NEW_pth_64_16_image \
+      --output_pth FineST_tutorial_data/ImgEmbeddings/NEW_pth_64_16 \
+      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
+      --scale 0.5
+
+**Option B: Using Virchow2**
+
+.. code-block:: bash
+
+   python ./demo/Image_feature_extraction.py \
+      --dataset NEW_NPC \
+      --position_path FineST_tutorial_data/spatial/tissue_positions_list_add.csv \
+      --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
       --scale_image False \
       --method Virchow2 \
-      --output_path_img ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_112_14_image \
-      --output_path_pth ./Dataset/NPC/HIPT/NEW_AH_Patient1_pth_112_14 \
       --patch_size 112 \
-      --logging_folder ./Logging/HIPT_AH_Patient1/
+      --output_img FineST_tutorial_data/ImgEmbeddings/NEW_pth_112_14_image \
+      --output_pth FineST_tutorial_data/ImgEmbeddings/NEW_pth_112_14 \
+      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
+      --scale 0.5
 
-``Image_feature_extraction.py`` also output the execution time:
-
-* The image segment execution time for the loop is:  8.153 seconds
-* The image feature extract time for the loop is: 35.499 seconds
-
-
-**Input files:**
-
-* ``20210809-C-AH4199551.tif``: Raw histology image 
-* ``patient1_position_add_tissue.csv``: "Between spot" (Interpolated spots) locations
-
-**Output files:**
-
-* ``NEW_AH_Patient1_pth_112_14_image``: Segmeted "Between spot" histology image patches (.png)
-* ``NEW_AH_Patient1_pth_112_14``: Extracted "Between spot" image embeddiings of each patch (.pth)
+**Output:** Image feature embeddings (``NEW_pth_64_16`` or ``NEW_pth_112_14``) for between-spots
 
 
-Step0: For *Visium*: single-cell
-----------------------------------------------------
+Step0: For *Visium*: single-cell resolution
+---------------------------------------------
 
-**For single-cell resolution:**
-* *Setp 1*: Get ``_adata_imput_all_spot.h5ad`` from ``_Train_Impute.ipynb``;
-* *Setp 2*: Get ``sp._adata_ns.h5ad`` and ``_position_all_tissue_sc``, from ``StarDist_nuclei_segmentate.py``;
-* *Setp 3*: Get ``sc_Patient1_pth_14_14`` from this scrip ``Image_feature_extraction.py`` using ``Virchow2``.
+For single-cell resolution analysis:
+
+1. Get ``_adata_imput_all_spot.h5ad`` from ``_Train_Impute.ipynb``
+2. Get ``sp._adata_ns.h5ad`` and ``_position_all_tissue_sc.csv`` from ``StarDist_nuclei_segmentate.py``
+3. Extract image features using ``Image_feature_extraction.py`` with ``Virchow2``
 
 .. code-block:: bash
 
-   cd /mnt/lingyu/nfs_share2/Python/FineST/
-   time python ./FineST/demo/Image_feature_extraction.py \
+   python ./demo/Image_feature_extraction.py \
       --dataset AH_Patient1 \
-      --position ./FineST_local/Dataset/NPC/StarDist/DataOutput/NPC1_allspot_p075_test/_position_all_tissue_sc.csv \
-      --imagefile ./FineST_local/Dataset/NPC/patient1/20210809-C-AH4199551.tif \
+      --position_path ./FineST_local/Dataset/NPC/StarDist/DataOutput/NPC1_allspot_p075_test/_position_all_tissue_sc.csv \
+      --rawimage_path ./FineST_local/Dataset/NPC/patient1/20210809-C-AH4199551.tif \
       --scale_image False \
       --method Virchow2 \
-      --output_path_img ./FineST_local/Dataset/NPC/HIPT/sc_Patient1_pth_14_14_image \
-      --output_path_pth ./FineST_local/Dataset/NPC/HIPT/sc_Patient1_pth_14_14 \
+      --output_img ./FineST_local/Dataset/NPC/HIPT/sc_Patient1_pth_14_14_image \
+      --output_pth ./FineST_local/Dataset/NPC/HIPT/sc_Patient1_pth_14_14 \
       --patch_size 14 \
-      --logging_folder ./FineST_local/Logging/HIPT_AH_Patient1/
-
-``Image_feature_extraction.py`` also output the execution time:
-
-* The image segment execution time for the loop is: 31.082 seconds
-* The image feature extract time for the loop is: 680.178 seconds
+      --logging ./FineST_local/Logging/HIPT_AH_Patient1/ \
+      --scale 0.5
 
 
 Step0: For *Visium HD*
