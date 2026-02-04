@@ -1,3 +1,6 @@
+## 2025.05.20 LLY adjust the code, part of it is from SpatialScopeNS.py
+## 2026.02.03 LLY add the annotation and clean code, rename  SpatialScopeNS to FineST_StarDist_nuclei
+
 
 import scanpy as sc
 import squidpy as sq
@@ -12,13 +15,110 @@ Image.MAX_IMAGE_PIXELS = None
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from FineST.utils import *  # need install FineST package if put in /dome file not denpend FineST file
+from FineST.utils import *  # need install FineST package if put in /demo file not depend FineST file
 from matplotlib.path import Path
 import numpy as np
 from skimage import draw, measure, io
 
 
-class SpatialScopeNS:
+class FineST_StarDist_nuclei:
+    """
+    FineST StarDist Nuclei Segmentation class for spatial transcriptomics data.
+    - Performs nuclei segmentation on H&E stained tissue images using the StarDist model. 
+    - Integrates ST data coordinates with image data, allowing for single-nuclei resolution.
+    
+    The class supports two modes:
+    1. Full mode: Processes the whole slide image (WSI) and ST data
+    2. ROI mode: Crops image with ST data of region of interest (ROI) by coordinates from Napari.
+    
+    Main Workflow:
+    1. Load ST data (AnnData format) and H&E stained image.
+    2. [Optionally] Crop image and ST data based on ROI coordinates from Napari.
+    3. Perform nuclei segmentation using StarDist 2D versatile HE model.
+    4. Extract segmentation features (centroids, labels) for each spot.
+    5. Map segmented nuclei to spatial spots.
+    6. Save results including segmented image, cell counts, and cell locations.
+    
+    Parameters
+    ----------
+    tissue : str
+        Name of the tissue sample (used for organizing output directories)
+    out_dir : str
+        Base output directory path for saving results
+    roi_path : str or None
+        Path to ROI coordinates CSV file (from Napari). If None, processes full image.
+    img_path : str
+        Path to H&E stained tissue image file (supports .tif, .btf, and other formats)
+    adata_path : str
+        Path to ST data in AnnData format (.h5ad file)
+    prob_thresh : float
+        Probability threshold for StarDist segmentation (default: 0.65).
+        - Lower values detect more nuclei but may include false positives.
+        - Higher values are more conservative but may miss some nuclei.
+        - Default values: prob_thresh=0.692478, nms_thresh=0.3
+    max_cell_number : int
+        Maximum number of cells/nuclei to assign per spot (default: 20).
+        - If a spot contains more nuclei, only the first max_cell_number are kept.
+    min_counts : int
+        Minimum UMI count threshold for filtering spots (default: 500).
+        - Currently not actively used but reserved for future filtering.
+    
+    Attributes
+    ----------
+    sp_adata : AnnData
+        ST data with segmentation features added
+    image : ImageContainer
+        Squidpy ImageContainer containing the H&E image and segmentation results
+    out_dir : str
+        Output directory for the specific tissue sample
+    loggings : Logger
+        Configured logger for recording processing steps
+    
+    Output Files
+    ------------
+    - cropped_img.tif : Cropped image (if ROI mode)
+    - adata_roi.h5ad : Cropped AnnData (if ROI mode)
+    - nuclei_segmentation.png : Visualization of original image, segmentation, and cell counts
+    - sp_adata_ns.h5ad : AnnData with segmentation features and cell locations
+    - position_all_tissue_sc.csv : CSV file with cell coordinates mapped to spots
+        Columns: pxl_row_in_fullres, pxl_col_in_fullres, spot_index, cell_index, cell_nums
+    
+    Examples
+    --------
+    >>> # Full image mode
+    >>> ns = FineST_StarDist_nuclei(
+    ...     tissue='NPC',
+    ...     out_dir='./output',
+    ...     roi_path=None,
+    ...     img_path='./image.tif',
+    ...     adata_path='./adata.h5ad',
+    ...     prob_thresh=0.75,
+    ...     max_cell_number=20,
+    ...     min_counts=500
+    ... )
+    >>> ns.NucleiSegmentation()
+    
+    >>> # ROI mode (with region of interest)
+    >>> ns = FineST_StarDist_nuclei(
+    ...     tissue='CRC16_ROI',
+    ...     out_dir='./output',
+    ...     roi_path='./ROI_coordinates.csv',
+    ...     img_path='./image.btf',
+    ...     adata_path='./adata.h5ad',
+    ...     prob_thresh=0.5,
+    ...     max_cell_number=20,
+    ...     min_counts=500
+    ... )
+    >>> ns.NucleiSegmentation()
+    
+    Notes
+    -----
+    - StarDist model uses CPU by default (GPU disabled via CUDA_VISIBLE_DEVICES)
+    - The segmentation model '2D_versatile_he' is automatically downloaded on first use
+    - Image coordinates are preserved in full resolution (pxl_row_in_fullres, pxl_col_in_fullres)
+    - Cell locations are stored in both AnnData.uns['cell_locations'] and CSV format
+    """
+
     def __init__(self, tissue, out_dir, 
                  roi_path, img_path, adata_path, 
                  prob_thresh, max_cell_number, min_counts):
@@ -33,12 +133,11 @@ class SpatialScopeNS:
         self.prob_thresh = prob_thresh
         self.max_cell_number = max_cell_number
         self.min_counts = min_counts
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
-        if not os.path.exists(os.path.join(out_dir, tissue)):
-            os.mkdir(os.path.join(out_dir, tissue))
+        os.makedirs(out_dir, exist_ok=True)
+        tissue_dir = os.path.join(out_dir, tissue)
+        os.makedirs(tissue_dir, exist_ok=True)
 
-        self.out_dir = os.path.join(out_dir, tissue)
+        self.out_dir = tissue_dir
         loggings = configure_logging(os.path.join(self.out_dir, 'logs'))
         self.loggings = loggings 
 
@@ -136,7 +235,8 @@ class SpatialScopeNS:
         # print(roi_coords)
         # print([roi_coords[0][1], roi_coords[0][0]])
 
-        if roi_coords[2][0] == 0: 
+        # Adjust spatial coordinates based on ROI
+        if len(roi_coords) > 2 and roi_coords[2][0] == 0: 
             adata_roi.obsm["spatial"] = adata_roi.obsm["spatial"] - \
                                         np.array([roi_coords[0][1], 0])
         else: 
@@ -206,8 +306,10 @@ class SpatialScopeNS:
 
         
     def NucleiSegmentation(self):
+        ## Disable GPU for StarDist (use CPU)
         os.environ["CUDA_VISIBLE_DEVICES"] = ''
-        StarDist2D.from_pretrained('2D_versatile_he')
+        ## Pre-load the model (return value not needed, just for initialization)
+        _ = StarDist2D.from_pretrained('2D_versatile_he')
         sq.im.segment(
             img=self.image,
             layer="image",
@@ -277,22 +379,14 @@ class SpatialScopeNS:
         ## delete NaN: dropna()
         coord_cell_filtered = coord_cell.dropna()
         # print(coord_cell_filtered)
-        ## set colnum names: columns()
-        coord_cell_filtered.columns = list(['pxl_row_in_fullres', 'pxl_col_in_fullres', 'spot_index', 'cell_index', 'cell_nums'])
+        ## set column names: columns()
+        coord_cell_filtered.columns = ['pxl_row_in_fullres', 'pxl_col_in_fullres', 'spot_index', 'cell_index', 'cell_nums']
         self.loggings.info(f"coord_cell_filtered: \n{coord_cell_filtered}")
         ## save coords position
         coord_cell_filtered.to_csv(os.path.join(self.out_dir, "position_all_tissue_sc.csv"))
 
 
 if __name__ == "__main__":
-    HEADER = """
-    <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-    <> Nuclei_Segmentation: SpatialScope Nuclei Segmentation
-    <> Version: %s
-    <> MIT License
-    <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><> 
-    """ 
-    
     parser = argparse.ArgumentParser(description='simulation sour_sep')
     parser.add_argument('--tissue', type=str, help='tissue name', default=None)
     parser.add_argument('--out_dir', type=str, help='output path', default=None)
@@ -314,7 +408,7 @@ if __name__ == "__main__":
     parser.add_argument('--min_counts', type=int, help='minimum UMI count per spot', default=500)
     args = parser.parse_args()
         
-    NS = SpatialScopeNS(
+    NS = FineST_StarDist_nuclei(
         args.tissue, 
         args.out_dir, 
 
@@ -345,11 +439,14 @@ if __name__ == "__main__":
 #     --prob_thresh 0.75
 
 ##########
-# CRC16
+# CRC16 with ROI
 ##########
-# python ./FineST/FineST/FineST/StarDist_nuclei_segmente.py \
+# python ./demo/StarDist_nuclei_segmente.py \
 #     --tissue CRC16um_ROI_test \
-#     --out_dir ./FineST/FineST_local/Dataset/CRC16um/StarDist/DataOutput \
-#     --roi_path ./VisiumHD/Dataset/Colon_Cancer/ResultsROIs/ROI4_shape.csv \
-#     --adata_path ./VisiumHD/Dataset/Colon_Cancer_square_016um.h5ad \
-#     --img_path ./VisiumHD/Dataset/Colon_Cancer/Visium_HD_Human_Colon_Cancer_tissue_image.btf
+#     --out_dir ./Dataset/CRC16um/StarDist/DataOutput \
+#     --roi_path ./Dataset/CRC16um/ResultsROIs/ROI4_shape.csv \
+#     --adata_path ./Dataset/CRC16um/Colon_Cancer_square_016um.h5ad \
+#     --img_path ./Dataset/CRC16um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
+#     --prob_thresh 0.5 \
+#     --max_cell_number 20 \
+#     --min_counts 500

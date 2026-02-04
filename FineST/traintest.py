@@ -13,10 +13,30 @@ def adjust_learning_rate(optimizer, epoch, initial_lr, num_epochs):
     return lr
 
 
-def save_model(model, dir_name, params, optimizer, LOSS):
-    cur_save_path = os.path.join(dir_name, "epoch_"+str(params["training_epoch"])+".pt")
+def save_model(model, dir_name, params, optimizer, LOSS, epoch=None):
+    """
+    Save model checkpoint.
+    
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model to save
+    dir_name : str
+        Directory to save the model
+    params : dict
+        Training parameters
+    optimizer : torch.optim.Optimizer
+        Optimizer state
+    LOSS : float
+        Loss value
+    epoch : int, optional
+        Epoch number. If None, uses params['training_epoch']
+    """
+    if epoch is None:
+        epoch = params["training_epoch"]
+    cur_save_path = os.path.join(dir_name, "epoch_"+str(epoch)+".pt")
     torch.save({
-                  'epoch': params['training_epoch'],
+                  'epoch': epoch,
                   'model_state_dict': model.state_dict(),
                   'optimizer_state_dict': optimizer.state_dict(),
                   'loss': LOSS,
@@ -220,8 +240,10 @@ def train_model_fst(params, model, train_loader, test_loader,
             best_loss = test_loss
             best_epoch = epoch
 
-            save_model(model, dir_name, params, optimizer, train_loss)
-            logger.info(f"Best epoch_loss: [{best_epoch}: {best_loss:.4f}]")
+            # Save model with best epoch number (epoch is 0-indexed, so use epoch+1 for display)
+            save_model(model, dir_name, params, optimizer, train_loss, epoch=best_epoch)
+            logger.info(f"Saved Best epoch & Best Model! Loss: [{best_epoch}: {best_loss:.4f}]")
+            print(f"Saved Best epoch & Best Model! Loss: [{best_epoch}: {best_loss:.4f}]")
 
     print(f"Done!, Best epoch_loss: [{best_epoch}: {best_loss:.4f}]")
     print(f"Training epoch time: {time.time() - start_train_time:.4f} seconds")

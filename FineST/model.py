@@ -139,7 +139,7 @@ def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_pa
 
 
 ###############################################
-# 2024.11.02 adjusted: add parameter： dataset
+# 2024.11.02 adjusted: add parameter: dataset
 # 2025.01.08 design for istar image embeddings
 ###############################################
 class DatasetCreat_istar(torch.utils.data.Dataset):
@@ -649,19 +649,76 @@ class FineSTModel(nn.Module):
 #                 recon_mat_mean, recon_mat_disp, recon_mat_pi)
 
 
-def load_model(dir_name, parameter_file_path, gene_hv, device=None):    
+def load_model(dir_name, parameter_file_path, *args, device=None, best_epoch=None):    
+    """
+    Load trained model from checkpoint.
+    
+    Parameters
+    ----------
+    dir_name : str
+        Directory containing the saved model
+    parameter_file_path : str
+        Path to parameter JSON file
+    gene_hv : array-like
+        Array of gene names
+    device : torch.device, optional
+        Device to load model on. If None, uses default device from utils
+    best_epoch : int, optional
+        Best epoch number to load. If None, loads the model from params["training_epoch"]
+        Note: This should match the epoch number used when saving the best model
+    
+    Returns
+    -------
+    model : FineSTModel
+        Loaded model with trained weights
+    """
+    # Handle backward compatibility: support both (gene_hv,) and (params, gene_hv)
+    if len(args) == 1:
+        gene_hv = args[0]
+        params = None
+    elif len(args) == 2:
+        params, gene_hv = args
+    else:
+        raise ValueError("load_model expects 1 or 2 positional arguments after parameter_file_path")
     
     if device is None:
         from .utils import device as default_device
         device = default_device
 
     ## load parameter settings
-    with open(parameter_file_path,"r") as json_file:
-        params = json.load(json_file)
+    if params is None:
+        with open(parameter_file_path,"r") as json_file:
+            params = json.load(json_file)
+    
     params['n_input_matrix'] = len(gene_hv)
     # params['n_input_image'] = 384
     
-    save_folder = os.path.join(dir_name, "epoch_"+str(params["training_epoch"])+".pt")
+    # Determine which epoch to load
+    if best_epoch is not None:
+        epoch_to_load = best_epoch
+    else:
+        # Try to find the best model by checking saved files
+        # First, try loading from the last epoch
+        epoch_to_load = params["training_epoch"] - 1  # epochs are 0-indexed
+        
+        # Check if file exists, if not, try to find the latest saved model
+        save_folder = os.path.join(dir_name, "epoch_"+str(epoch_to_load)+".pt")
+        if not os.path.exists(save_folder):
+            # Find the latest saved model file
+            import glob
+            model_files = glob.glob(os.path.join(dir_name, "epoch_*.pt"))
+            if model_files:
+                # Extract epoch numbers and find the latest
+                epochs = [int(f.split("epoch_")[1].split(".pt")[0]) for f in model_files]
+                epoch_to_load = max(epochs)
+                print(f"Warning: Model file for epoch {params['training_epoch']-1} not found. Loading epoch {epoch_to_load} instead.")
+            else:
+                raise FileNotFoundError(f"No model files found in {dir_name}")
+    
+    save_folder = os.path.join(dir_name, "epoch_"+str(epoch_to_load)+".pt")
+    if not os.path.exists(save_folder):
+        raise FileNotFoundError(f"Model file not found: {save_folder}")
+    
     if(device=="cpu"):
         checkpoint = torch.load(save_folder,map_location="cpu")
     else:
@@ -678,5 +735,6 @@ def load_model(dir_name, parameter_file_path, gene_hv, device=None):
                         n_projection_output=params["n_projection_output"],
                         n_encoder_layers=params["n_encoder_layers"]).to(device)    
     ## load model states
-    model.load_state_dict(model_state_dict)    
+    model.load_state_dict(model_state_dict)
+    print(f"Loaded model from epoch {epoch_to_load}")
     return model

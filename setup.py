@@ -1,6 +1,6 @@
 """
 FineST: Fine-grained Spatial Transcriptomic
-See: https://github.com/LingyuLi-math/FineST
+See: https://github.com/StatBiomed/FineST
 """
 
 # Always prefer setuptools over distutils
@@ -32,7 +32,7 @@ setup(
     long_description_content_type='text/x-rst',
 
     # The project's main homepage.
-    url='https://github.com/LingyuLi-math/FineST',
+    url='https://github.com/StatBiomed/FineST',
 
     # Author details
     author=['Lingyu Li', 'Yuanhua Huang'],

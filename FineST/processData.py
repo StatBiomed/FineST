@@ -305,27 +305,68 @@ def get_allspot_coors(input_coord_all):
 
 
 def adata_LR(adata, gene_list='LR_genes', species='human', n_top_genes=500):
+    """
+    Filter AnnData object to include only ligand-receptor (LR) genes or highly variable (HV) genes.
+    
+    Parameters
+    ----------
+    adata : AnnData
+        Annotated data object
+    gene_list : str, optional
+        Can be one of:
+        - 'LR_genes': Use LR genes from default file (default)
+        - 'HV_genes': Use highly variable genes
+        - 'LR_HV_genes': Use both LR and HV genes
+        - A file path (string): Path to a CSV file containing gene names in the first column
+    species : str, optional
+        Species type: 'human' or 'mouse' (default: 'human')
+        Only used when gene_list is 'LR_genes' or 'LR_HV_genes' and using default files
+    n_top_genes : int, optional
+        Number of top highly variable genes to select (default: 500)
+        Only used when gene_list is 'HV_genes' or 'LR_HV_genes'
+    
+    Returns
+    -------
+    AnnData
+        Filtered AnnData object containing only the selected genes
+    """
+    import os
     adata.var_names_make_unique()
-    if species == 'human':
-        file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'
-    elif species == 'mouse':
-        file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_mouse.csv'
-    else:
-        raise ValueError("species must be 'human' or 'mouse'.")
-
-    if gene_list == 'LR_genes':
+    
+    # Check if gene_list is a file path
+    if isinstance(gene_list, str) and (gene_list.endswith('.csv') or os.path.exists(gene_list)):
+        # gene_list is a file path, read genes from file
+        if not os.path.exists(gene_list):
+            raise FileNotFoundError(f"Gene list file not found: {gene_list}")
+        LRgenes = list(pd.read_csv(gene_list).iloc[:, 0])
+        genes = LRgenes
+    elif gene_list == 'LR_genes':
+        # Use default LR genes file based on species
+        if species == 'human':
+            file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'
+        elif species == 'mouse':
+            file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_mouse.csv'
+        else:
+            raise ValueError("species must be 'human' or 'mouse'.")
         LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
         genes = LRgenes
     elif gene_list == 'HV_genes':
         _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=n_top_genes)
         genes = list(HVgenes)
     elif gene_list == 'LR_HV_genes':
+        # Use default LR genes file based on species
+        if species == 'human':
+            file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'
+        elif species == 'mouse':
+            file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_mouse.csv'
+        else:
+            raise ValueError("species must be 'human' or 'mouse'.")
         LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
         _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=n_top_genes)
         # Guarantee: Before LRgenes, HVgenes was removed.
         genes = LRgenes + [g for g in HVgenes if g not in LRgenes]
     else:
-        raise ValueError("gene_list must be 'LR_genes', 'HV_genes', or 'LR_HV_genes'.")
+        raise ValueError("gene_list must be 'LR_genes', 'HV_genes', 'LR_HV_genes', or a valid file path to a CSV file.")
 
     gene_filter = [g for g in genes if g in adata.var_names]
     adata._inplace_subset_var(gene_filter)
@@ -396,7 +437,20 @@ def sort_matrix(adata, position_image, spotID_order, gene_hv):
 
     ## Reset the index of the matrix and rename the first column
     position_image_first_col = position_image.columns[0]
-    matrix = matrix.reset_index().rename(columns={matrix.index.name: position_image_first_col})
+    # Get the index name before resetting (it might be None or empty string)
+    # Ensure matrix is a DataFrame (not AnnData)
+    if not isinstance(matrix, pd.DataFrame):
+        raise TypeError(f"Expected DataFrame, got {type(matrix)}")
+    index_name = matrix.index.name if matrix.index.name else ''
+    matrix_reset = matrix.reset_index()
+    # Rename the index column to match position_image's first column
+    if index_name and index_name in matrix_reset.columns:
+        matrix = matrix_reset.rename(columns={index_name: position_image_first_col})
+    elif len(matrix_reset.columns) > len(gene_hv):
+        # If no index name, rename the first column (which is the reset index)
+        matrix = matrix_reset.rename(columns={matrix_reset.columns[0]: position_image_first_col})
+    else:
+        matrix = matrix_reset
     
     ## Merge position_image and matrix based on the first column
     sorted_matrix = pd.merge(position_image[[position_image_first_col]], matrix, 
@@ -417,20 +471,36 @@ def sort_matrix(adata, position_image, spotID_order, gene_hv):
     return matrix_order, matrix_order_df
 
 
-def get_image_coord(file_paths, dataset_class):
+def get_image_coord(file_paths, ST_class):
+    """
+    Extract image coordinates from file paths.
+    
+    Parameters
+    ----------
+    file_paths : list
+        List of image embedding file paths (e.g., ['NPC_10014_10023.pth', ...])
+    ST_class : str
+        Spatial transcriptomics platform class. Must be one of:
+        - 'Visium' or 'VisiumSC': For standard Visium data (Visium16, Visium64)
+        - 'VisiumHD': For Visium HD data
+    
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns ['pixel_x', 'pixel_y'] containing extracted coordinates
+    """
     data = []
     file_paths.sort() 
     for file_path in file_paths:
         parts = file_path.split('_')
-        if dataset_class == 'Visium' or dataset_class == 'VisiumSC':
+        if ST_class == 'Visium' or ST_class == 'VisiumSC':
             part_3 = int(parts[-2])
             part_4 = int(parts[-1].split('.')[0])
-        elif dataset_class == 'VisiumHD':
+        elif ST_class == 'VisiumHD':
             part_3 = parts[-2]
             part_4 = parts[-1].split('.pth')[0]
         else:
-            print("Invalid dataset_class. Please use 'Visium', 'VisiumSC' or 'VisiumHD'")
-            return
+            raise ValueError(f"Invalid ST_class: {ST_class}. Please use 'Visium', 'VisiumSC' or 'VisiumHD'")
         data.append([part_3, part_4])
     df = pd.DataFrame(data, columns=['pixel_y', 'pixel_x'])
     return df[['pixel_x', 'pixel_y']]
@@ -445,7 +515,26 @@ def get_image_coord_all(file_paths):
     return data
 
 
-def image_coord_merge(df, position, dataset_class):
+def image_coord_merge(df, position, ST_class):
+    """
+    Merge image coordinates with spatial transcriptomics position data.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with image coordinates (from get_image_coord)
+    position : pd.DataFrame
+        DataFrame with spatial transcriptomics spot positions
+    ST_class : str
+        Spatial transcriptomics platform class. Must be one of:
+        - 'Visium' or 'VisiumSC': For standard Visium data (Visium16, Visium64)
+        - 'VisiumHD': For Visium HD data
+    
+    Returns
+    -------
+    pd.DataFrame
+        Merged DataFrame with spatial coordinates
+    """
     def merge_dfs(df, position):
         merged_df = pd.merge(df, position, on=['pixel_x', 'pixel_y'], how='left')
         cols = merged_df.columns.tolist()
@@ -476,13 +565,13 @@ def image_coord_merge(df, position, dataset_class):
         col_y = merged_df.columns[-3]
         return merged_df.rename(columns={col_x: 'x', col_y: 'y'})
 
-    ## Use dataset_class to decide which function to call
-    if dataset_class == 'Visium' or dataset_class=='VisiumSC':
+    ## Use ST_class to decide which function to call
+    if ST_class == 'Visium' or ST_class == 'VisiumSC':
         result = merge_dfs(df, position)
-    elif dataset_class == 'VisiumHD':
+    elif ST_class == 'VisiumHD':
         result = merge_dfs_HD(df, position)
     else:
-        raise ValueError(f"Unknown dataset_class: {dataset_class}")
+        raise ValueError(f"Unknown ST_class: {ST_class}. Please use 'Visium', 'VisiumSC' or 'VisiumHD'")
 
     ## Check if the merge was successful
     if result.empty:

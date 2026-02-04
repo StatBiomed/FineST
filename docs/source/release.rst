@@ -1,6 +1,18 @@
 Release History
 ===============
 
+Version 0.1.3 (03/02/2026)
+--------------------------
+
+- update Tutorial notebook
+- update demo to use script run FineST
+
+Version 0.1.2 (20/05/2025)
+--------------------------
+
+- update LR_gene in adata_LR() to suppoet L-R-TF-TG analysis
+- Update plottings.py and processData.py
+
 
 Version 0.1.0 (03/03/2025)
 --------------------------

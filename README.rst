@@ -2,11 +2,11 @@
 FineST: Contrastive learning integrates histology and spatial transcriptomics for nuclei-resolved ligand-receptor analysis
 ==========================================================================================================================
 
-This software package impletements **FineST** (**F**ine-grained **S**patial **T**ranscriptomic), which  
+This software package impletements **FineST** (Fine-grained Spatial Transcriptomics), which  
 **identifies super-resolved ligand-receptor interactions with spatial co-expression** 
 refining *spot* to *sub-spot* or *single-cell* resolution.
 
-.. image:: https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework_all_update.png?raw=true
+.. image:: https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_summary_300.png?raw=true
    :width: 800px
    :align: center
 
@@ -446,14 +446,15 @@ Citation
 ========
 
 If you use FineST (Accepted in principle by Nature Comm) in your research, please cite:
-.. code-block:: text
+
+.. code-block:: bash
 
    @misc{FineST,
       author={Li, Lingyu and Wang, Tianjie and Liang, Zhuo and Yu, Huajian and Ma, Stephanie and Yu, Lequan and Huang, Yuanhua},
       title={{FineST: Contrastive learning integrates histology and spatial transcriptomics for nuclei-resolved ligand-receptor analysis}},
       year={2026},
       note = {\url{https://github.com/StatBiomed/FineST}}
-
+   }
 
 Contact Information
 ===================

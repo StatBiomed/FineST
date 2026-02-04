@@ -19,19 +19,32 @@ from sphinx.application import Sphinx
 from sphinx.ext import autosummary
 
 HERE = Path(__file__).parent
-sys.path.insert(0, f"{HERE.parent.parent}")
-sys.path.insert(0, os.path.abspath("_ext"))
+sys.path.insert(0, str(HERE.parent.parent))
+# Only add _ext to path if it exists
+_ext_path = HERE / "_ext"
+if _ext_path.exists():
+    sys.path.insert(0, str(_ext_path))
 sys.path.insert(0, os.path.abspath('.'))
 
 # -- Retrieve notebooks ------------------------------------------------
+# Note: Notebooks are already in the source directory, so downloading is disabled
+# Uncomment below if you need to download notebooks from GitHub
 
 # from urllib.request import urlretrieve
-
-# notebooks_url = "https://github.com/LingyuLi-math/FineST/tree/main/tutorial/"
+# 
+# notebooks_url = "https://raw.githubusercontent.com/StatBiomed/FineST/main/docs/source/"
 # notebooks = [
-#     # "AEContraNPC1_16_LRgene_clear_0618pvalue.ipynb",
-#     # "scAEContraNPC1_16_LRgene_clear_0604.ipynb"
-#     "NPC_Train_Impute.ipynb"
+#     "Between_spot_demo.ipynb",
+#     "CRC16_Train_Impute_count.ipynb",
+#     "NPC_Train_Impute_count.ipynb",
+#     "NPC_LRI_CCC_count.ipynb",
+#     "CRC_LRI_CCC_count.ipynb",
+#     "transDeconv_NPC_count.ipynb",
+#     "transDeconv_CRC_count.ipynb",
+#     "Crop_ROI_Boundary_image.ipynb",
+#     "NPC_Evaluate.ipynb",
+#     "Demo_Train_Impute_count.ipynb",
+#     "Demo_results_istar_check.ipynb",
 # ]
 # for nb in notebooks:
 #     try:
@@ -42,7 +55,6 @@ sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
 
 project = 'FineST'
-copyright = '2024, Lingyu Li'
 author = 'Lingyu Li'
 title = "Fine-grained Spatial Transcriptomic"
 copyright = f"{datetime.now():%Y}, {author}"
@@ -58,7 +70,7 @@ intersphinx_mapping = {
 intersphinx_disabled_domains = ['std']
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.0'
+release = '0.1.3'
 
 # -- General configuration ---------------------------------------------------
 
@@ -79,7 +91,7 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinx_autodoc_typehints",
     "nbsphinx",
-    # "edit_on_github",
+    # "edit_on_github",  # Disabled: package not available on PyPI or GitHub
 ]
 
 autosummary_generate = True
@@ -88,7 +100,7 @@ templates_path = ['_templates']
 
 # The suffix of source filenames.
 source_suffix = ['.rst']
-## don't add '.ipynb' for nbsphinx>=0.8.7
+# Note: nbsphinx>=0.8.7 automatically handles .ipynb files, no need to add explicitly
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
@@ -110,9 +122,18 @@ exclude_patterns = []
 #
 # html_theme = 'alabaster'
 html_theme = 'sphinx_rtd_theme'
-github_repo = 'FineST'
-github_nb_repo = 'FineST'
 html_theme_options = dict(navigation_depth=1, titles_only=True)
+
+## 2026.02.03 LLY adjust the 'edit_on_github'
+# Add " Edit on GitHub" link on each page using html_context
+# This is the standard way to enable GitHub edit links in sphinx_rtd_theme
+html_context = {
+    'display_github': True,  # Enable GitHub link display
+    'github_user': 'StatBiomed',  # GitHub username/organization
+    'github_repo': 'FineST',  # Repository name
+    'github_version': 'main',  # Branch name
+    'conf_py_path': '/docs/source/',  # Path in the repository to the docs root (where conf.py is located)
+}
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
