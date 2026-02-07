@@ -64,19 +64,21 @@ setup_seed(666)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+##################
+# Basic functions
+##################
 def check_file_exists(file_path):
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
         return False
     return True
 
+def ensure_dir_exists(file_path):
+    dir_path = os.path.dirname(file_path)
+    if dir_path: 
+        os.makedirs(dir_path, exist_ok=True)
+
 def get_figure_save_path(args):
-    """
-    Get the full path to the figure save directory.
-    If figure_save_path is absolute, use it as is.
-    Otherwise, join it with system_path.
-    Also ensures the directory exists.
-    """
     if os.path.isabs(args.figure_save_path):
         figure_dir = args.figure_save_path
     else:
@@ -89,20 +91,6 @@ def setup_log_file(args):
     Setup log file to save all terminal output.
     Log file will be saved in the same directory as figures (figure_save_path).
     File name format: Results + timestamp (similar to weights directory).
-    
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Command line arguments
-    
-    Returns
-    -------
-    TeeOutput
-        TeeOutput object that redirects output to both console and file
-    str
-        Path to the log file
-    str
-        Timestamp string (to be used for weights directory as well)
     """
     # Get figure directory (same as where figures are saved)
     figure_dir = get_figure_save_path(args)
@@ -123,20 +111,32 @@ def setup_log_file(args):
     
     return tee, log_file_path, timestamp
 
-def ensure_dir_exists(file_path):
+def setup_logging(args, timestamp, figure_dir):
     """
-    Ensure the directory containing the file exists.
-    Creates parent directories if they don't exist.
-    
-    Parameters
-    ----------
-    file_path : str
-        Full path to a file (can be absolute or relative)
+    Setup logging for training.
+    Weights directory will be saved in the same directory as figures (figure_save_path).
+    Directory name format: weights + timestamp (same timestamp as log file).
     """
-    dir_path = os.path.dirname(file_path)
-    if dir_path:  # Only create if there's a directory component
-        os.makedirs(dir_path, exist_ok=True)
+    logging.getLogger().setLevel(logging.INFO)
 
+    # Create weights directory in figure_dir with shared timestamp
+    dir_name = os.path.join(figure_dir, f'weights{timestamp}')
+
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+    logger = setup_logger(dir_name)
+    print("dir_name: \n", dir_name)
+
+    parame_path = os.path.join(args.system_path, args.parame_path)
+    with open(parame_path, "r") as json_file:
+        params = json.load(json_file)
+    logger.info("Load parameters:\n" + json.dumps(params, indent=2))
+
+    return logger, parame_path, params, dir_name
+
+##################
+# Main functions
+##################
 def load_and_process_data(args):
     """
     Load and process spatial transcriptomics data.
@@ -216,49 +216,6 @@ def load_and_process_data(args):
               save_path=os.path.join(figure_dir, str(args.gene_selected)+'_orig_gene_expr.pdf'))
 
     return adata, gene_hv, matrix_order_df, adata_count, adata_norml
-
-def setup_logging(args, timestamp, figure_dir):
-    """
-    Setup logging for training.
-    Weights directory will be saved in the same directory as figures (figure_save_path).
-    Directory name format: weights + timestamp (same timestamp as log file).
-    
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Command line arguments
-    timestamp : str
-        Timestamp string (shared with log file)
-    figure_dir : str
-        Figure directory path (where weights will also be saved)
-    
-    Returns
-    -------
-    logger : logging.Logger
-        Logger instance
-    parame_path : str
-        Path to parameter file
-    params : dict
-        Loaded parameters
-    dir_name : str
-        Path to weights directory
-    """
-    logging.getLogger().setLevel(logging.INFO)
-
-    # Create weights directory in figure_dir with shared timestamp
-    dir_name = os.path.join(figure_dir, f'weights{timestamp}')
-
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    logger = setup_logger(dir_name)
-    print("dir_name: \n", dir_name)
-
-    parame_path = os.path.join(args.system_path, args.parame_path)
-    with open(parame_path, "r") as json_file:
-        params = json.load(json_file)
-    logger.info("Load parameters:\n" + json.dumps(params, indent=2))
-
-    return logger, parame_path, params, dir_name
 
 def train_model_fst_wrapper(params, model, train_loader, test_loader, optimizer, l, dir_name, logger, dataset_class):
     """

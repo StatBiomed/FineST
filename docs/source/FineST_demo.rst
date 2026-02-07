@@ -40,21 +40,25 @@ If pre-trained weights are available, set ``--weight_save_path`` to skip trainin
       --weight_w 0.5 
 
 **Key parameters:**
+
 * ``--dataset_class``: ``'Visium16'`` (HIPT, patch_size=64), ``'Visium64'`` (Virchow2, patch_size=112), or ``'VisiumHD'``
 * ``--image_class``: ``'HIPT'`` or ``'Virchow2'`` (must match Step0)
 * ``--weight_save_path``: (optional) Path to pre-trained weights to skip training
 
 **Expected output:**
+
 * Average correlation of all spots: ~0.85
 * Average correlation of all genes: ~0.88
 
 **Input files:**
+
 * ``parameters_NPC_HIPT.json`` or ``parameters_NPC_virchow2.json``: The model parameters
 * ``LRgene_CellChatDB_baseline.csv``: Ligand-receptor genes from CellChatDB
 * ``tissue_positions_list.csv``: Visium spot positions (from 10x Visium spatial folder)
 * Image embeddings folder (e.g., ``pth_64_16`` for HIPT or ``pth_112_14`` for Virchow2): From ``Image_feature_extraction.py``
 
 **Output files:**
+
 * ``Figures/weights[timestamp]/``: Trained model weights (.pt) and logs (.log)
 * ``Figures/Results[timestamp].log``: Complete execution log
 * ``Figures/``: Visualization plots (.pdf, .svg)

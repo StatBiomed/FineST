@@ -27,13 +27,26 @@ import sys
 import argparse
 from pathlib import Path
 
-# Add the demo directory to the path to import Step1_FineST_train_infer
-_current_dir = Path(__file__).parent
-_demo_dir = _current_dir.parent / 'demo'
-if str(_demo_dir) not in sys.path:
-    sys.path.insert(0, str(_demo_dir))
+# Lazy import to avoid circular import issues
+# Step1_FineST_train_infer.py imports FineST, which would cause a circular import
+# if we import it at module level. Instead, we import it only when needed.
+def _get_demo_dir():
+    """Get the demo directory path."""
+    _current_dir = Path(__file__).parent  # FineST/FineST/
+    # Try FineST/FineST/demo/ first (correct location)
+    _demo_dir = _current_dir / 'demo'  # FineST/FineST/demo/
+    if not _demo_dir.exists():
+        # Fallback: try FineST/demo/ (if demo is at package root)
+        _demo_dir = _current_dir.parent / 'demo'  # FineST/demo/
+    return _demo_dir
 
-from Step1_FineST_train_infer import main as _main
+def _import_main():
+    """Lazy import of main function from Step1_FineST_train_infer."""
+    _demo_dir = _get_demo_dir()
+    if str(_demo_dir) not in sys.path:
+        sys.path.insert(0, str(_demo_dir))
+    from Step1_FineST_train_infer import main
+    return main
 
 
 def Step1_FineST_train_infer(
@@ -196,7 +209,8 @@ def Step1_FineST_train_infer(
         patch_size=patch_size
     )
     
-    # Call the main function from Step1_FineST_train_infer.py
+    # Call the main function from Step1_FineST_train_infer.py (lazy import to avoid circular import)
+    _main = _import_main()
     _main(args)
 
 
