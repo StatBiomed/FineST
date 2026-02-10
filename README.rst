@@ -118,20 +118,34 @@ For detailed instructions and ROI extraction using ``fst.crop_img_adata()``, see
 Get Started for *Visium* or *Visium HD* data
 ============================================
 
+The tutorial includes:
+
+* *Visium*: 10x Visium human nasopharyngeal carcinoma (NPC) data
+* *Visium HD*: 10x Visium HD human colorectal cancer (CRC) data (16-um bin) [`Sample P2 CRC <https://www.10xgenomics.com/products/visium-hd-spatial-gene-expression/dataset-human-crc>`_]
+
+
 Data Download
 -------------
 
-Download *FineST_tutorial_data* from `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8?usp=sharing>`_ or via command line:
+Download Visum *FineST_tutorial_data* from `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8?usp=sharing>`_ or via command line:
 
 .. code-block:: bash
 
    python -m pip install gdown
    gdown --folder https://drive.google.com/drive/folders/1rZ235pexAMVvRzbVZt1ONOu7Dcuqz5BD?usp=drive_link
 
-The tutorial includes:
 
-* *Visium*: 10x Visium human nasopharyngeal carcinoma (NPC) data
-* *Visium HD*: 10x Visium HD human colorectal cancer (CRC) data (16-um bin) [in-comming]
+Fast Run for Demo
+-----------------
+
+.. code-block:: bash
+
+   bash test_demo.sh
+
+* **Note**: The demo uses HIPT for image features, which is faster and doesn't need Hugging Face token.
+* For using Virchow2 (may require a token and take longer; in paper), see the detailed manual below.
+* The demo uses the Visium NPC dataset; for Visium HD CRC data, follow the manual for Step 0-1-2.
+* The demo runs Step 0-1; for Step 2, plese replace the trained ``weight_save_path`` with your own.
 
 
 Step0: HE image feature extraction
@@ -142,8 +156,8 @@ Step0: HE image feature extraction
 
 **Option A: Extract image features for within-spots (Visium)**
 
-For *Visium* (55-um spot diameter, 100-um center-to-center distance), 
-extract image features of the original (within) spots:
+For *Visium* (55um spot diameter, 100um center-to-center distance), 
+extract image features of original (within) spots:
 
 .. code-block:: bash
 
@@ -294,78 +308,10 @@ Setp2.0: Interpolate between spots
 * **Output:** ``tissue_positions_list_add.csv`` (interpolated between-spots, ~3x original)
 
 
-Option A: *single-cell* resolution
-----------------------------------
-
-**Setp A1: Nuclei segmentation (for single-cell level)**
-
-.. code-block:: bash
-
-   python ./demo/StarDist_nuclei_segmente.py \
-      --tissue NPC_allspot_p075 \
-      --out_dir FineST_tutorial_data/NucleiSegments \
-      --adata_path FineST_tutorial_data/SaveData/adata_imput_all_spot.h5ad \
-      --img_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-      --prob_thresh 0.75
-
-**Setp A2: Extract image features for single-nuclei**
-
-.. code-block:: bash
-
-   ## Option A: Using HIPT
-   python ./demo/Image_feature_extraction.py \
-      --dataset sc_NPC \
-      --position_path FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/position_all_tissue_sc.csv  \
-      --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-      --scale_image False \
-      --method HIPT \
-      --patch_size 16 \
-      --output_img FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16_image \
-      --output_pth FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16 \
-      --logging FineST_tutorial_data/ImgEmbeddings/
-      --scale 0.5  # Optional, default is 0.5
-
-.. code-block:: bash
-
-   ## Option B: Using Virchow2
-   python ./demo/Image_feature_extraction.py \
-      --dataset sc_NPC \
-      --position_path FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/position_all_tissue_sc.csv  \
-      --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-      --scale_image False \
-      --method Virchow2 \
-      --patch_size 14 \
-      --output_img FineST_tutorial_data/ImgEmbeddings/sc_pth_14_14_image \
-      --output_pth FineST_tutorial_data/ImgEmbeddings/sc_pth_14_14 \
-      --logging FineST_tutorial_data/ImgEmbeddings/
-      --scale 0.5  # Optional, default is 0.5
-
-
-**Setp A3: Imputation at single-cell resolution**
-
-Using ``sc Patient1 pth 16 16`` 
-i.e., the image feature of single-nuclei from ``Image_feature_extraction.py``, just run the following.
-
-.. code-block:: bash
-
-   python ./demo/Step2_High_resolution_imputation.py \
-      --system_path '/home/lingyu/ssd/Python/FineST_submit/FineST/' \
-      --parame_path 'parameter/parameters_NPC_HIPT.json' \
-      --dataset_class 'VisiumSC' \
-      --gene_selected 'CD70' \
-      --LRgene_path 'FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv' \
-      --image_embed_path_sc 'FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16' \
-      --spatial_pos_path_sc 'FineST_tutorial_data/OrderData/position_order_sc.csv' \
-      --weight_save_path 'FineST_tutorial_data/Figures/weights20260204191708183236' \
-      --figure_save_path 'FineST_tutorial_data/Figures/' \
-      --adata_super_path_sc 'FineST_tutorial_data/SaveData/adata_imput_all_sc.h5ad'
-
-
-
-Option B: *sub-spot* resolution
+Option A: *sub-spot* resolution
 -------------------------------
 
-**Setp B1: Extract image features for between-spots** 
+**Setp A1: Extract image features for between-spots** 
 
 .. code-block:: bash
 
@@ -398,7 +344,7 @@ Option B: *sub-spot* resolution
       --scale 0.5  # Optional, default is 0.5
 
 
-**Setp B2: Imputation at sub-spot resolution**
+**Setp A2: Imputation at sub-spot resolution**
 
 This step supposes that the trained weight (i.e. **weight_save_path** in Step1) has been saved, just run the following.
 
@@ -452,9 +398,77 @@ This step supposes that the trained weight (i.e. **weight_save_path** in Step1) 
 * ``patient1_adata_all.h5ad``: High-resolution gene expression, at sub-spot level (16x3x resolution).
 * ``patient1_adata_all_spot.h5ad``: High-resolution gene expression, at spot level (3x resolution).
 
+
+Option B: *single-cell* resolution
+----------------------------------
+
+**Setp B1: Nuclei segmentation (for single-cell level)**
+
 .. code-block:: bash
+
+   python ./demo/StarDist_nuclei_segmente.py \
+      --tissue NPC_allspot_p075 \
+      --out_dir FineST_tutorial_data/NucleiSegments \
+      --adata_path FineST_tutorial_data/SaveData/adata_imput_all_spot.h5ad \
+      --img_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+      --prob_thresh 0.75
+
+* **Note**: Some times users may need to adjust the ``--prob_thresh`` parameter to get better segmentation results.
+* The smaller the ``--prob_thresh``, the more nuclei will be segmented, and vice versa. For NPC, the value is 0.75.
+
+
+**Setp B2: Extract image features for single-nuclei**
+
+.. code-block:: bash
+
+   ## Option A: Using HIPT
+   python ./demo/Image_feature_extraction.py \
+      --dataset sc_NPC \
+      --position_path FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/position_all_tissue_sc.csv  \
+      --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+      --scale_image False \
+      --method HIPT \
+      --patch_size 16 \
+      --output_img FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16_image \
+      --output_pth FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16 \
+      --logging FineST_tutorial_data/ImgEmbeddings/
+      --scale 0.5  # Optional, default is 0.5
+
+
+.. code-block:: bash
+
    ## Option B: Using Virchow2
+   python ./demo/Image_feature_extraction.py \
+      --dataset sc_NPC \
+      --position_path FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/position_all_tissue_sc.csv  \
+      --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+      --scale_image False \
+      --method Virchow2 \
+      --patch_size 14 \
+      --output_img FineST_tutorial_data/ImgEmbeddings/sc_pth_14_14_image \
+      --output_pth FineST_tutorial_data/ImgEmbeddings/sc_pth_14_14 \
+      --logging FineST_tutorial_data/ImgEmbeddings/
+      --scale 0.5  # Optional, default is 0.5
+
+
+**Setp B3: Imputation at single-cell resolution**
+
+When obtained the ``sc Patient1 pth 16 16`` 
+i.e., the image feature of single-nuclei from ``Image_feature_extraction.py``, just run the following.
+
+.. code-block:: bash
+
    python ./demo/Step2_High_resolution_imputation.py \
+      --system_path '/home/lingyu/ssd/Python/FineST_submit/FineST/' \
+      --parame_path 'parameter/parameters_NPC_HIPT.json' \
+      --dataset_class 'VisiumSC' \
+      --gene_selected 'CD70' \
+      --LRgene_path 'FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv' \
+      --image_embed_path_sc 'FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16' \
+      --spatial_pos_path_sc 'FineST_tutorial_data/OrderData/position_order_sc.csv' \
+      --weight_save_path 'FineST_tutorial_data/Figures/weights20260204191708183236' \
+      --figure_save_path 'FineST_tutorial_data/Figures/' \
+      --adata_super_path_sc 'FineST_tutorial_data/SaveData/adata_imput_all_sc.h5ad'
 
 
 Step3: Fine-grained LR pair and CCC pattern discovery
