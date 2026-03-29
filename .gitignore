@@ -12,6 +12,8 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+Reproduction/
+figshare/
 Example/
 FineSTtest/
 Example/

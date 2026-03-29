@@ -9,25 +9,11 @@ _NPC = AMetadata(
     url="https://figshare.com/ndownloader/files/48619396", 
 )
 
-_BRCA_FineST_allspot = AMetadata(
-    name="BRCA_FineST_allspot",
-    doc_header="Breast cancer (BRCA) dataset (all spots) from `Janesick et al <https://doi/10.1038/s41467-023-43458-x`__.",
-    shape=(19732, 863),
-    url="https://figshare.com/ndownloader/files/49070155",
-)
-
 _BRCA = AMetadata(
     name="BRCA",
     doc_header="Breast cancer (BRCA) dataset (all spots) from `Janesick et al <https://doi/10.1038/s41467-023-43458-x`__.",
     shape=(4992, 18085),
     url="https://figshare.com/ndownloader/files/49286560",
-)
-
-_BRCA_FineST_subspot = AMetadata(
-    name="BRCA_FineST_subspot",
-    doc_header="Breast cancer (BRCA) dataset from `Janesick et al <https://doi/10.1038/s41467-023-43458-x`__.",
-    shape=(4992, 18085),
-    url="https://ndownloader.figshare.com/files/40178041",
 )
 
 _CRC16um = AMetadata(
@@ -44,62 +30,33 @@ _CRC08um = AMetadata(
     url="https://figshare.com/ndownloader/files/50571282", 
 )
 
-_CRC_Original = AMetadata(
-    name="CRC_Original",
-    doc_header="Original colorectal cancer (CRC) dataset from Oliveira, et al. <https://www.biorxiv.org/content/10.1101/2024.06.04.597233v1.full>`__.",
-    shape=(136954, 862), #(137051, 18085),  
-    url="https://figshare.com/ndownloader/files/48724144", 
+_HCCP1T = AMetadata(
+    name="HCCP1T",
+    doc_header="Hepatocellular carcinoma (HCCP1T) 10xVisium dataset (receiving anti-PD-1 treatment with non-responders) from `Liu et al <https://doi.org/10.1016/j.jhep.2023.01.011`__.",
+    shape=(3354, 36601),
+    url="https://figshare.com/ndownloader/files/63263551",
 )
 
-_CRC_FineST = AMetadata(
-    name="CRC_FineST",
-    doc_header="FineST colorectal cancer (CRC) dataset  from Oliveira, et al. <https://www.biorxiv.org/content/10.1101/2024.06.04.597233v1.full>`__.",
-    shape=(136954, 862),
-    url="https://figshare.com/ndownloader/files/48724447",
+_HCCP1Tanno = AMetadata(
+    name="HCCP1Tanno",
+    doc_header="Hepatocellular carcinoma (HCCP1T) annotated dataset (receiving anti-PD-1 treatment with non-responders) from `Liu et al <https://doi.org/10.1016/j.jhep.2023.01.011`__.",
+    shape=(3348, 36601),
+    url="https://figshare.com/ndownloader/files/63263548",
 )
 
-_A3 = AMetadata(
-    name="A3",
-    doc_header="12-PCW Fetus colon single rep from Corbett, et al. <https://doi.org/10.1016/j.cell.2020.12.016>`__.",
-    shape=(1080, 33538),
-    url="https://figshare.com/ndownloader/files/40178311",
+_HCCP7T = AMetadata(
+    name="HCCP7T",
+    doc_header="Hepatocellular carcinoma (HCCP7T) 10xVisium dataset (receiving anti-PD-1 treatment with responders) from `Liu et al <https://doi.org/10.1016/j.jhep.2023.01.011`__.",
+    shape=(4106, 36601),
+    url="https://figshare.com/ndownloader/files/63263554",
 )
 
-_A4 = AMetadata(
-    name="A4",
-    doc_header="19-PCW Fetus colon single rep from Corbett, et al. <https://doi.org/10.1016/j.cell.2020.12.016>`__.",
-    shape=(1242, 33538),
-    url="https://figshare.com/ndownloader/files/40178314",
+_HCCP7Tanno = AMetadata(
+    name="HCCP7Tanno",
+    doc_header="Hepatocellular carcinoma (HCCP7T) annotated dataset (receiving anti-PD-1 treatment with responders) from `Liu et al <https://doi.org/10.1016/j.jhep.2023.01.011`__.",
+    shape=(4106, 20693),
+    url="https://figshare.com/ndownloader/files/63263557",
 )
-
-_A6 = AMetadata(
-    name="A6",
-    doc_header="12-PCW TI rep 1 from Corbett, et al. <https://doi.org/10.1016/j.cell.2020.12.016>`__.",
-    shape=(346, 33538),
-    url="https://figshare.com/ndownloader/files/40178017",
-)
-
-_A7 = AMetadata(
-    name="A7",
-    doc_header="12-PCW TI rep 2 from Corbett, et al. <https://doi.org/10.1016/j.cell.2020.12.016>`__.",
-    shape=(344, 33538),
-    url="https://figshare.com/ndownloader/files/40178014",
-)
-
-_A8 = AMetadata(
-    name="A8",
-    doc_header="12-PCW colon rep 1 from Corbett, et al. <https://doi.org/10.1016/j.cell.2020.12.016>`__.",
-    shape=(709, 33538),
-    url="https://figshare.com/ndownloader/files/40178011",
-)
-
-_A9 = AMetadata(
-    name="A9",
-    doc_header="12-PCW colon rep 2 from Corbett, et al. <https://doi.org/10.1016/j.cell.2020.12.016>`__.",
-    shape=(644, 33538),
-    url="https://figshare.com/ndownloader/files/40178308",
-)
-
 
 for name, var in copy(locals()).items():
     if isinstance(var, AMetadata):
@@ -107,4 +64,4 @@ for name, var in copy(locals()).items():
 
 
 __all__ = [  # noqa: F822
-    "NPC", "BRCA_FineST_allspot", "BRCA", "BRCA_FineST_subspot", "CRC16um", "CRC08um", "CRC_Original", "CRC_FineST", "A3","A4","A6","A7","A8","A9"]
+    "NPC", "BRCA", "CRC16um", "CRC08um", "HCCP1T", "HCCP1Tanno", "HCCP7T", "HCCP7Tanno"]
