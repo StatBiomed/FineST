@@ -23,6 +23,8 @@ tutorial_local/
 build/
 docs/build/
 develop-eggs/
+FineST.egg-info/
+finest.egg-info/
 dist/
 downloads/
 eggs/

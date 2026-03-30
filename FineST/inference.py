@@ -7,7 +7,13 @@ from scipy.spatial import cKDTree
 
 
 def perform_inference_image(model, test_loader, dataset_class='Visium64', device=None):
-    
+    """
+    Perform inference for image.
+        model : Model. Model.
+        test_loader : DataLoader. Test data loader.
+        dataset_class : str. Dataset class.
+        device : torch.device. Device.
+    """
     if device is None:
         from .utils import device as default_device
         device = default_device
@@ -78,7 +84,13 @@ def perform_inference_image(model, test_loader, dataset_class='Visium64', device
 
 
 def perform_inference_image_between_spot(model, test_loader, dataset_class='Visium', device=None):
-
+    """
+    Perform inference for image between spot.
+        model : Model. Model.
+        test_loader : DataLoader. Test data loader.
+        dataset_class : str. Dataset class.
+        device : torch.device. Device.
+    """
     if device is None:
         from .utils import device as default_device
         device = default_device
@@ -124,7 +136,13 @@ def perform_inference_image_between_spot(model, test_loader, dataset_class='Visi
 # imputation.py
 ########################
 def find_nearest_point(adata_spot, adata_know):
-    ## Find the nearest point in adata_know for each point in adata_spot
+    """
+    Find the nearest point in adata_know for each point in adata_spot.
+        adata_spot : AnnData. Spot adata.
+        adata_know : AnnData. Know adata.
+    Returns:
+        nearest_points : numpy array. Nearest points.
+    """
     nearest_points = []
     for point in adata_spot:
         distances = np.linalg.norm(adata_know - point, axis=1)
@@ -139,6 +157,14 @@ def find_nearest_point(adata_spot, adata_know):
 
 ## Function 1: Using cKDTree
 def find_nearest_neighbors(nearest_points, adata_know, k=6):
+    """
+    Find the nearest neighbors in adata_know for each point in nearest_points.
+        nearest_points : numpy array. Nearest points.
+        adata_know : AnnData. Know adata.
+        k : int. Number of neighbors.
+    Returns:
+        nbs : numpy array. Nearest neighbors.
+    """
     nbs = []
     nbs_indices = []
     tree = cKDTree(adata_know)
@@ -148,9 +174,18 @@ def find_nearest_neighbors(nearest_points, adata_know, k=6):
         nbs_indices.append(indices)
     return np.array(nbs), np.array(nbs_indices)
 
+
 # ## Function 2: Using NearestNeighbors
 # from sklearn.neighbors import NearestNeighbors
 # def find_nearest_neighbors(nearest_points, adata_know, k=6):
+#     """
+#     Find the nearest neighbors in adata_know for each point in nearest_points.
+#         nearest_points : numpy array. Nearest points.
+#         adata_know : AnnData. Know adata.
+#         k : int. Number of neighbors.
+#     Returns:
+#         nbs : numpy array. Nearest neighbors.
+#     """
 #     nbs = []
 #     nbs_indices = []
 #     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='ball_tree', metric='euclidean').fit(adata_know)
@@ -160,8 +195,15 @@ def find_nearest_neighbors(nearest_points, adata_know, k=6):
 #         nbs_indices.append(indices[0])
 #     return np.array(nbs), np.array(nbs_indices)
 
-## Calculate Euclidean distances between each point in adata_spot and its nearest neighbors
+
 def calculate_euclidean_distances(adata_spot, nbs):
+    """
+    Calculate Euclidean distances between each point in adata_spot and its nearest neighbors.
+        adata_spot : AnnData. Spot adata.
+        nbs : numpy array. Nearest neighbors.
+    Returns:
+        distances : numpy array. Distances.
+    """
     distances = []
     for point, neighbors in zip(adata_spot, nbs):
         dist = np.linalg.norm(neighbors - point, axis=1)
@@ -174,7 +216,20 @@ def calculate_euclidean_distances(adata_spot, nbs):
 #################################################
 def infer_model_fst(model, test_loader, logger, 
                     dataset_class='Visium64', device=None): 
-    
+    """
+    Infer model for FST.
+        model : Model. Model.
+        test_loader : DataLoader. Test data loader.
+        logger : logging.Logger. Logger.
+        dataset_class : str. Dataset class.
+        device : torch.device. Device.
+    Returns:
+        matrix_profile : torch.Tensor. Matrix profile.
+        reconstructed_matrix : torch.Tensor. Reconstructed matrix.
+        recon_ref_adata_image_f2 : torch.Tensor. Reconstructed image reshaped.
+        reconstructed_matrix_reshaped : torch.Tensor. Reconstructed matrix reshaped.
+        input_coord_all : list. Input coordinate all.
+    """
     if device is None:
         from .utils import device as default_device
         device = default_device

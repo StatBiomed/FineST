@@ -63,6 +63,10 @@ Please refer to our tutorials for details:
 
 .. _FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell): docs/source/NPC_Train_Impute_count.ipynb
 
+* `FineST on Visium for enhencing gene expression signal (for HCCP1T dataset)`_.
+
+.. _FineST on Visium for enhencing gene expression signal (for HCCP1T dataset): docs/source/HCC_P1T_Train_Impute.ipynb
+
 
 **Step3** Fine-grained LR pair and CCC pattern discovery.
 
@@ -110,11 +114,8 @@ Please refer to our tutorials for details:
 
 References
 ==========
-FineST manuscript has been submitted (not available on bioRxiv_ now). 
-If people are interested in reading FineST, please contact Yuanhua Huang (`yuanhua@hku.hk <mailto:yuanhua@hku.hk>`_).
-
-.. _bioRxiv: https://www.biorxiv.org/content/10.1101/2022.08.19.504616v1/
-
+FineST has been published on `Nature Communications <https://www.nature.com/articles/s41467-026-70528-7/>`_. 
+If you are interested in **FineST**, please contact Dr. Lingyu Li (`lingyuli@hku.hk <mailto:lingyuli@hku.hk>`_) or Dr. Yuanhua Huang (`yuanhua@hku.hk <mailto:yuanhua@hku.hk>`_).
 
 
 .. toctree::
@@ -145,4 +146,5 @@ If people are interested in reading FineST, please contact Yuanhua Huang (`yuanh
    NPC_Evaluate
    Demo_Train_Impute_count
    Demo_results_istar_check
+   HCC_P1T_Train_Impute
 

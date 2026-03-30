@@ -46,20 +46,14 @@ def map_subspot_to_nuclei(adata_subspot, adata_nuclei,
     """
     Map each subspot to its nearest nuclei and keep unique mappings.
 
-    Parameters
-    ----------
-    adata_subspot : AnnData
-        AnnData object containing subspot data (to be mapped).
-    adata_nuclei : AnnData
-        AnnData object containing nuclei data (reference).
-    spatial_key : str
-        Key in obsm for spatial coordinates.
+    Parameters:
+        adata_subspot : AnnData. AnnData object containing subspot data (to be mapped).
+        adata_nuclei : AnnData. AnnData object containing nuclei data (reference).
+        spatial_key : str. Key in obsm for spatial coordinates.
+        inherit_uns_from : str. 'subspot' or 'nuclei'. Whether to inherit the uns from the subspot or nuclei.
 
-    Returns
-    -------
-    adata_map : AnnData
-        AnnData object with only the uniquely mapped subspots, 
-        including spatial coordinates.
+    Returns:
+        adata_map : AnnData. AnnData object with only the uniquely mapped subspots, including spatial coordinates.
     """
     ## Build tree for nuclei coordinates, find nearest nuclei index for each subspot
     tree = cKDTree(adata_nuclei.obsm[spatial_key])
@@ -78,7 +72,7 @@ def map_subspot_to_nuclei(adata_subspot, adata_nuclei,
     adata_map.obsm[spatial_key] = mapped_coords[unique_idx]
     adata_map.var_names = adata_subspot.var_names
 
-    # Copy .uns["spatial"]
+    ## Copy .uns["spatial"]
     if inherit_uns_from == "subspot":
         adata_map.uns["spatial"] = adata_subspot.uns["spatial"].copy()
     elif inherit_uns_from == "nuclei":
@@ -92,8 +86,10 @@ def map_subspot_to_nuclei(adata_subspot, adata_nuclei,
 def list_gpu_tensors(scope_vars):
     """
     List all GPU tensors in the given scope.
-    :param scope_vars: Use globals() or locals() to pass the variable dictionary.
-    :return: [(variable_name, variable_object, size_in_MB, shape), ...], sorted by size descending.
+    Parameters:
+        scope_vars : dict. Use globals() or locals() to pass the variable dictionary.
+    Returns:
+        list. [(variable_name, variable_object, size_in_MB, shape), ...], sorted by size descending.
     """
     results = []
     for name, var in scope_vars.items():
@@ -106,7 +102,8 @@ def list_gpu_tensors(scope_vars):
 def release_gpu_tensors(scope_vars):
     """
     Delete all GPU tensor variables in the given scope and free GPU memory.
-    :param scope_vars: Use globals() or locals() to pass the variable dictionary.
+    Parameters:
+        scope_vars : dict. Use globals() or locals() to pass the variable dictionary.
     """
     gpu_tensors = list_gpu_tensors(scope_vars)
     if not gpu_tensors:
@@ -126,12 +123,29 @@ def release_gpu_tensors(scope_vars):
 # 2025.07.04 For SSIM calculation
 ##################################
 def vector2matrix(locs, cnts, shape):
+    """
+    Convert a vector of locations and counts into a matrix.
+    Parameters:
+        locs : (N, 2) array. Locations.
+        cnts : (N, 1) array. Counts.
+        shape : tuple of two ints. Shape of the output matrix.
+    Returns:
+        x_reconstructed : (shape[0], shape[1]) array. Matrix of the reconstructed data.
+    """
     x_reconstructed = np.full(shape, np.nan)
     for loc, cnt in zip(locs, cnts):
         x_reconstructed[loc[0], loc[1]] = cnt
     return x_reconstructed
 
 def count_rows_and_cols(locs):
+    """
+    Count the number of rows and columns in the given locations.
+    Parameters:
+        locs : (N, 2) array. Locations.
+    Returns:
+        num_rows : int. Number of rows.
+        num_cols : int. Number of columns.
+    """
     min_row, max_row = np.min(locs[:, 0]), np.max(locs[:, 0])
     min_col, max_col = np.min(locs[:, 1]), np.max(locs[:, 1])
     num_rows = max_row - min_row + 1
@@ -167,14 +181,14 @@ def crop_img_adata(roi_path, img_path, adata_path, crop_img_path, crop_adata_pat
     """
     Crop an image and an AnnData object based on a region of interest.
     Parameters:
-        roi_path : numpy.ndarray, A numpy array specifying the region of interest.
-        img_path : str, The path to the image file.
-        adata_path : str, The path to the AnnData file.
-        crop_img_path : str, The path where the cropped image will be saved.
-        crop_adata_path : str, The path where the cropped AnnData object will be saved.
-        save: bool, optional, Default is None, which means not to save.
+        roi_path : str. The path to the region of interest file.
+        img_path : str. The path to the image file.
+        adata_path : str. The path to the AnnData file.
+        crop_img_path : str. The path where the cropped image will be saved.
+        crop_adata_path : str. The path where the cropped AnnData object will be saved.
+        segment : bool. Whether to segment the image.
     Returns:
-        tuple, A tuple containing the cropped image and the cropped AnnData object.
+        tuple. (cropped_img, adata_roi). A tuple containing the cropped image and the cropped AnnData object.
     """
     roi_coords = pd.read_csv(roi_path)
     print("ROI coordinates from napari package: \n", roi_coords)
@@ -226,6 +240,18 @@ def crop_img_adata(roi_path, img_path, adata_path, crop_img_path, crop_adata_pat
 
 
 def adata_nuclei_filter(adata_sp, img_path, whole_path, roi_path):
+    """
+    Filter the adata_sp based on the cropped ROI image coords.
+    Parameters:
+        adata_sp : AnnData. AnnData object containing the spatial coordinates of the spots.
+        img_path : str. The path to the image file.
+        whole_path : str. The path to the whole image coords file.
+        roi_path : str. The path to the ROI image coords file.
+    Returns:
+        ad_sp_crop : AnnData. AnnData object containing the cropped spots.
+        coord_image : pandas.DataFrame. The coordinates of the whole image.
+        coord_cell : pandas.DataFrame. The coordinates of the cells.
+    """
     coord_cell = adata_sp.uns['cell_locations']
     coord_cell = coord_cell.dropna()
     coord_cell.columns = ['pxl_row_in_fullres', 'pxl_col_in_fullres', 
@@ -269,7 +295,7 @@ def scale(cnts):
     """
     First performs column-wise scaling and then applies a global max scaling.
     Parameters:
-        cnts (numpy.ndarray): A two-dimensional count matrix.
+        cnts : numpy.ndarray. A two-dimensional count matrix.
     Returns:
         numpy.ndarray: The scaled count matrix.
     """
@@ -292,6 +318,13 @@ def scale(cnts):
 
 
 def configure_logging(logger_name):
+    """
+    Configure logging for the given logger name.
+    Parameters:
+        logger_name : str. The name of the logger.
+    Returns:
+        importer_logger : logging.Logger. The logger object.
+    """
     LOG_LEVEL = logging.DEBUG
     log_filename = logger_name+'.log'
     importer_logger = logging.getLogger('importer_logger')
@@ -312,7 +345,13 @@ def configure_logging(logger_name):
 
 ## set the logging
 def setup_logger(model_save_folder):
-        
+    """
+    Setup a logger for the given model save folder.
+    Parameters:
+        model_save_folder : str. The path to the model save folder.
+    Returns:
+        logger : logging.Logger. The logger object.
+    """
     level =logging.INFO
 
     log_name = 'model.log'
@@ -335,7 +374,15 @@ def setup_logger(model_save_folder):
 
 ## define function
 def reshape_latent_image(inputdata, dataset_class='Visium64'):   
-
+    """
+    Reshape the latent image based on the dataset class.
+    Parameters:
+        inputdata : torch.Tensor. The input data.
+        dataset_class : str. 'Visium16', 'Visium64', 'VisiumSC' or 'VisiumHD'.
+    Returns:
+        inputdata_reshaped : torch.Tensor. The reshaped input data with shape [adata.shape[0], 256, 384].
+        average_inputdata_reshaped : torch.Tensor. The average of the reshaped input data with shape [adata.shape[0], 384].
+    """
     ## set ‘split_num’, according 'dataset_class'
     if dataset_class == 'Visium16':
         split_num = 16
@@ -357,7 +404,23 @@ def reshape_latent_image(inputdata, dataset_class='Visium64'):
 
 
 class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
+    """
+    Create a dataset for the image between spot.
+    Parameters:
+        image_paths : list. The paths to the image files.
+        spatial_pos_path : str. The path to the spatial position file.
+        dataset_class : str. 'Visium16', 'Visium64', 'VisiumSC' or 'VisiumHD'.
+    Returns:
+        Dataset. The dataset object.
+    """
     def __init__(self, image_paths, spatial_pos_path, dataset_class):
+        """
+        Initialize the dataset.
+        Parameters:
+            image_paths : list. The paths to the image files.
+            spatial_pos_path : str. The path to the spatial position file.
+            dataset_class : str. 'Visium16', 'Visium64', 'VisiumSC' or 'VisiumHD'.
+        """
         self.spatial_pos_csv = pd.read_csv(spatial_pos_path, sep=",", header=None)
         
         ## Load .pth file
@@ -400,6 +463,15 @@ class DatasetCreatImageBetweenSpot(torch.utils.data.Dataset):
 
 def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_size=56, 
                              p=None, q=None, dataset_class=None):
+    """
+    Extract the expression data of the subspot.
+    Parameters:
+        recon_mat_reshape_tensor : torch.Tensor. The reshaped tensor of the reconstructed matrix.
+        adata : AnnData. AnnData object containing the spatial coordinates of the spots.
+        gene_hv : list. List of highly variable genes.
+        patch_size : int. The size of the patch.
+        p : int. The index of the spot.
+    """
     ## Extract x, y coordinates based on the type of `adata`
     def get_x_y(adata, p):
         if isinstance(adata, AnnData):

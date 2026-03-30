@@ -15,18 +15,40 @@ import torch
 # 2025.02.12 add ssim index
 #############################
 def vector2matrix(locs, cnts, shape):
+    """
+    Convert vector to matrix.
+        locs : list. Locations.
+        cnts : list. Counts.
+        shape : tuple. Shape.
+    Returns:
+        x_reconstructed : numpy array. Reconstructed matrix.
+    """
     x_reconstructed = np.full(shape, np.nan)
     for loc, cnt in zip(locs, cnts):
         x_reconstructed[loc[0], loc[1]] = cnt
     return x_reconstructed
 
 def compute_ssim(x, x_reconstructed):
+    """
+    Compute SSIM.
+        x : numpy array. Original matrix.
+        x_reconstructed : numpy array. Reconstructed matrix.
+    Returns:
+        ssim_index : float. SSIM index.
+    """
     x = np.nan_to_num(x)
     x_reconstructed = np.nan_to_num(x_reconstructed)
     ssim_index = ssim(x, x_reconstructed, data_range=x.max() - x.min())
     return ssim_index
 
 def compute_ssim_scale(x, x_reconstructed):
+    """
+    Compute SSIM scale.
+        x : numpy array. Original matrix.
+        x_reconstructed : numpy array. Reconstructed matrix.
+    Returns:
+        ssim_index : float. SSIM index.
+    """
     scaler = MinMaxScaler()    # Initialize MinMaxScaler to scale data to [0, 1].
     # Replace NaN values with zero and scale to [0, 1] range
     x = np.nan_to_num(x)
@@ -60,12 +82,21 @@ def align_adata_fst2hd(adata_impt, adata_8um):
     
     return adata_impt_align, shared_finest_df, shared_visium_df
 
+
 #############################
 # 2024.11.08 more fast
 #############################
 def calculate_correlation(matrix_tensor_test_np, reconstructed_matrix_test_np, 
                           method="pearson", sample="spot"):
-
+    """
+    Calculate correlation.
+        matrix_tensor_test_np : numpy array. Matrix tensor test.
+        reconstructed_matrix_test_np : numpy array. Reconstructed matrix test.
+        method : str. Method.
+        sample : str. Sample.
+    Returns:
+        correlation_coefficients : list. Correlation coefficients.
+    """
     correlation_coefficients = []
     
     if sample == "spot":
@@ -94,7 +125,15 @@ def calculate_correlation(matrix_tensor_test_np, reconstructed_matrix_test_np,
 
 
 def mean_cor(adata, data_impt_reshape, label, sample="gene"):
-
+    """
+    Calculate mean correlation.
+        adata : AnnData. Input adata.
+        data_impt_reshape : numpy array. Data imputed reshape.
+        label : str. Label.
+        sample : str. Sample.
+    Returns:
+        mean_pearson_corr : float. Mean Pearson correlation coefficient.
+    """
     if isinstance(adata.X, np.ndarray):
         matrix1 = np.array(adata.X)
     else:
@@ -120,6 +159,15 @@ def mean_cor(adata, data_impt_reshape, label, sample="gene"):
 #############################
 def calculate_correlation_infer(matrix_tensor_test_np, reconstructed_matrix_test_np, 
                                 method="pearson", sample="spot"):
+    """
+    Calculate correlation.
+        matrix_tensor_test_np : numpy array. Matrix tensor test.
+        reconstructed_matrix_test_np : numpy array. Reconstructed matrix test.
+        method : str. Method.
+        sample : str. Sample.
+    Returns:
+        mean_corr : float. Mean correlation.
+    """
     # Check for NaN values in the input matrices
     if np.isnan(matrix_tensor_test_np).any() or np.isnan(reconstructed_matrix_test_np).any():
         print("Warning: Input matrices contain NaN. Please handle them before calculating.")
@@ -167,6 +215,13 @@ def calculate_correlation_infer(matrix_tensor_test_np, reconstructed_matrix_test
 # cosine_similarity
 #############################
 def calculate_cosine_similarity_row(rep_query_adata, rep_ref_adata_image_reshape):
+    """
+    Calculate cosine similarity row.
+        rep_query_adata : torch.Tensor. Query adata.
+        rep_ref_adata_image_reshape : torch.Tensor. Reference adata image reshape.
+    Returns:
+        cosine_sim : numpy array. Cosine similarity.
+    """
     if isinstance(rep_query_adata, torch.Tensor):
         rep_query_adata = rep_query_adata.numpy()
     if isinstance(rep_ref_adata_image_reshape, torch.Tensor):
@@ -185,6 +240,15 @@ def calculate_cosine_similarity_col(rep_query_adata, rep_ref_adata_image_reshape
     return cosine_sim
 
 def compute_corr(expression_gt, matched_spot_expression_pred, top_k=50, qc_idx=None):
+    """
+    Compute correlation.
+        expression_gt : numpy array. Expression ground truth.
+        matched_spot_expression_pred : numpy array. Matched spot expression predicted.
+        top_k : int. Top k.
+        qc_idx : list. QC index.
+    Returns:
+        corr : float. Correlation.
+    """
     ## cells are in columns, genes are in rows
     if qc_idx is not None:
         expression_gt = expression_gt[:, qc_idx]

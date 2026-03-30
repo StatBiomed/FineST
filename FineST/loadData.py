@@ -16,6 +16,14 @@ from .utils import *    # use device and reshape_latent_image
 ## 2024.9.16 LLY add some function for Train and Test
 #######################################################################
 def extract_test_data(data_loader):
+    """
+    Extract test data for image between spot.
+        data_loader : DataLoader. Data loader.
+    Returns:
+        input_spot_test : torch.Tensor. Test spot.
+        input_image_test : torch.Tensor. Test image.
+        input_coord_test : list. Test coordinate.
+    """
     reduced_expression_list = []
     reduced_image_list = []
     reduced_coord_list = []
@@ -51,6 +59,13 @@ def extract_test_data(data_loader):
 ## 2024.9.16 LLY add some function for Load between spot data
 #######################################################################
 def extract_test_data_image_between_spot(data_loader):
+    """
+    Extract test data for image between spot.
+        data_loader : DataLoader. Data loader.
+    Returns:
+        input_image_test : torch.Tensor. Test image.
+        input_coord_test : list. Test coordinate.
+    """
     reduced_image_list = []
     reduced_coord_list = []
 
@@ -70,9 +85,19 @@ def extract_test_data_image_between_spot(data_loader):
     
 
 def loadBatchData(train_image_mat, train_matrix_mat, train_coors_mat, batch_size, pos_info):
-    '''
-    Generate batch training data   
-    '''
+    """
+    Generate batch training data.   
+        train_image_mat : torch.Tensor. Train image.
+        train_matrix_mat : torch.Tensor. Train matrix.
+        train_coors_mat : torch.Tensor. Train coordinate.
+        batch_size : int. Batch size.
+        pos_info : dict. Positive information.
+    Returns:
+        cur_batch_mat : torch.Tensor. Current batch image.
+        cur_matrix_mat : torch.Tensor. Current batch matrix.
+        neighbor_index : torch.Tensor. Neighbor index.
+        cur_index_list : list. Current index list.
+    """
     
     train_pos_dist = pos_info['pos dist']
     train_pos_ind = pos_info['pos ind']
@@ -132,12 +157,16 @@ def loadBatchData(train_image_mat, train_matrix_mat, train_coors_mat, batch_size
 # 2024.11.02 Adjust parameters
 #################################################################
 def checkNeighbors(cur_adata, neighbor_k, tree_type='KDTree', leaf_size=2):
-    '''
-    parameter:
-        tree_type: BallTree, cKDTree, KDTree (fast -> low)
-        leaf_size: defalt 'leaf_size=2'
-    Return 'dist' and 'ind' of positive samples.    
-    '''
+    """
+    Check neighbors of the current adata.
+        cur_adata : AnnData. Current adata.
+        neighbor_k : int. Number of neighbors.
+        tree_type : str. BallTree, cKDTree, KDTree (fast -> low)
+        leaf_size : int. Default 'leaf_size=2'
+    Returns:
+        location_dist : torch.Tensor. Distance of positive samples.
+        location_ind : torch.Tensor. Index of positive samples.
+    """
     # print("checkNeighbors.............")
     
     cur_coor = np.column_stack((cur_adata.obs['array_row'].values, cur_adata.obs['array_col'].values))
@@ -173,7 +202,20 @@ def checkNeighbors(cur_adata, neighbor_k, tree_type='KDTree', leaf_size=2):
 #################################################################
 def loadTrainTestData(train_loader, neighbor_k, tree_type='KDTree', 
                       leaf_size=2, dataset_class='Visium16', device=None):
-    
+    """
+    Load training and testing data.
+        train_loader : DataLoader. Training data loader.
+        neighbor_k : int. Number of neighbors.
+        tree_type : str. BallTree, cKDTree, KDTree (fast -> low)
+        leaf_size : int. Default 'leaf_size=2'
+        dataset_class : str. Dataset class.
+        device : torch.device. Device.
+    Returns:
+        cur_train_data_mat : torch.Tensor. Current training data matrix.
+        cur_train_matrix_mat : torch.Tensor. Current training matrix matrix.
+        cur_train_coors_mat : torch.Tensor. Current training coordinate matrix.
+        cur_pos_info : dict. Current positive information.
+    """
     if device is None:
         from .utils import device as default_device
         device = default_device

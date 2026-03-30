@@ -20,7 +20,7 @@ long_description=Path("README.rst").read_text("utf-8")
 long_description_content_type='text/x-rst'
 
 setup(
-    name='FineST',
+    name='finest',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see

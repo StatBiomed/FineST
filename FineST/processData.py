@@ -19,15 +19,15 @@ import pickle
 ###################################################
 def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k=16):
     """
-    Processes the embeddings and calculates the nearest pixel locations.
+    Process the embeddings and calculate the nearest pixel locations.
     Parameters:
-        hist_emb (dict): Dictionary containing the 'sub' key with the embeddings.
-        locs (numpy.ndarray): The locations to be processed.
-        current_shape (numpy.ndarray): The current shape.
-        target_shape (numpy.ndarray): The target shape.
+        hist_emb : dict. Dictionary containing the 'sub' key with the embeddings.
+        locs : numpy.ndarray. The locations to be processed.
+        current_shape : numpy.ndarray. The current shape.
+        target_shape : numpy.ndarray. The target shape.
     Returns:
-        numpy.ndarray: The ordered locations.
-        numpy.ndarray: The ordered images.
+        numpy.ndarray. The ordered locations.
+        numpy.ndarray. The ordered images.
     """
     def load_pickle(filename, verbose=True):
         with open(filename, 'rb') as file:
@@ -87,13 +87,13 @@ def istar_embeds_convert(hist_emb, locs, current_shape, image_embedings='sub', k
 
 def patch_size(adata, p=16, dir='x'):
     """
-    Computes the absolute differences of the sorted spatial data in adata.
+    Compute the absolute differences of the sorted spatial data in adata.
     Parameters:
-        adata: anndata object which contains the spatial data
-        p: int, number of rows to select after sorting (default is 16)
-        dir: str, direction to sort by, either 'x' or 'y' (default is 'x')
+        adata: AnnData. Annotated data object which contains the spatial data
+        p: int. Number of rows to select after sorting (default is 16)
+        dir: str. Direction to sort by, either 'x' or 'y' (default is 'x')
     Returns:
-        differences: pandas Series, the computed absolute differences
+        differences: pandas Series. The computed absolute differences
     """
     if dir == 'x':    # fix hight
         spatial_test = pd.DataFrame(adata.obsm['spatial']).sort_values(by=1)[:p]
@@ -112,6 +112,14 @@ def patch_size(adata, p=16, dir='x'):
 # 2025.01.15 For using istar img feature
 ########################################
 def position_order_adata_istar(position, obs_names, dataset_class='Visium16'):
+    """
+    Order the position of the AnnData object.
+        position : pd.DataFrame.
+        obs_names : list.
+        dataset_class : str.
+    Returns:
+        pd.DataFrame. Ordered DataFrame.
+    """
     ## Filter rows and set new index
     position_order = position[position[position.columns[-5]] == 1]
     position_order = position_order.set_index(position_order.columns[-6])
@@ -139,7 +147,15 @@ def json_load(json_path):
         visium_scale_factors = json.load(file)
     return visium_scale_factors
 
+
 def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
+    """
+    Read Parquet file, rename the columns, and filter the rows where 'in_tissue' is 1.
+        parquet_path : str.
+        parquet_name : str.
+    Returns:
+        DataFrame. Filtered DataFrame.
+    """
     os.chdir(str(parquet_path))
     positions = pd.read_parquet(parquet_name)    
     positions.set_index('barcode', inplace=True)
@@ -151,9 +167,10 @@ def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
 
 def filter_pos_list(filename):
     """
-    Reads CSV file, renames the columns, and filters the rows where 'in_tissue' is 1.
+    Read CSV file, rename the columns, and filter the rows where 'in_tissue' is 1.
         filename: str, The name of the CSV file to read.
-        Returns a DataFrame.
+    Returns:
+        DataFrame. Filtered DataFrame.
     """
     position = pd.read_csv(filename, header=None)
     position.columns = ['barcode', 'in_tissue', 'array_row', 'array_col', 
@@ -253,6 +270,13 @@ def final_pos_list(position_x, position_y, position=None):
 # 2024.11.12 add for pathway analysis
 ######################################
 def clean_save_adata(adata, filename):
+    """
+    Clean and save the AnnData object.
+        adata : AnnData.
+        filename : str.
+    Returns:
+        AnnData. Clean saved AnnData object.
+    """
     adata_save = adata.copy()
 
     ## List of keys to remove
@@ -280,6 +304,12 @@ def clean_save_adata(adata, filename):
 
 
 def Load_clean_save_adata(adata):
+    """
+    Load the clean saved AnnData object.
+        adata : AnnData.
+    Returns:
+        AnnData. Clean saved AnnData object.
+    """
     keys = ["local_z_p", "local_stat", "geneInter", "ligand", "receptor", "selected_spots",
             'histology_results_binary', 'histology_results_continu']
     for key in keys:
@@ -310,12 +340,10 @@ def adata_LR(adata, gene_list='LR_genes', species='human', n_top_genes=500):
     
     Parameters
     ----------
-    adata : AnnData
-        Annotated data object
-    gene_list : str, optional
-        Can be one of:
+    adata : AnnData. 
+    gene_list : str, optional. Can be one of:
         - 'LR_genes': Use LR genes from default file (default)
-        - 'HV_genes': Use highly variable genes
+        - 'HV_genes': Use highly variable genes (default: 500)
         - 'LR_HV_genes': Use both LR and HV genes
         - A file path (string): Path to a CSV file containing gene names in the first column
     species : str, optional
@@ -325,23 +353,20 @@ def adata_LR(adata, gene_list='LR_genes', species='human', n_top_genes=500):
         Number of top highly variable genes to select (default: 500)
         Only used when gene_list is 'HV_genes' or 'LR_HV_genes'
     
-    Returns
-    -------
-    AnnData
-        Filtered AnnData object containing only the selected genes
+    Returns:
+        AnnData. Filtered AnnData object containing only the selected genes
     """
     import os
     adata.var_names_make_unique()
     
-    # Check if gene_list is a file path
+    ## Check if gene_list is a file path
     if isinstance(gene_list, str) and (gene_list.endswith('.csv') or os.path.exists(gene_list)):
-        # gene_list is a file path, read genes from file
         if not os.path.exists(gene_list):
             raise FileNotFoundError(f"Gene list file not found: {gene_list}")
         LRgenes = list(pd.read_csv(gene_list).iloc[:, 0])
         genes = LRgenes
     elif gene_list == 'LR_genes':
-        # Use default LR genes file based on species
+        ## Use default LR genes file based on species
         if species == 'human':
             file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'
         elif species == 'mouse':
@@ -354,7 +379,7 @@ def adata_LR(adata, gene_list='LR_genes', species='human', n_top_genes=500):
         _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=n_top_genes)
         genes = list(HVgenes)
     elif gene_list == 'LR_HV_genes':
-        # Use default LR genes file based on species
+        ## Use default LR genes file based on species
         if species == 'human':
             file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'
         elif species == 'mouse':
@@ -363,25 +388,27 @@ def adata_LR(adata, gene_list='LR_genes', species='human', n_top_genes=500):
             raise ValueError("species must be 'human' or 'mouse'.")
         LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
         _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=n_top_genes)
-        # Guarantee: Before LRgenes, HVgenes was removed.
+        ## Guarantee: Before LRgenes, HVgenes was removed.
         genes = LRgenes + [g for g in HVgenes if g not in LRgenes]
     else:
-        raise ValueError("gene_list must be 'LR_genes', 'HV_genes', 'LR_HV_genes', or a valid file path to a CSV file.")
+        raise ValueError("gene_list must be 'LR_genes','HV_genes','LR_HV_genes', or a CSV file file path.")
 
     gene_filter = [g for g in genes if g in adata.var_names]
     adata._inplace_subset_var(gene_filter)
     return adata
 
 
-def adata_preprocess(
-    adata, 
-    normalize=True, 
-    min_cells=10, 
-    target_sum=None, 
-    n_top_genes=None, 
-    species='human'
-):
-
+def adata_preprocess(adata, normalize=True, min_cells=10, 
+                     target_sum=None, n_top_genes=None, species='human'):
+    """
+    Preprocess the AnnData object.
+        adata : AnnData.
+        normalize : bool.
+        min_cells : int.
+        target_sum : int.
+        n_top_genes : int.
+        species : str.
+    """
     ## Set mitochondrial gene prefix
     prefix = 'MT-' if species == 'human' else 'mt-' if species == 'mouse' else None
     if prefix is None:
@@ -409,6 +436,13 @@ def adata_preprocess(
 
 
 def adata2matrix(adata, gene_hv):
+    """
+    Convert the AnnData object to a matrix.
+        adata : AnnData.
+        gene_hv : list.
+    Returns:
+        matrix : pd.DataFrame.
+    """
     ## Access the matrix and convert it to a dense matrix
     if isinstance(adata.X, np.ndarray):
         matrix = pd.DataFrame(adata.X)
@@ -423,7 +457,17 @@ def adata2matrix(adata, gene_hv):
 
 
 def sort_matrix(adata, position_image, spotID_order, gene_hv):
-
+    """
+    Sort the matrix based on the position_image and spotID_order.
+        adata : AnnData.
+        position_image : pd.DataFrame.
+        spotID_order : list.
+        gene_hv : list.
+    Returns:
+        matrix : pd.DataFrame.
+        matrix_order : np.array.
+        matrix_order_df : pd.DataFrame.
+    """
     ## Access the matrix and convert it to a dense matrix
     if isinstance(adata.X, np.ndarray):
         matrix = pd.DataFrame(adata.X)
@@ -582,6 +626,17 @@ def image_coord_merge(df, position, ST_class):
 
 def update_adata_coord(adata, matrix_order, position_image, 
                        spotID_order=None, gene_hv=None, dataset_class='Visium16'):
+    """
+    Update the AnnData object coordinates.
+        adata : AnnData.
+        matrix_order : pd.DataFrame.
+        position_image : pd.DataFrame.
+        spotID_order : list.
+        gene_hv : list.
+        dataset_class : str.
+    Returns:
+        AnnData. Updated AnnData object.
+    """
     if dataset_class in ['Visium16', 'Visium64']:
         adata.X = csr_matrix(matrix_order, dtype=np.float32)
         adata.obs_names = matrix_order.index    # order by image feature name 
@@ -609,6 +664,12 @@ def update_adata_coord(adata, matrix_order, position_image,
 
 
 def update_st_coord(position_image):
+    """
+    Update the spatial transcriptomics coordinates.
+        position_image : pd.DataFrame.
+    Returns:
+        pd.DataFrame. Updated spatial transcriptomics coordinates.
+    """
     position_order = pd.DataFrame({
         "pixel_y": position_image.loc[:, 'pixel_y'],
         "pixel_x": position_image.loc[:, 'pixel_x'],
@@ -619,11 +680,17 @@ def update_st_coord(position_image):
 
 
 def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=1):
-    '''
+    """
     Prepare impute_adata: Fill gene expression using nbs
-        adata_know: adata (original) 1331 × 596
-        adata_spot: all subspot 21296 × 596
-    '''
+        adata_know : AnnData. adata (original) 1331 × 596
+        adata_spot : AnnData. all subspot 21296 × 596
+        C2 : pd.DataFrame.
+        gene_hv : list.
+        dataset_class : str.
+        weight_exponent : int. (default is 1)
+    Returns:
+        AnnData. Imputed AnnData object.
+    """
     adata_know = adata.copy()
     adata_know.obs[["x", "y"]] = adata.obsm['spatial']
     sudo = pd.DataFrame(C2, columns=["x", "y"])
@@ -643,7 +710,7 @@ def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=
         k_nbs = 4
         split_num = 4
     else:
-        raise ValueError('Invalid dataset_class. Only "Visium16", "Visium64", "VisiumSC" and "VisiumHD" are supported.')
+        raise ValueError("Invalid dataset_class. Only support 'Visium16','Visium64','VisiumSC' or 'VisiumHD'.")
 
     ## Impute_adata
     start_time = time.time()
@@ -674,16 +741,15 @@ def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5, do_scale=False):
     """
     Combine inferred super-resolved gene expression data with imputed data, and optionally scale the result.
     Parameters:
-        adata_spot (sc.AnnData): Inferred super-resolved gene expression data with high resolution.
-        sudo_adata (sc.AnnData): Imputed data using k-nearest neighbors within spots.
-        gene_hv (list): List of highly variable genes.
-        w (float, optional): Weight for combining the two datasets. Defaults to 0.5.
-        do_scale (bool, optional): Whether to scale the combined data. Defaults to False.
+        adata_spot : sc.AnnData. Inferred super-resolved gene expression data with high resolution.
+        sudo_adata : sc.AnnData. Imputed data using k-nearest neighbors within spots.
+        gene_hv : list. List of highly variable genes.
+        w : float. Weight for combining the two datasets. (default is 0.5)
+        do_scale : bool. Whether to scale the combined data. (default is False)
     Returns:
-        sc.AnnData: Combined and optionally scaled AnnData object.
-        torch.Tensor: The combined data as a PyTorch tensor.
+        sc.AnnData. Combined and optionally scaled AnnData object.
+        torch.Tensor. The combined data as a PyTorch tensor.
     """
-
     ## Optionally scale the combined data
     if do_scale:
         weight_impt_data = w * scale(adata_spot.X) + (1 - w) * scale(sudo_adata.X)
@@ -704,7 +770,16 @@ def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5, do_scale=False):
 
 
 def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
-
+    """
+    Reshape the imputed data to an AnnData object.
+        adata : AnnData.
+        adata_impt_all_reshape : torch.Tensor or AnnData.
+        gene_hv : list.
+        spatial_loc_all : np.array.
+    Returns:
+        AnnData. Reshaped AnnData object.
+        torch.Tensor. The reshaped data as a PyTorch tensor.
+    """
     if isinstance(adata_impt_all_reshape, torch.Tensor):
         adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.numpy())
     elif isinstance(adata_impt_all_reshape, anndata.AnnData):
@@ -727,3 +802,53 @@ def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
         adata_impt_spot.uns['spatial'] = adata.uns['spatial']
 
     return adata_impt_spot
+
+
+################################################################
+# 2026.03.30. LLY add: Convert spatial mtx file to AnnData object
+################################################################
+def convert_mtx2adata(matrix_dir, spatial_dir):
+    """
+    Convert spatial mtx file to AnnData object.
+    Parameters:
+        matrix_dir : str. The path to the matrix file.
+        spatial_dir : str. The path to the spatial file.
+    Returns:
+        adata : AnnData. AnnData object containing the spatial coordinates of the spots.
+    """
+    adata = sc.read_10x_mtx(matrix_dir, var_names="gene_symbols", cache=True)
+
+    positions = pd.read_csv(os.path.join(spatial_dir,'tissue_positions_list.csv'), header=None)
+    positions.columns = [
+        "barcode", "in_tissue", "array_row", "array_col", "pxl_row_in_fullres", "pxl_col_in_fullres"
+    ]
+    positions = positions.set_index("barcode")
+    adata.obs = adata.obs.join(positions, how="left")
+
+    adata.obsm["spatial"] = adata.obs[["pxl_row_in_fullres", "pxl_col_in_fullres"]].values.astype(float)
+    
+    library_id = "library"
+    adata.uns["spatial"] = {}
+    adata.uns["spatial"][library_id] = {}
+    try:
+        img_path = os.path.join(spatial_dir, "tissue_hires_image.png")
+        if os.path.exists(img_path):
+            adata.uns["spatial"][library_id]["images"] = {"hires": img_path}
+        else:
+            adata.uns["spatial"][library_id]["images"] = {}
+        ## scalefactors
+        sf_path = os.path.join(spatial_dir, "scalefactors_json.json")
+        if os.path.exists(sf_path):
+            with open(sf_path) as f:
+                adata.uns["spatial"][library_id]["scalefactors"] = json.load(f)
+        else:
+            adata.uns["spatial"][library_id]["scalefactors"] = {}
+        ## spot
+        adata.uns["spatial"][library_id]["metadata"] = {
+            "source_image_path": img_path,
+            "tissue_positions_file": positions_path
+        }
+    except Exception as e:
+        print("Warning: fail to load spatial images/scalefactors.", e)
+    
+    return adata

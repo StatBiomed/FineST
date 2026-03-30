@@ -58,7 +58,7 @@ FineST package is available through `PyPI <https://pypi.org/project/FineST/>`_.
 
 .. To install, type the following command line and add ``-U`` for updates:
 
-.. code-block:: bash
+.. code-block:: text
 
    pip install -U FineST
 
@@ -92,7 +92,7 @@ ROI selection via Napair
 
 To analyze a specific region of interest (ROI), use `napari <https://github.com/napari/napari>`_ to select the region:
 
-.. code-block:: bash
+.. code-block:: python
 
    from PIL import Image
    Image.MAX_IMAGE_PIXELS = None
@@ -553,7 +553,7 @@ Citation
 
 If you use FineST (Accepted in principle by Nature Comm) in your research, please cite:
 
-.. code-block:: bash
+.. code-block:: text
 
    @misc{FineST,
       author={Li, Lingyu and Wang, Tianjie and Liang, Zhuo and Yu, Huajian and Ma, Stephanie and Yu, Lequan and Huang, Yuanhua},

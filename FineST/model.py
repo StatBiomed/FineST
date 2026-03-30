@@ -17,6 +17,18 @@ logging.getLogger().setLevel(logging.INFO)
 #############################
 def build_loaders(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_path, 
                   image_clacss='HIPT', dataset_class='Visium'):
+    """
+    Build loaders for training and testing.
+        batch_size : int. Batch size.
+        image_embed_path : str. Path to image embeddings.
+        spatial_pos_path : str. Path to spatial positions.
+        reduced_mtx_path : str. Path to reduced expression matrix.
+        image_clacss : str. Image class.
+        dataset_class : str. Dataset class.
+    Returns:
+        train_loader : DataLoader. Train loader.
+        test_loader : DataLoader. Test loader.
+    """
     setup_seed(666)
 
     ## set image_paths, according 'image_clacss'
@@ -67,6 +79,17 @@ def build_loaders(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_pa
 
 def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_path, 
                             image_clacss='HIPT', dataset_class='Visium'):
+    """
+    Build loaders for inference.
+        batch_size : int. Batch size.
+        image_embed_path : str. Path to image embeddings.
+        spatial_pos_path : str. Path to spatial positions.
+        reduced_mtx_path : str. Path to reduced expression matrix.
+        image_clacss : str. Image class.
+        dataset_class : str. Dataset class.
+    Returns:
+        all_dataset : DataLoader. Inference loader.
+    """
     setup_seed(666)
 
     ## set image_paths, according 'image_clacss'
@@ -109,6 +132,16 @@ def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, redu
 
 def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_path, 
                                      dataset_class='Visium16', file_paths_between_spot=None):
+    """
+    Build loaders for inference all image.
+        batch_size : int. Batch size.
+        file_paths_spot : str. Path to spot image embeddings.
+        spatial_pos_path : str. Path to spatial positions.
+        dataset_class : str. Dataset class.
+        file_paths_between_spot : str. Path to between spot image embeddings.
+    Returns:
+        all_dataset : DataLoader. Inference all image loader.
+    """
     setup_seed(666)
 
     if dataset_class == 'Visium16' or dataset_class == 'Visium64':
@@ -144,6 +177,13 @@ def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_pa
 ###############################################
 class DatasetCreat_istar(torch.utils.data.Dataset):
     def __init__(self, image_paths, spatial_pos_path, reduced_mtx_path, dataset_class):
+        """
+        Dataset creator for istar image embeddings.
+            image_paths : str. Path to image embeddings.
+            spatial_pos_path : str. Path to spatial positions.
+            reduced_mtx_path : str. Path to reduced expression matrix.
+            dataset_class : str. Dataset class.
+        """
         self.spatial_pos_csv = pd.read_csv(spatial_pos_path, sep=",", header=None)
         ## Load expression matrix:（Transport to: cell x features）
         ## if exits colnames and rownames，use 'allow_pickle=True'
@@ -185,6 +225,13 @@ class DatasetCreat_istar(torch.utils.data.Dataset):
 ###############################################
 class DatasetCreat(torch.utils.data.Dataset):
     def __init__(self, image_paths, spatial_pos_path, reduced_mtx_path, dataset_class):
+        """
+        Dataset creator for image embeddings.
+            image_paths : list. Paths to image embeddings.
+            spatial_pos_path : str. Path to spatial positions.
+            reduced_mtx_path : str. Path to reduced expression matrix.
+            dataset_class : str. Dataset class.
+        """
         self.spatial_pos_csv = pd.read_csv(spatial_pos_path, sep=",", header=None)
         ## Load expression matrix:（Transport to: cell x features）
         ## if exits colnames and rownames，use 'allow_pickle=True'
@@ -259,12 +306,20 @@ class DatasetCreat(torch.utils.data.Dataset):
 # CoSimLoss Loss： used
 ###############################
 def CoSimLoss(Y_hat: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the CoSimLoss.
+        Y_hat : torch.Tensor. Predicted data.
+        Y : torch.Tensor. True data.
+    Returns:
+        imp_loss : torch.Tensor. CoSimLoss.
+    """
     cos_by_col = nn.CosineSimilarity(dim=1)
     cos_by_row = nn.CosineSimilarity(dim=0)
     loss_col = (1 - cos_by_col(Y_hat, Y)).mean()
     loss_row = (1 - cos_by_row(Y_hat, Y)).mean()
     imp_loss = loss_col + loss_row
     return imp_loss
+
 
 #######################################
 # 2025.01.06  from Hist2ST
@@ -302,11 +357,13 @@ def CoSimLoss(Y_hat: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
 def ZINBLoss(y_true, y_pred_mean, y_pred_disp, y_pred_pi, eps=1e-10):
     """
     Compute the ZINB Loss.
-        y_true: Ground truth data.
-        y_pred_mean: \mu Predicted mean from the model.
-        y_pred_disp: \theta Dispersion parameter.
-        y_pred_pi: \pi Zero-inflation probability.
-        eps: Small constant to prevent log(0).
+        y_true: torch.Tensor. Ground truth data.
+        y_pred_mean: torch.Tensor. \mu Predicted mean from the model.
+        y_pred_disp: torch.Tensor. \theta Dispersion parameter.
+        y_pred_pi: torch.Tensor. \pi Zero-inflation probability.
+        eps: float. Small constant to prevent log(0).
+    Returns:
+        result : torch.Tensor. ZINB Loss.
     """
 
     ## Negative Binomial Loss
@@ -336,6 +393,14 @@ def ZINBLoss(y_true, y_pred_mean, y_pred_disp, y_pred_pi, eps=1e-10):
 # PearsonCorrelationLoss： v1
 ###############################
 def compute_pearson_corr(x, y, dim):
+    """
+    Compute the Pearson correlation loss.
+        x : torch.Tensor. Predicted data.
+        y : torch.Tensor. True data.
+        dim : int. Dimension.
+    Returns:
+        loss : torch.Tensor. Pearson correlation loss.
+    """
     x_mean = torch.mean(x, dim=dim, keepdim=True)
     y_mean = torch.mean(y, dim=dim, keepdim=True)
     x_std = torch.std(x, dim=dim, keepdim=True)
@@ -348,6 +413,13 @@ def compute_pearson_corr(x, y, dim):
     return torch.mean(loss)
 
 def PearsonCorrelationLoss(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the Pearson correlation loss.
+        x : torch.Tensor. Predicted data.
+        y : torch.Tensor. True data.
+    Returns:
+        combined_loss : torch.Tensor. Pearson correlation loss.
+    """
     ## Compute Pearson correlation loss along rows
     row_loss = compute_pearson_corr(x, y, dim=1)
     ## Compute Pearson correlation loss along columns
@@ -362,6 +434,15 @@ def PearsonCorrelationLoss(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 #####################################################################
 class ContrastiveLoss(nn.Module):
     def __init__(self, temperature=0.1, w1=1, w2=1, w3=1, w4=1, w5=1):
+        """
+        Contrastive loss.
+            temperature : float. Temperature.
+            w1 : float. Weight for contrast loss.
+            w2 : float. Weight for image loss.
+            w3 : float. Weight for matrix loss.
+            w4 : float. Weight for cross loss.
+            # w5 : float. Weight for ZINB loss. (not used)
+        """
         super(ContrastiveLoss, self).__init__()
         self.temperature = temperature
         self.w1 = w1

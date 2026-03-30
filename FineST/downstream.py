@@ -17,18 +17,13 @@ import requests
 #######################################
 def extract_LR(species, datahost='package'):
     """
-    Extract regulatory network data for mouse or human.
-    
+    Extract LR data for mouse or human.
+
     Parameters:
-        species (str): 'mouse' or 'human'
-        datahost (str): 'package' or 'web', where to load data from
-
+        species : str. 'mouse' or 'human'
+        datahost : str. 'package' or 'web', where to load data from
     Returns:
-        pd.DataFrame: The regulatory network DataFrame
-
-    Raises:
-        ValueError: If species is not supported
-        FileNotFoundError: If local file does not exist
+        LR_pair : pandas.DataFrame. The LR DataFrame
     """
     # Supported species and corresponding file names
     species_files = {'mouse': 'mouse-interaction_input_CellChatDB.csv', 'human': 'human-interaction_input_CellChatDB.csv'}
@@ -41,18 +36,18 @@ def extract_LR(species, datahost='package'):
     file_path = os.path.join(data_dir, file_name)
 
     if datahost == 'package':
-        # Load from local package
+        ## Load from local package
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"The file {file_path} does not exist!")
         LR_pair = pd.read_csv(file_path, index_col=0)
     else:
-        # Download from web
+        ## Download from web
         urls = {
             'mouse': 'https://figshare.com/ndownloader/files/36638916',
             'human': 'https://figshare.com/ndownloader/files/36638940'
         }
         url = urls[species]
-        # Download the file
+        ## Download the file
         response = requests.get(url)
         if response.status_code != 200:
             raise ConnectionError(f"Failed to download file from {url}")
@@ -62,24 +57,30 @@ def extract_LR(species, datahost='package'):
         try:
             LR_pair = pd.read_csv(file_path)
         finally:
-            # Ensure file is removed even if reading fails
+            ## Ensure file is removed even if reading fails
             os.remove(file_path)
     return LR_pair
 
 
 def topLRpairs(adata, spa_coexp_pair, num):
     """
-    Get the top ligand-receptor pairs based on the global intensity from adata.
+    Get the top LR pairs based on the global intensity from adata.
 
     Parameters:
-    adata (AnnData): The annotated data matrix.
-    num (int): The number of top pairs to return.
-
+        adata : AnnData. The annotated data matrix.
+        spa_coexp_pair : pandas.DataFrame. The spatial co-expression pairs.
+        num : int. The number of top pairs to return.
     Returns:
-    TopLRpair (numpy.ndarray): The top ligand-receptor pairs.
+        TopLRpair : numpy.ndarray. The top LR pairs.
     """
-    TopLRpair=adata.uns['ligand'].index[np.argsort(np.log1p(adata.uns['global_I']))[(spa_coexp_pair.shape[0]-num):spa_coexp_pair.shape[0]]].tolist()
-    
+    TopLRpair = (
+        adata.uns['ligand'].index[
+            np.argsort(np.log1p(adata.uns['global_I']))[
+                (spa_coexp_pair.shape[0] - num):spa_coexp_pair.shape[0]
+            ]
+        ].tolist()
+    )
+
     return TopLRpair
 
 
@@ -91,17 +92,13 @@ def extract_RegNetwork(species, datahost='package'):
     Extract regulatory network data for mouse or human.
     
     Parameters:
-        species (str): 'mouse' or 'human'
-        datahost (str): 'package' or 'web', where to load data from
+        species : str. 'mouse' or 'human'
+        datahost : str. 'package' or 'web', where to load data from
 
     Returns:
-        pd.DataFrame: The regulatory network DataFrame
-
-    Raises:
-        ValueError: If species is not supported
-        FileNotFoundError: If local file does not exist
+        regnetwork : pandas.DataFrame. The RegNetwork DataFrame
     """
-    # Supported species and corresponding file names
+    ## Supported species and corresponding file names
     species_files = {'mouse': 'Regnetwork_mouse.csv', 'human': 'Regnetwork_human.csv'}
 
     if species not in species_files:
@@ -112,18 +109,18 @@ def extract_RegNetwork(species, datahost='package'):
     file_path = os.path.join(data_dir, file_name)
 
     if datahost == 'package':
-        # Load from local package
+        ## Load from local package
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"The file {file_path} does not exist!")
         regnetwork = pd.read_csv(file_path)
     else:
-        # Download from web
+        ## Download from web
         urls = {
             'mouse': 'https://regnetworkweb.org/download/human.zip',
             'human': 'https://regnetworkweb.org/download/mouse.zip'
         }
         url = urls[species]
-        # Download the file
+        ## Download the file
         response = requests.get(url)
         if response.status_code != 200:
             raise ConnectionError(f"Failed to download file from {url}")
@@ -133,7 +130,7 @@ def extract_RegNetwork(species, datahost='package'):
         try:
             regnetwork = pd.read_csv(file_path)
         finally:
-            # Ensure file is removed even if reading fails
+            ## Ensure file is removed even if reading fails
             os.remove(file_path)
     return regnetwork
 
@@ -145,12 +142,12 @@ def extract_RegNetwork(species, datahost='package'):
 #######################################
 def extract_TF(species, datahost='package'):
     """
-    Find overlapping LRs from CellChatDB
+    Extract TF data for mouse or human.
     Parameters:
-    species: support 'human', 'mouse' and 'zebrafish'
-    datahost: the host of the ligand-receptor data. 
-                'builtin' for package built-in otherwise from figshare
-    Return: LR_TF (containing comprehensive info from CellChatDB) dataframe
+        species : str. 'human', 'mouse' and 'zebrafish'
+        datahost : str. 'package' or 'web', where to load data from
+    Returns:
+        LR_TF : pandas.DataFrame. The TF DataFrame
     """
     
     if datahost == 'package':
@@ -177,19 +174,19 @@ def extract_TF(species, datahost='package'):
         else:
             raise ValueError("species type: {} is not supported currently. Please have a check.".format(species))
         
-        # specify where to download the file
+        ## specify where to download the file
         # download_path = '/mnt/lingyu/nfs_share2/Python/FineST/FineST/FineST/datasets/TF_data/temp.rda'
         # download_path = './datasets/TF_data/'
         download_path = './FineST/datasets/TF_data/' + species + '-TF_PPR' + species + '.rda'
         
-        # download the file
+        ## download the file
         r = requests.get(url)
         with open(download_path, 'wb') as f:
             f.write(r.content)
 
         LR_TF = pyreadr.read_r(download_path)['TF_PPR' + species]
 
-        # remove the downloaded file after use
+        ## remove the downloaded file after use
         os.remove(download_path)
 
         # if species == 'mouse':
@@ -206,15 +203,15 @@ def extract_TF(species, datahost='package'):
 
 def top_pattern_LR2TF(tmp, ligand_list, receptor_list, top_num=20):
     """
-    Input DataFrame and two lists of ligands and receptors respectively, 
-    filter the DataFrame based on the lists and return the top rows sorted by 'value' column.
+    Get the top TF pairs based on the value from tmp.
+    Filter the DataFrame based on the lists and return the top rows sorted by 'value' column.
     Parameters:
-        tmp : a DataFrame to process
-        ligand_list : a list of ligands to filter on
-        receptor_list : a list of receptors to filter on
-        top_num : the number of top rows to return, defaults to 20
+        tmp : pandas.DataFrame. The DataFrame to process
+        ligand_list : list. The list of ligands to filter on
+        receptor_list : list. The list of receptors to filter on
+        top_num : int. The number of top rows to return, defaults to 20
     Returns:
-        tmp_df : a DataFrame after processing
+        subdf : pandas.DataFrame. The top TF pairs
     """
 
     #################################################
@@ -249,7 +246,21 @@ def top_pattern_LR2TF(tmp, ligand_list, receptor_list, top_num=20):
 # 2025.07.18 Add pattern_LR2TF2TG with unique adata  
 #####################################################
 def pattern_LR2TF2TG_unique(histology_results, pattern_num, adata, LR_database, R_TF_database, TF_TG_database):
-
+    """
+    Get the TF-TG pairs based on the value from histology_results.
+    Parameters:
+        histology_results : pandas.DataFrame. The DataFrame to process
+        pattern_num : int. The pattern number to filter on
+        adata : AnnData. The annotated data matrix. (not used)
+        LR_database : pandas.DataFrame. The LR database. (not used)
+        R_TF_database : pandas.DataFrame. The R-TF database.
+        TF_TG_database : pandas.DataFrame. The TF-TG database.
+    Returns:
+        histLRpattern : pandas.DataFrame. The LR pairs in each pattern
+        pattern_results : pandas.DataFrame. The pattern results
+        L_R_TF_pathway : pandas.DataFrame. The L-R-TF pairs
+        L_R_TF_TG_pathway : pandas.DataFrame. The L-R-TF-TG pairs
+    """
     ## RegNetwork 
     RegNetwork_unique = TF_TG_database
     if adata is not None:
@@ -313,13 +324,14 @@ def pattern_LR2TF2TG_unique(histology_results, pattern_num, adata, LR_database, 
 
 def pattern_LR2TF2TG(histology_results, pattern_num, R_TFdatabase, TF_TGdatabase):
     """
-    Input DataFrame, checks if column 'g' contains '_', then splits 'g' column into two new rows
+    Get the L-R-TF-TG pairs based on the value from histology_results.
     parameters:
-        histology_results : a DataFrame to process
-        pattern_num : the pattern number to filter on, defaults to 0
-        R_TFdatabase : the DataFrame containing receptor to TF mapping
+        histology_results : pandas.DataFrame. The DataFrame to process
+        pattern_num : int. The pattern number to filter on, defaults to 0
+        R_TFdatabase : pandas.DataFrame. The R-TF database.
+        TF_TGdatabase : pandas.DataFrame. The TF-TG database.
     Returns:
-        tmp : a DataFrame after processing
+        tmp : pandas.DataFrame. The L-R-TF-TG pairs
     """
     rows = []
 
@@ -371,11 +383,13 @@ def pattern_LR2TF2TG(histology_results, pattern_num, R_TFdatabase, TF_TGdatabase
 
 def pattern_LR2TF(histology_results, pattern_num, R_TFdatabase):
     """
-    Input DataFrame, checks if column 'g' contains two '_', then splits the 'g' column value into two rows
+    Get the L-R-TF pairs based on the value from histology_results.
     Parameters:
-        histology_results : a DataFrame to process
-        pattern_num : the pattern number to filter on, defaults to 0
-        R_TFdatabase : the DataFrame containing receptor to TF mapping
+        histology_results : pandas.DataFrame. The DataFrame to process
+        pattern_num : int. The pattern number to filter on, defaults to 0
+        R_TFdatabase : pandas.DataFrame. The R-TF database.
+    Returns:
+        tmp : pandas.DataFrame. The L-R-TF pairs
     """
     rows = []
 
@@ -432,9 +446,11 @@ def pattern_LR2TF(histology_results, pattern_num, R_TFdatabase):
 #######################################
 def LRpair_gene(df):
     """
-    The unique gene of sig LR pairs
-    Returns a DataFrame of unique elements from  'Ligand0', 'Ligand1', 'Receptor0', 
-    'Receptor1', and 'Receptor2' columns of the DataFrame where 'selected' is True.
+    Get the unique gene of significant LR pairs.
+    Parameters:
+        df : pandas.DataFrame. The DataFrame to process
+    Returns:
+        unique_elements_df : pandas.DataFrame. The unique gene of significant LR pairs
     """
     filtered_df = df[df['selected'] == True]
     unique_elements = set(filtered_df['Ligand0'].tolist() + 
@@ -472,7 +488,15 @@ def anno_LRpair(adata_impt_all):
 # 2024.11.11.Adjust code of SpatialDM
 #######################################
 def _Euclidean_to_RBF(X, l, singlecell):
-    """Convert Euclidean distance to RBF distance"""
+    """
+    Convert Euclidean distance to RBF distance.
+    Parameters:
+        X : scipy.sparse.csr_matrix. The Euclidean distance matrix.
+        l : float. The RBF kernel parameter.
+        singlecell : bool. Whether the data is single-cell resolution.
+    Returns:
+        rbf_d : scipy.sparse.csr_matrix. The RBF distance matrix.
+    """
     from scipy.sparse import issparse
     if issparse(X):
         rbf_d = X
@@ -514,8 +538,17 @@ def weight_matrix(adata_impt_all, l, cutoff, single_cell=False, n_nearest_neighb
 
     """
     Compute weight matrix based on radial basis kernel, more efficient than SpatialDM.
+    Parameters:
+        adata_impt_all : AnnData. The annotated data matrix.
+        l : float. The RBF kernel parameter.
+        cutoff : float. The cutoff value.
+        single_cell : bool. Whether the data is single-cell resolution.
+        n_nearest_neighbors : int. The number of nearest neighbors.
+    Returns:
+        adata_impt_all : AnnData. The annotated data matrix.
     cutoff & n_neighbors are two alternative options to restrict signaling range.
-    Paramwters:
+
+    Old - Parameters - Demonstration:
         l: radial basis kernel parameter, need to be customized for optimal weight gradient and \
             to restrain the range of signaling before downstream processing.
         cutoff: (for secreted signaling) minimum weight to be kept from the rbf weight matrix, and \
@@ -588,12 +621,20 @@ def pathway_analysis(adata=None,
                     groups=None, cut_off=None,  # LLY add
         interaction_ls=None, name=None, dic=None):
     """
-    Compute enriched pathways for a list of pairs or a dic of SpatialDE results.
+    Compute enriched pathways for a list of pairs or a dictionary of SpatialDE results.
     Parameters:
-        adata: spatialdm obj
-        ls: a list of LR interaction names for the enrichment analysis
-        path_name: str. For later recall adata.path_summary[path_name]
-        dic: a dic of SpatialDE results (See tutorial)
+        adata : spatialdm object
+        all_interactions : pandas.DataFrame. The all interactions.
+        groups : list. The groups to analyze.
+        cut_off : float. The cutoff value.
+        ls : list. A list of LR interaction names for the enrichment analysis
+        path_name : str. For later recall adata.path_summary[path_name]
+        dic : dictionary. A dictionary of SpatialDE results (See tutorial)
+    Returns:
+        result : pandas.DataFrame. The result of the enrichment analysis
+        pathway_res : pandas.DataFrame. The pathway results (selected)
+        result1 : pandas.DataFrame. The selected pathway results (selected)
+        result_pattern : pandas.DataFrame. The pattern results (selected)
     """
     if interaction_ls is not None:
         dic = {name: interaction_ls}
@@ -651,6 +692,3 @@ def pathway_analysis(adata=None,
     
     # return result, confusion_matrix, pathway_res, result1, result_pattern, result_pattern_mat
     return result, pathway_res, result1, result_pattern
-
-
-

@@ -59,6 +59,13 @@ from scipy.stats import wilcoxon
 # 2025.07.17 Update plot_pairs_dot using sender or receiver
 ###################################################
 def plt_util_invert_y(title, title_font_size=14, tick_font_size=14, ax=None):
+    """
+    Invert the y-axis of the plot.
+        title : str.
+        title_font_size : int.
+        tick_font_size : int.
+        ax : matplotlib.axes.Axes.
+    """
     if ax is None:
         ax = plt.gca()
     ax.set_xticks([])
@@ -69,6 +76,18 @@ def plt_util_invert_y(title, title_font_size=14, tick_font_size=14, ax=None):
 
 
 def quad_classification(sender, receiver, valid_mask):
+    """
+    Classify the sender and receiver into four categories.
+        sender : np.array.
+        receiver : np.array.
+        valid_mask : np.array.
+    Returns:
+        cond_both_low : np.array.
+        cond_sender_high : np.array.
+        cond_receiver_high : np.array.
+        cond_both_high : np.array.
+        cond_invalid : np.array.
+    """
     sender = np.asarray(sender)
     receiver = np.asarray(receiver)
     valid_mask = np.asarray(valid_mask, dtype=bool)
@@ -97,7 +116,30 @@ import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
 def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r,
                                  marker, marker_size, edgecolors, title_font_size=16, tick_font_size=16,
-                                 scale=True, mtx_sender=None, mtx_receiver=None, mask=None, mode='colorbar', **kwargs):
+                                 scale=True, mtx_sender=None, mtx_receiver=None, mask=None, mode='colorbar', 
+                                 **kwargs):
+    """
+    Plot the selected pair dot class.
+        sample : AnnData.
+        pair : str.
+        spots : np.array.
+        selected_ind : list.
+        figsize : tuple.
+        cmap : str.
+        cmap_l : str.
+        cmap_r : str.
+        marker : str.
+        marker_size : int.
+        edgecolors : str.
+        title_font_size : int.
+        tick_font_size : int.
+        scale : bool.
+        mtx_sender : pd.DataFrame.
+        mtx_receiver : pd.DataFrame.
+        mask : pd.DataFrame.
+        mode : str.
+        **kwargs : dict.
+    """
     print('3 sub-plot: figsize=(32, 8)')
     print('4 sub-plot: figsize=(44, 8)')
     print('4 sub-plot: figsize=(55, 8)')
@@ -127,7 +169,13 @@ def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cma
         sender = mtx_sender.loc[pair]
         receiver = mtx_receiver.loc[pair]
         valid_mask = mask.loc[pair].astype(bool).values
-        cond_both_low, cond_sender_high, cond_receiver_high, cond_both_high, cond_invalid = quad_classification(sender.values, receiver.values, valid_mask)
+
+        (cond_both_low, cond_sender_high, cond_receiver_high, 
+        cond_both_high, cond_invalid) = quad_classification(
+            sender.values, 
+            receiver.values, 
+            valid_mask
+        )
 
         color_dict = {
             'both_low': '#e0e0e0',         # Light Gray
@@ -140,21 +188,30 @@ def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cma
         }
         
         plt.scatter(spatial_loc[cond_both_low, 0], spatial_loc[cond_both_low, 1],
-                    c=color_dict['both_low'], label='Both low', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+                    c=color_dict['both_low'], label='Both low', marker=marker, s=marker_size, 
+                    edgecolors=edgecolors, linewidths=1)
         plt.scatter(spatial_loc[cond_sender_high, 0], spatial_loc[cond_sender_high, 1],
-                    c=color_dict['sender_high'], label=f'{L[0]}_high', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+                    c=color_dict['sender_high'], label=f'{L[0]}_high', marker=marker, s=marker_size, 
+                    edgecolors=edgecolors, linewidths=1)
         plt.scatter(spatial_loc[cond_receiver_high, 0], spatial_loc[cond_receiver_high, 1],
-                    c=color_dict['receiver_high'], label=f'{R[0]}_High', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+                    c=color_dict['receiver_high'], label=f'{R[0]}_High', marker=marker, s=marker_size, 
+                    edgecolors=edgecolors, linewidths=1)
         plt.scatter(spatial_loc[cond_both_high, 0], spatial_loc[cond_both_high, 1],
-                    c=color_dict['both_high'], label='Both high', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+                    c=color_dict['both_high'], label='Both high', marker=marker, s=marker_size, 
+                    edgecolors=edgecolors, linewidths=1)
         plt.scatter(spatial_loc[cond_invalid, 0], spatial_loc[cond_invalid, 1],
-                    c=color_dict['invalid'], label='Not significant', marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+                    c=color_dict['invalid'], label='Not significant', marker=marker, s=marker_size, 
+                    edgecolors=edgecolors, linewidths=1)
         ## Legend
         legend_handles = [
-            mlines.Line2D([], [], color=color_dict['both_low'], marker='o', linestyle='None', markersize=10, label='Both low'),
-            mlines.Line2D([], [], color=color_dict['sender_high'], marker='o', linestyle='None', markersize=10, label='Sender high'),
-            mlines.Line2D([], [], color=color_dict['receiver_high'], marker='o', linestyle='None', markersize=10, label='Receiver high'),
-            mlines.Line2D([], [], color=color_dict['both_high'], marker='o', linestyle='None', markersize=10, label='Both high'),
+            mlines.Line2D([], [], color=color_dict['both_low'], marker='o', linestyle='None', 
+            markersize=10, label='Both low'),
+            mlines.Line2D([], [], color=color_dict['sender_high'], marker='o', linestyle='None', 
+            markersize=10, label='Sender high'),
+            mlines.Line2D([], [], color=color_dict['receiver_high'], marker='o', linestyle='None', 
+            markersize=10, label='Receiver high'),
+            mlines.Line2D([], [], color=color_dict['both_high'], marker='o', linestyle='None', 
+            markersize=10, label='Both high'),
         ]
         ax0.legend(handles=legend_handles, title='Exp', bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         
@@ -203,7 +260,14 @@ def plot_pairs_dot_class(sample, pairs_to_plot, SCS='p_value', mode=None, pdf=No
                         cmap='Greens', cmap_l='Spectral_r', cmap_r='Spectral_r',   
                         # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', 
                         marker='o', marker_size=5, edgecolors='lightgrey', **kwargs):
-
+    
+    """
+    Plot the pairs dot class.
+        sample : AnnData.
+        pairs_to_plot : list.
+        SCS : str.
+        mode : str.
+    """
     if sample.uns['local_stat']['local_method'] == 'z-score':
         selected_ind = sample.uns['local_z_p'].index
         spots = 1 - sample.uns['local_z_p']
@@ -264,15 +328,13 @@ def plot_pairs_dot_class(sample, pairs_to_plot, SCS='p_value', mode=None, pdf=No
             plt.close()
 
 
-
 ###################################################
 # 2025.03.06 plot violin of 3 methods
 ###################################################
 def plot_half_violin(method1_df, method2_df, method3_df, variable_name, value_property, property='PCC', 
                      fig_size=(2, 3.5), font_size=14, save_path=None):
-    '''
+    """
     Plot half-box half-violin with p-value of wilcoxon_test or PCC
-    Parameters: 
         method1_df, method2_df, method3_df: DataFrame with 1-col named 'Unnamed: 0' 2-col named 'others', 
         e.g.: method1_df:
             #######################
@@ -280,15 +342,15 @@ def plot_half_violin(method1_df, method2_df, method3_df, variable_name, value_pr
             0       tumor  0.528174
             1           B  0.180316
             #######################
-        variable_name: list of variable names to plot, 2-col name for three methods
-        value_property: the column name of the values to plot, for example: Proportation, or JSE, RMSE
-        property: 'PCC' for Pearson correlation coefficient or 'wilcoxon_test' for Wilcoxon test p-value
-    '''
-    # Merge DataFrames on their index
+        variable_name : list. List of variable names to plot, 2-col name for three methods
+        value_property : str. The column name of the values to plot, for example: Proportation, or JSE, RMSE
+        property : str. 'PCC' for Pearson correlation coefficient or 'wilcoxon_test' for Wilcoxon test p-value
+    """
+    ## Merge DataFrames on their index
     df = pd.merge(method1_df, method2_df, left_index=True, right_index=True)
     df = pd.merge(df, method3_df, left_index=True, right_index=True)
 
-    # Reshape the DataFrame for plotting
+    ## Reshape the DataFrame for plotting
     df_melt = pd.melt(df.reset_index(), id_vars='index', value_vars=variable_name, 
                       var_name='Method', value_name=value_property)
 
@@ -386,13 +448,11 @@ def celltype_proportion(data, ctype_hex_map,
             bottom += sizes
 
     plt.xticks(rotation=25)
-
     ax2 = ax.twiny()
     ax2.set_xticks([0.2, 0.5, 0.8])
     ax2.set_xticklabels(['Reference', 'Visium', 'FineST'])
     plt.xticks(rotation=25)
     ax.legend(loc='upper left', bbox_to_anchor=(1,1))
-
     ax.tick_params(axis='x', labelsize=font_size)  
     ax2.tick_params(axis='x', labelsize=font_size) 
     ax.tick_params(axis='y', labelsize=font_size)  
@@ -413,6 +473,10 @@ def MoranR_colocalization(st_adata_cltp2, cmap, cell_type=None, linewidth=0.5, l
     Plot clustermap.
     Parameters:
         st_adata_cltp2: AnnData, The annotated data matrix containing spatial transcriptomics data.
+        cmap : str. Color map.
+        cell_type : str. Cell type.
+        linewidth : float. Line width.
+        linecolor : str. Line color.t.
     """
     print("*** Calculate Moren_R using SpatialDM ***")
     ## calculate MorenR
@@ -450,12 +514,17 @@ def MoranR_colocalization(st_adata_cltp2, cmap, cell_type=None, linewidth=0.5, l
 
     return correlation_matrix2
 
+
 #######################################
 # 2024.02.11 Add LR global Moran R plot
 #######################################
 def LR_global_moranR(adata_impt_all_spot, pairs, fig_size=(6, 6), font_size=12,
                      trans=False, format='svg', save_path=None): 
-    # Select P value
+    """
+    Plot LR global Moran R plot
+        adata_impt_all_spot : AnnData.
+        pairs : list.
+    """
     if adata_impt_all_spot.uns['global_stat']['method'] == 'permutation':
         p = 'perm_pval'
     elif adata_impt_all_spot.uns['global_stat']['method'] == 'z-score':
@@ -523,6 +592,11 @@ def LR_global_moranR(adata_impt_all_spot, pairs, fig_size=(6, 6), font_size=12,
 # using aver_expr as x, y coords
 #######################################
 def select_pairs(adata_impt_all_spot, pairs, fig_size=(6, 6)):
+    """
+    Plot LR global Moran R plot using aver_expr as x, y coords
+        adata_impt_all_spot : AnnData.
+        pairs : list.
+    """
     ## Select P value
     if adata_impt_all_spot.uns['global_stat']['method'] == 'permutation':
         p = 'perm_pval'
@@ -560,13 +634,16 @@ def select_pairs(adata_impt_all_spot, pairs, fig_size=(6, 6)):
     plt.tight_layout()
     plt.show()
 
+
 #######################################
 # 2024.02.11 Add LR interaction plot
 #######################################
 def LR_local_moranR(adata_LRpair, pair, fig_size=(12, 6), trans=False, format='svg', save_path=None):
-    '''
-    adata_LRpair: _adata_pattern_all_spot.h5ad from CCC 
-    '''
+    """
+    Plot LR local Moran R plot
+        adata_LRpair : AnnData.
+        pair : str.
+    """
     loczp = adata_LRpair.uns["local_z_p"]
     pair_data = 1 - loczp.loc[pair]
     non_zero_mean = pair_data[pair_data != 0].mean()
@@ -609,7 +686,7 @@ def global_plot(sample, pairs=None, figsize=(3,4), loc=2, max_step=0.1, min_step
     """
     overview of global selected pairs for a SpatialDM obj
     parameters: 
-        sample: AnnData object
+        sample: AnnData.
         pairs: list of pairs to be highlighted, e.g. ['SPP1_CD44']
         figsize: default to (3,4)
         loc=2: left-up; 4: right-down; 5: right 
@@ -649,11 +726,13 @@ def global_plot(sample, pairs=None, figsize=(3,4), loc=2, max_step=0.1, min_step
 
 
 def generate_colormap(number_of_distinct_colors, number_of_shades=7):
-    '''
+    """
     Ref: https://stackoverflow.com/questions/42697933/colormap-with-maximum-distinguishable-colours
-    parameters: number_of_distinct_colors, number_of_shades:
-    return: n distinct colors
-    '''
+    parameters: number_of_distinct_colors : int. Number of distinct colors.
+        number_of_shades : int. Number of shades.
+    Returns:
+        n distinct colors
+    """
     number_of_distinct_colors_with_multiply_of_shades = int(
         math.ceil(number_of_distinct_colors / number_of_shades) * number_of_shades
     )
@@ -700,9 +779,17 @@ def generate_colormap(number_of_distinct_colors, number_of_shades=7):
 
 
 def ssim_hist(visium_adata, pixel_adata, locs, method='Method', scale=True, 
-                           max_step=0.1, min_step=0.01,
-                           fig_size=(5, 4), trans=False, format='svg', label_fontsize=14,
-                           save_path=None):
+              max_step=0.1, min_step=0.01,
+              fig_size=(5, 4), trans=False, format='svg', label_fontsize=14,
+              save_path=None):
+    """
+    Plot SSIM histogram
+        visium_adata : AnnData.
+        pixel_adata : AnnData.
+        locs : list.
+        method : str. Method.
+        scale : bool. Scale.
+    """
     genes = visium_adata.columns
     ssim_dict = {}
 
@@ -735,13 +822,29 @@ def ssim_hist(visium_adata, pixel_adata, locs, method='Method', scale=True,
 
 
 def cor_hist(adata, adata_df_infer, max_step=0.1, min_step=0.01,
-             fig_size=(5, 4), trans=False, format='svg', save_path=None, label_fontsize=14, tick_fontsize=12):
+             fig_size=(5, 4), trans=False, format='svg', label_fontsize=14, tick_fontsize=12, 
+             save_path=None):
+    """
+    Plot Pearson correlation histogram
+        adata : AnnData.
+        adata_df_infer : AnnData.
+        max_step : float. Max step.
+        min_step : float. Min step.
+        fig_size : tuple. Figure size.
+    """
     ## Check if input is AnnData or DataFrame and handle accordingly
     if isinstance(adata, pd.DataFrame):
-        pearson_correlations = [stats.pearsonr(adata[col].values, adata_df_infer[col].values)[0] for col in adata.columns]
+        pearson_correlations = [
+            stats.pearsonr(adata[col].values, adata_df_infer[col].values)[0]
+            for col in adata.columns
+        ]
     else:
-        pearson_correlations = [stats.pearsonr(adata.to_df()[col].values, adata_df_infer[col].values)[0] for col in adata.to_df().columns]
+        pearson_correlations = [
+            stats.pearsonr(adata.to_df()[col].values, adata_df_infer[col].values)[0]
+            for col in adata.to_df().columns
+        ]
     print('Pearson correlations: ', np.mean(pearson_correlations))
+
 
     fig = plt.figure(figsize=fig_size)
     ax = sns.histplot(data=pearson_correlations, bins=30, kde=True)
@@ -757,11 +860,17 @@ def cor_hist(adata, adata_df_infer, max_step=0.1, min_step=0.01,
         plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
     plt.show()
 
+
 #################################################
 # 2025.01.28: plot the propotion of TransDeconv 
 #################################################
-def plot_stackedbar_p(df, labels, colors, title, subtitle, 
-                      fig_size=(18, 4), trans=False, format='pdf', save_path=None):
+def plot_stackedbar_p(df, labels, colors,  fig_size=(18, 4), trans=False, format='pdf', save_path=None):
+    """
+    Plot stacked bar plot
+        df : DataFrame.
+        labels : list.
+        colors : list.
+    """
     fields = labels
 
     sns.set(style="white", context="paper", font_scale=1.0) 
@@ -824,18 +933,19 @@ def NucleiMap(adata, coords, annotation_list, size=0.8, alpha_img=0.3, lw=1,
               show_square=False, show_circle=False, legend=True, ax=None, **kwargs):
     """
     Plot cells with spatial coordinates.
-    Parameters:
-        adata : AnnData, Annotated data matrix.
-        annotation_list : list, List of annotations to color the plot.
-        size : float, optional, Size of the spots, by default 0.8.
-        alpha_img : float, optional, Alpha value for the background image, by default 0.3.
-        lw : int, optional, Line width for the square around spots, by default 1.
-        subset : list, optional, Subset of annotations to plot, by default None.
-        palette : str, optional, Color palette, by default 'tab20'.
-        show_square : bool, optional, Whether to show squares around spots, by default True.
-        legend : bool, optional, Whether to show the legend, by default True.
-        ax : matplotlib.axes.Axes, optional, Axes object to draw the plot onto, by default None.
-        kwargs : dict, Additional keyword arguments for sc.pl.spatial.
+    Parameters: 
+        adata : AnnData. Annotated data matrix.
+        coords : list. List of coordinates.
+        annotation_list : list. List of annotations to color the plot.
+        size : float. Size of the spots.
+        alpha_img : float. Alpha value for the background image.
+        lw : int. Line width for the square around spots.
+        subset : list. Subset of annotations to plot.
+        palette : str. Color palette.
+        show_square : bool. Whether to show squares around spots.
+        legend : bool. Whether to show the legend.
+        ax : matplotlib.axes.Axes. Axes object to draw the plot onto, default is None.
+        kwargs : dict. Additional keyword arguments for sc.pl.spatial, default is None.
     """
     ## Prepare data
     merged_df = adata.uns['cell_locations'].copy()
@@ -924,6 +1034,11 @@ def NucleiMap(adata, coords, annotation_list, size=0.8, alpha_img=0.3, lw=1,
 # 2024.12.06 add PCC calculate: 
 #################################################
 def PCC(shared_visium_df, shared_xenium_df):
+    """
+    Calculate Pearson correlation coefficient and p-value for each column
+        shared_visium_df : DataFrame.
+        shared_xenium_df : DataFrame.
+    """
     ## Calculate Pearson correlation coefficient and p-value for each column
     columns_corr = []
     columns_p_value = []
@@ -950,10 +1065,17 @@ def PCC(shared_visium_df, shared_xenium_df):
 
     return columns_result_df, rows_result_df
 
+
 #################################################
 # 2024.12.06 add PCC plot: 
 #################################################
 def compute_jsd_between_matrices(matrix1, matrix2, axis=0):
+    """
+    Compute Jensen-Shannon divergence between two matrices
+        matrix1 : numpy array.
+        matrix2 : numpy array.
+        axis : int. Axis.
+    """
     probabilities1 = matrix1 / np.sum(matrix1, axis=axis, keepdims=True)
     probabilities2 = matrix2 / np.sum(matrix2, axis=axis, keepdims=True)
     jsd = np.zeros(matrix1.shape[1 - axis])
@@ -963,15 +1085,32 @@ def compute_jsd_between_matrices(matrix1, matrix2, axis=0):
         jsd[i] = jensenshannon(p, q)
     return jsd
 
+
 def rmse(y_pred, y_mean_pred):
+    """
+    Compute Root Mean Squared Error
+        y_pred : numpy array.
+        y_mean_pred : numpy array.
+    """
     mse = ((y_mean_pred - y_pred)**2).mean()
     return mse**0.5
 
 
-def plot_PCC_revised(df1, df2, column_name, x_label, y_label, gene_set=None, title=None, 
-                             max_step=0.2, min_step=0.1, fig_size=(6, 5), mark=False,
-                             trans=False, format='pdf', save_path=None):
-    
+def plot_PCC_revised(df1, df2, column_name, x_label, y_label, gene_set=None,
+                     max_step=0.2, min_step=0.1, fig_size=(6, 5), mark=False,
+                     trans=False, format='pdf', save_path=None):
+    """
+    Plot Pearson correlation plot
+        df1 : DataFrame.
+        df2 : DataFrame.
+        column_name : str. Column name.
+        x_label : str. X label.
+        y_label : str. Y label.
+        gene_set : list. Gene set.
+        max_step : float. Max step.
+        min_step : float. Min step.
+    """
+    ## Merge DataFrames on their index
     merged_df = pd.merge(df1, df2, on=column_name)
     merged_df = merged_df[np.isfinite(merged_df[x_label]) & np.isfinite(merged_df[y_label])]
     print("merged_df:", merged_df.shape)
@@ -1019,7 +1158,7 @@ def plot_PCC_revised(df1, df2, column_name, x_label, y_label, gene_set=None, tit
     x_hist.set_xlabel("")
     y_hist.set_ylabel("")
     
-    # Adjust the font size of the tick labels
+    ## Adjust the font size of the tick labels
     x_hist.tick_params(axis='both', which='major', labelsize=12)
     # x_hist.tick_params(axis='both', which='minor', labelsize=10)
     y_hist.tick_params(axis='both', which='major', labelsize=12)
@@ -1061,10 +1200,19 @@ def plot_PCC_revised(df1, df2, column_name, x_label, y_label, gene_set=None, tit
     plt.show
 
 
-def plot_SSIM_revised(df1, df2, column_name, x_label, y_label, gene_set=None, title=None,
+def plot_SSIM_revised(df1, df2, column_name, x_label, y_label, gene_set=None, 
                       max_step=0.1, min_step=0.1, fig_size=(6, 5), 
                       trans=False, format='pdf', save_path=None):
-    
+    """
+    Plot SSIM plot
+        df1 : DataFrame.
+        df2 : DataFrame.
+        column_name : str. Column name.
+        x_label : str. X label.
+        y_label : str. Y label.
+        gene_set : list. Gene set.
+    """
+    ## Merge DataFrames on their index
     merged_df = pd.merge(df1, df2, on=column_name)
     merged_df = merged_df[np.isfinite(merged_df[x_label]) & np.isfinite(merged_df[y_label])]
     print("merged_df:", merged_df.shape)
@@ -1154,7 +1302,6 @@ def sankey_LR2TF2TG(subdf, width=600, height=400, title='Pattern 0', alpha_color
     Create Sankey diagram from ligand-receptor-TF data.
     Parameters:
         subdf: a DataFrame with 'Ligand_symbol', 'Receptor_symbol', 'TF' and 'value' columns
-        save_path: the path to save the SVG file
     """
     ## Create lists of unique node labels and their indices
     node_label = list(set(subdf['Ligand_symbol'].tolist() + 
@@ -1282,7 +1429,6 @@ def sankey_LR2TF(subdf, width=600, height=400, title='Pattern 0', save_path=None
     Create a Sankey diagram from ligand-receptor-TF data.
     Parameters:
         subdf: a DataFrame with 'Ligand_symbol', 'Receptor_symbol', 'TF' and 'value' columns
-        save_path: the path to save the SVG file
     """
     ## Create lists of unique node labels and their indices
     node_label = list(set(subdf['Ligand_symbol'].tolist() + subdf['Receptor_symbol'].tolist() + subdf['TF'].tolist()))
@@ -1374,7 +1520,15 @@ def sankey_LR2TF(subdf, width=600, height=400, title='Pattern 0', save_path=None
 def plot_time_bars(time, bar_height=0.25, fig_size=(5, 4),
                    inter_value_l=40, inter_value_r=90, end=180,
                    trans=False, format='pdf', save_path=None):
-
+    """
+    Plot time bars
+        time : DataFrame.
+        bar_height : float. Bar height.
+        fig_size : tuple. Figure size.
+        inter_value_l : int. Inter value left.
+        inter_value_r : int. Inter value right.
+        end : int. End.
+    """
     ## Set position of bar on Y axis
     r = [np.arange(len(time)) + i*bar_height for i in range(len(time.columns[1:]))]
 
@@ -1418,10 +1572,10 @@ def plot_time_bars(time, bar_height=0.25, fig_size=(5, 4),
 def compute_pathway(sample=None, all_interactions=None, interaction_ls=None, name=None, dic=None):
     """
     Compute enriched pathways for a list of pairs or a dic of SpatialDE results.
-    :param sample: spatialdm obj
-    :param ls: a list of LR interaction names for the enrichment analysis
-    :param path_name: str. For later recall sample.path_summary[path_name]
-    :param dic: a dic of SpatialDE results (See tutorial)
+        sample : AnnData. SpatialDM object.
+        interaction_ls : list. List of LR interaction names for the enrichment analysis.
+        name : str. For later recall sample.path_summary[path_name].
+        dic : dict. Dictionary of SpatialDE results (See tutorial).
     """
     if interaction_ls is not None:
         dic = {name: interaction_ls}
@@ -1457,10 +1611,20 @@ def compute_pathway(sample=None, all_interactions=None, interaction_ls=None, nam
 
 
 def dot(pathway_res, figsize, markersize, pdf, step=4):
+    """
+    Plot dot plot
+        pathway_res : DataFrame.
+        figsize : tuple. Figure size.
+        markersize : float. Markersize.
+        pdf : PDF. PDF object.
+        step : int. Step.
+    """
+    ## Create figure and legend grid spec
     for i, name in enumerate(pathway_res.name.unique()):
         fig, legend_gs = make_grid_spec(figsize,
                                         nrows=2, ncols=1,
                                         height_ratios=(4, 1))
+        ## Add dot plot
         dotplot = fig.add_subplot(legend_gs[0])
         result1 = pathway_res.loc[pathway_res.name == name]
         result1 = result1.sort_values('selected', ascending=False)
@@ -1473,8 +1637,8 @@ def dot(pathway_res, figsize, markersize, pdf, step=4):
         dotplot.set_xlabel('Number of pairs')
         # dotplot.set_xticks(np.arange(0, max(result1.selected.values) + 2))
 
-        # Set the x-axis tick positions and labels
-        # Display a label every 2 ticks
+        ## Set the x-axis tick positions and labels
+        ## Display a label every 2 ticks
         xticks_positions = np.arange(0, max(result1.selected.values) + 2, step)  
         dotplot.set_xticks(xticks_positions)
         dotplot.set_xticklabels(xticks_positions)
@@ -1485,7 +1649,7 @@ def dot(pathway_res, figsize, markersize, pdf, step=4):
         #                 dotplot.tight_layout()
         plt.gcf().set_dpi(150)
 
-        # plot size bar
+        ## Plot size bar
         size_uniq = np.quantile(size, np.arange(1, 0, -0.1))
         value_uniq = np.quantile(value, np.arange(1, 0, -0.1))
         size_range = value_uniq
@@ -1505,12 +1669,12 @@ def dot(pathway_res, figsize, markersize, pdf, step=4):
         size_legend_ax.set_xticklabels(np.round(np.exp(-value_uniq), 3),
                                        rotation=60, fontsize='small')
 
-        # remove y ticks and labels
+        ## Remove y ticks and labels
         size_legend_ax.tick_params(
             axis='y', left=False, labelleft=False, labelright=False
         )
 
-        # remove surrounding lines
+        ## Remove surrounding lines
         size_legend_ax.spines['right'].set_visible(False)
         size_legend_ax.spines['top'].set_visible(False)
         size_legend_ax.spines['left'].set_visible(False)
@@ -1526,15 +1690,19 @@ def dot(pathway_res, figsize, markersize, pdf, step=4):
             pdf.savefig()
 
 
-def make_grid_spec(
-    ax_or_figsize,
-    nrows: int,
-    ncols: int,
-    wspace= None,
-    hspace = None,
-    width_ratios = None,
-    height_ratios= None,
-):
+def make_grid_spec(ax_or_figsize, nrows: int, ncols: int, wspace= None, hspace = None,
+                   width_ratios = None, height_ratios= None):
+    """
+    Make grid spec
+        ax_or_figsize : tuple. Figure size.
+        nrows : int. Number of rows.
+        ncols : int. Number of columns.
+        wspace : float. Width space.
+        hspace : float. Height space.
+        width_ratios : list. Width ratios.
+        height_ratios : list. Height ratios.
+    """
+    ## Create dictionary of keyword arguments
     kw = dict(
         wspace=wspace,
         hspace=hspace,
@@ -1559,19 +1727,16 @@ def make_grid_spec(
 def dot_path(adata, uns_key=None, dic=None, num_cutoff=1, p_cutoff=None, 
              groups=None, markersize=50, step=4, figsize=(6, 8), pdf=None, **kwargs):
     """
-    Either input a dict containing lists of interactions, or specify a dict key in adata.uns
-    :param adata: AnnData object.
-    :param uns_key: a dict key in adata.uns
-    :param dic: a dict containing 1 or more list(s) of interactions
-    :param num_cutoff: Minimum number of spots to be plotted.
-    :param p_cutoff: p-value cutoff for filtering interactions.
-    :param groups: subgroups from all dict keys.
-    :param markersize: Size of the markers in the plot.
-    :param step: Step size for plotting.
-    :param figsize: Size of the figure.
-    :param pdf: Export PDF under your current directory.
-    :param kwargs: Additional keyword arguments.
-    :return: None
+    Either input a dict containing lists of interactions, or specify a dict key in adata.uns.
+    Parameters:
+        adata : AnnData. Annotated data matrix.
+        uns_key : str. Dict key in adata.uns.
+        dic : dict. Dictionary containing 1 or more list(s) of interactions.
+        num_cutoff : int. Minimum number of spots to be plotted.
+        p_cutoff : float. p-value cutoff for filtering interactions.
+        groups : list. Subgroups from all dict keys.
+        markersize : float. Size of the markers in the plot.
+        step : int. Step size for plotting.
     """
     if uns_key is not None:
         dic = {uns_key: adata.uns[uns_key]}
@@ -1601,6 +1766,13 @@ def dot_path(adata, uns_key=None, dic=None, num_cutoff=1, p_cutoff=None,
 #################################################
 def plot_conf_mat(result_pattern_all, pattern_name='Pattern_0', pathway_name='WNT', 
                   font=14, save_path=None):
+    """
+    Plot confusion matrix
+        result_pattern_all : DataFrame.
+        pattern_name : str. Pattern name.
+        pathway_name : str. Pathway name.
+    """
+    ## Get result pattern
     result_pattern = result_pattern_all[result_pattern_all['name'] == pattern_name]
 
     confusion_matrix = np.array([
@@ -1646,6 +1818,16 @@ def plot_conf_mat(result_pattern_all, pattern_name='Pattern_0', pathway_name='WN
 ###################################
 def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, marker='s', s=10,
                        figsize=(21,5), trans=False, format='pdf', save_path=None):
+    """
+    Plot spatialDM clusters
+        histology_results : DataFrame.
+        patterns : DataFrame. Patterns.
+        spatialxy : numpy array. Spatial coordinates.
+        w : int. Number of columns.
+        marker : str. Marker.
+        s : int. Size.
+    """
+    ## Create figure
     plt.figure(figsize=figsize)
     for i in range(w):
         plt.subplot(1, w, i + 1)
@@ -1674,7 +1856,16 @@ def spatialDE_clusters(histology_results, patterns, spatialxy, w=None, marker='s
 # 2024.11.12 adjust for sparseAEH
 ###################################
 def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=5, marker='s', resolution=None,
-                       trans=False, format='pdf', save_path=None):
+                       trans=False, format='pdf', save_path=None):  
+    """
+    Plot sparseAEH clusters
+        gaussian_subspot : GaussianSubspot. Gaussian subspot.
+        label : str. Label.
+        w : int. Number of columns.
+        s : int. Size.
+        marker : str. Marker.
+        resolution : float. Resolution.
+    """
     k = gaussian_subspot.K
     h = np.ceil(k / w).astype(int)  # Calculate the number of rows
     
@@ -1727,6 +1918,23 @@ def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=5, marker='s'
 def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r,
                            marker, marker_size, edgecolors, title_font_size=16, tick_font_size=16,
                            scale=True, **kwargs):
+    """
+    Plot selected pair dot
+        sample : AnnData. Annotated data matrix.
+        pair : str. Pair.
+        spots : DataFrame. Spots.
+        selected_ind : list. Selected indices.
+        figsize : tuple. Figure size.
+        cmap : str. Colormap.
+        cmap_l : str. Colormap for ligand.
+        cmap_r : str. Colormap for receptor.
+        marker : str. Marker.
+        marker_size : float. Marker size.
+        edgecolors : str. Edge colors.
+        title_font_size : int. Title font size.
+        tick_font_size : int. Tick font size.
+        scale : bool. Scale.
+    """
     L = sample.uns['ligand'].loc[pair].dropna().values
     R = sample.uns['receptor'].loc[pair].dropna().values
     l1, l2 = len(L), len(R)
@@ -1769,6 +1977,12 @@ def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cma
 
 
 def plt_util_invert(title, title_font_size=14, tick_font_size=14):
+    """
+    Plot utility invert
+        title : str. Title.
+        title_font_size : int. Title font size.
+        tick_font_size : int. Tick font size.
+    """
     plt.xticks([])
     plt.yticks([])
     plt.title(title, fontsize=title_font_size)
@@ -1777,10 +1991,16 @@ def plt_util_invert(title, title_font_size=14, tick_font_size=14):
 
 
 def plot_pairs_dot(sample, pairs_to_plot, SCS='p_value', pdf=None, trans=False, figsize=(56, 8),
-               # cmap='Greens', cmap_l='Spectral_r', cmap_r='Spectral_r',   
-               cmap='Greens', cmap_l='Purples', cmap_r='Purples',
-               # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', 
-               marker='o', marker_size=5, edgecolors='lightgrey', **kwargs):    # edgecolors
+                   # cmap='Greens', cmap_l='Spectral_r', cmap_r='Spectral_r',   
+                   cmap='Greens', cmap_l='Purples', cmap_r='Purples',
+                   # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', 
+                   marker='o', marker_size=5, edgecolors='lightgrey', **kwargs):    # edgecolors
+    """
+    Plot pairs dot
+        sample : AnnData. Annotated data matrix.
+        pairs_to_plot : list. Pairs to plot.
+        SCS : str. Spatial communication scores.
+    """
     if sample.uns['local_stat']['local_method'] == 'z-score':
         selected_ind = sample.uns['local_z_p'].index
         spots = 1 - sample.uns['local_z_p']
@@ -1833,7 +2053,24 @@ def plot_pairs_dot(sample, pairs_to_plot, SCS='p_value', pdf=None, trans=False, 
 ###########################################
 def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, 
                        gene_hv, label, marker='h', s=8, figsize=(9, 7), cmap=cnt_color, save_path=None):
+    """
+    Plot gene expression all spots
+        gene : str. Gene.
+        spatial_loc_all : numpy array. Spatial locations.
+        recon_ref_adata_image_f2 : AnnData. Annotated data matrix.
+        gene_hv : list. Gene headers.
+        label : str. Label.
+        marker : str. Marker.
+    """
     def plot_gene_data_dot(spatial_loc, genedata, title, ax, s):
+        """
+        Plot gene data dot
+            spatial_loc : numpy array. Spatial locations.
+            genedata : numpy array. Gene data.
+            title : str. Title.
+            ax : matplotlib.axes.Axes. Axes.
+            s : int. Size.
+        """
         scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=genedata, 
                              cmap=cmap, marker=marker, s=s)   
         ax.invert_yaxis()
@@ -1852,7 +2089,6 @@ def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2,
     scatter3 = plot_gene_data_dot(spatial_loc_all, genedata3, f'{gene} expression: {label}', ax, s) 
     fig.colorbar(scatter3, ax=ax)
 
-    # Save the figure if a save path is provided
     if save_path is not None:
         fig.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
 
@@ -1863,7 +2099,21 @@ def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2,
 ###########################################
 def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, marker='o', s=2, 
                       cmap=cnt_color, save_path=None):
+    """
+    Plot gene expression compare
+        adata : AnnData. Annotated data matrix.
+        gene : str. Gene.
+        data_impt_reshape : numpy array. Data imputed reshape.
+        gene_hv : list. Gene headers.
+        marker : str. Marker.
+        cmap : str. Colormap.
+    """
     def plot_gene_data_scale(spatial_loc, genedata, title, ax):
+        """
+        Plot gene data scale
+            spatial_loc : numpy array. Spatial locations.
+            genedata : numpy array. Gene data.
+        """
         normalized_data = (genedata - genedata.min()) / (genedata.max() - genedata.min())
         scatter = ax.scatter(spatial_loc[:,0], spatial_loc[:,1], c=normalized_data, 
                              marker=marker, s=s, cmap=cmap)   
@@ -1909,6 +2159,16 @@ def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, marker='o', s=2,
 def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22, 
               figsize=(9, 7), cnt_color=cnt_color, 
               trans=False, format='pdf', save_path=None):
+    """
+    Plot gene expression
+        adata : AnnData. Annotated data matrix.
+        matrix_order_df : pandas DataFrame. Matrix order.
+        gene_selet : str. Gene selected.
+        marker : str. Marker.
+        s : int. Size.
+        figsize : tuple. Figure size.
+        cnt_color : str. Colormap.
+    """
     if isinstance(matrix_order_df, pd.DataFrame):
         fig, ax1 = plt.subplots(1, 1, figsize=figsize)
         scatter_plot = ax1.scatter(adata.obsm['spatial'][:, 0], adata.obsm['spatial'][:, 1], 
@@ -1936,9 +2196,20 @@ def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22,
                     dpi=300, bbox_inches='tight')
     plt.show()
 
+
 def subspot_expr(C, value, patch_size=56, dataset_class=None, 
                  marker='o', s=1800, rotation=None,
                  fig_size=(2.5, 2.5), trans=False, format='pdf', save_path=None):
+    """
+    Plot subspot expression
+        C : numpy array. Spatial coordinates.
+        value : numpy array. Value.
+        patch_size : int. Patch size.
+        dataset_class : str. Dataset class.
+        marker : str. Marker.
+        s : int. Size.
+        rotation : float. Rotation.
+    """
     fig, ax = plt.subplots(figsize=fig_size)
     scatter = ax.scatter(C[:, 0], C[:, 1], c=value, marker=marker, s=s)
     ax.set_title("First spot")
@@ -1984,10 +2255,17 @@ def subspot_expr(C, value, patch_size=56, dataset_class=None,
 # 2025.07.03 Support dataframe
 # 2025.08.01 Support log axis
 ###########################################
-def sele_gene_cor_log(
-    visium_adata, pixel_adata, gene, 
-    xlabel="Visium transcript count", ylabel="iStar transcript count", format='pdf', save_path=None
-):
+def sele_gene_cor_log(visium_adata, pixel_adata, gene, 
+                      xlabel="Visium transcript count", ylabel="iStar transcript count", 
+                      format='pdf', save_path=None):
+    """
+    Plot selected gene correlation log
+        visium_adata : AnnData. Annotated data matrix.
+        pixel_adata : AnnData. Annotated data matrix.
+        gene : str. Gene.
+        xlabel : str. X label.
+        ylabel : str. Y label.
+    """
 
     x = np.array(visium_adata[gene])
     y = np.array(pixel_adata[gene])
@@ -2036,7 +2314,14 @@ def sele_gene_cor_log(
 ###########################################
 def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, 
                   figure_size=None, save_path=None):
-
+    """
+    Plot selected gene correlation
+        adata : AnnData. Annotated data matrix.
+        data_impt_reshape : numpy array. Data imputed reshape.
+        gene_hv : list. Gene headers.
+        gene : str. Gene.
+        ylabel : str. Y label.
+    """
     # if isinstance(adata.X, np.ndarray):
     #     original_matrix = pd.DataFrame(adata.X)
     # else:
@@ -2097,7 +2382,13 @@ def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size,
 # 2024.11.16 add 'gene_only' for VisumHD 8um: only gene cor boxplot
 #####################################################################
 def mean_cor_box(adata, data_impt_reshape, logger, gene_only=False, save_path=None):
-
+    """
+    Plot mean correlation boxplot
+        adata : AnnData. Annotated data matrix.
+        data_impt_reshape : numpy array. Data imputed reshape.
+        logger : logging.Logger. Logger.
+        gene_only : bool. Gene only.
+    """
     if isinstance(adata.X, np.ndarray):
         matrix_profile = np.array(adata.X)
     else:
@@ -2175,14 +2466,16 @@ def receptor_ct(adata, pair):
 def chord_celltype(adata, pairs, color_dic=None, title=None, min_quantile=0.5, ncol=1, save=None):
     """
     Plot aggregated cell type weights given a list of interaction pairs
-    :param adata: Anndata object
-    :param pairs: List of interactions. Must be consistent with adata.uns['selected_spots'].index
-    :param color_dic: dict containing specified colors for each cell type
-    :param title: default to names provided in pairs
-    :param min_quantile: Minimum edge numbers (in quantile) to show in the plot, default to 0.5.
-    :param ncol: number of columns if more than one pair will be plotted.
-    :param save: 'svg' or 'png' or None
-    :return: Chord diagram showing enriched cell types. Edge color indicates source cell types.
+    Parameters:
+        adata : AnnData. Annotated data matrix.
+        pairs : list. List of interactions. Must be consistent with adata.uns['selected_spots'].index
+        color_dic : dict. Dictionary containing specified colors for each cell type
+        title : str. Title.
+        min_quantile : float. Minimum edge numbers (in quantile) to show in the plot, default to 0.5.
+        ncol : int. Number of columns if more than one pair will be plotted.
+        save : str. 'svg' or 'png' or None
+    Returns:
+        Chord diagram showing enriched cell types. Edge color indicates source cell types.
     """
 
     if color_dic is None:
@@ -2251,16 +2544,18 @@ def chord_celltype(adata, pairs, color_dic=None, title=None, min_quantile=0.5, n
 def chord_LR(adata, senders, receivers, color_dic=None,
              title=None, min_quantile=0.5, ncol=1, save=None):
     """
-        Plot aggregated interaction scores given a list of sender-receiver combinations.
-        :param adata: Anndata object
-        :param senders: (list) Sender cell types
-        :param senders: (list) Receiver cell types. Must be of the same length with sender cell types.
-        :param color_dic: dict containing specified colors for each sender-receiver combination.
-        :param title: default to sender_receiver
-        :param min_quantile: Minimum edge numbers (in quantile) to show in the plot, default to 0.5.
-        :param ncol: number of columns if more than one combination will be plotted.
-        :param save: 'svg' or 'png' or None
-        :return: Chord diagram showing enriched interactions. Edge color indicates ligand.
+    Plot aggregated interaction scores given a list of sender-receiver combinations.
+    Parameters:
+        adata : AnnData. Annotated data matrix.
+        senders : list. Sender cell types.
+        receivers : list. Receiver cell types. Must be of the same length with sender cell types.
+        color_dic : dict. Dictionary containing specified colors for each sender-receiver combination.
+        title : str. Title.
+        min_quantile : float. Minimum edge numbers (in quantile) to show in the plot, default to 0.5.
+        ncol : int. Number of columns if more than one combination will be plotted.
+        save : str. 'svg' or 'png' or None
+    Returns:
+        Chord diagram showing enriched interactions. Edge color indicates ligand.
     """
     if color_dic is None:
         subgeneInter = adata.uns['geneInter'].loc[adata.uns['selected_spots'].index]
@@ -2335,17 +2630,17 @@ def chord_LR(adata, senders, receivers, color_dic=None,
 def chord_celltype_allpairs(adata, color_dic=None,
                              min_quantile=0.9, ncol=3, save=None):
     """
-       Plot aggregated cell type weights for all pairs in adata.uns['selected_spots']
-       :param adata: Anndata object
-       :param pairs: List of interactions. Must be consistent with adata.uns['selected_spots'].index
-       :param color_dic: dict containing specified colors for each cell type
-       :param title: default to names provided in pairs
-       :param min_quantile: Minimum edge numbers (in quantile) to show in the plot, default to 0.5.
-       :param ncol: number of columns if more than one pair will be plotted.
-       :param save: 'svg' or 'png' or None
-       :return: 3 chord diagrams showing enriched cell types, one for adjacent signaling, \
-       one for secreted signaling, and the other for the aggregated.
-       """
+    Plot aggregated cell type weights for all pairs in adata.uns['selected_spots']
+    Parameters:
+        adata : AnnData. Annotated data matrix.
+        color_dic : dict. Dictionary containing specified colors for each cell type
+        min_quantile : float. Minimum edge numbers (in quantile) to show in the plot, default to 0.5.
+        ncol : int. Number of columns if more than one pair will be plotted.
+        save : str. 'svg' or 'png' or None
+    Returns:
+        3 chord diagrams showing enriched cell types, one for adjacent signaling, \
+        one for secreted signaling, and the other for the aggregated.
+    """
 
     if color_dic is None:
         ct = adata.obs.columns.sort_values()

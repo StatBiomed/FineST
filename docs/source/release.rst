@@ -1,9 +1,12 @@
 Release History
 ===============
 
-Version 0.1.3 (03/02/2026)
+Version 0.1.3 (30/03/2026)
 --------------------------
 
+- update Tutorial notebook, add HCC_P1T_Train_Impute.ipynb
+- add the dataset.HCCP1T() function for HCCP1T dataset
+- update FineST more clean 
 - update Tutorial notebook
 - update demo to use script run FineST
 
