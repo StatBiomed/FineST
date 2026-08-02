@@ -121,3 +121,7 @@ venv.bak/
 # test and data
 data/outs
 temp/
+
+# Model weights (download separately)
+FineST/UNI/assets/ckpts/**/*.bin
+*.pth

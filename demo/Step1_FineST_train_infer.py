@@ -1,3 +1,5 @@
+## 2026.08.02 update for Visium HD adtaset
+
 import os
 import sys
 import time
@@ -78,6 +80,67 @@ def ensure_dir_exists(file_path):
     if dir_path: 
         os.makedirs(dir_path, exist_ok=True)
 
+########################################################
+# 2026.08.02 update: For using default LR gene file
+########################################################
+def infer_data_root(image_embed_path):
+    """Infer dataset root from image embedding directory."""
+    normalized = image_embed_path.rstrip('/').replace('\\', '/')
+    parts = normalized.split('/')
+    if 'CRC16um' in parts:
+        return '/'.join(parts[:parts.index('CRC16um') + 1])
+    if len(parts) >= 2 and parts[-2] == 'ImgEmbeddings':
+        return '/'.join(parts[:-2])
+    return os.path.dirname(os.path.dirname(normalized))
+
+def load_spatial_dataset(args):
+    """Load AnnData for the selected platform."""
+    if args.dataset_class == 'VisiumHD':
+        return datasets.CRC16um()
+    return datasets.NPC()
+
+def load_tissue_positions(visium_path, ST_class):
+    """Load Visium spot/bin coordinates from CSV or Parquet."""
+    if visium_path.endswith('.parquet'):
+        position = pd.read_parquet(visium_path)
+        if 'in_tissue' in position.columns:
+            position = position[position['in_tissue'] == 1].copy()
+        return position
+    position = pd.read_csv(visium_path, header=None)
+    if ST_class in ('Visium', 'VisiumSC'):
+        position = position.rename(columns={
+            position.columns[-2]: 'pixel_x',
+            position.columns[-1]: 'pixel_y'
+        })
+    return position
+
+def resolve_step1_paths(args):
+    """Fill default output paths from image_embed_path when not explicitly provided."""
+    data_root = infer_data_root(args.image_embed_path)
+    defaults = {
+        'spatial_pos_path': f'{data_root}/OrderData/position_order.csv',
+        'reduced_mtx_path': f'{data_root}/OrderData/matrix_order.npy',
+        'figure_save_path': f'{data_root}/Figures/',
+        'save_data_path': f'{data_root}/SaveData/',
+    }
+    for key, value in defaults.items():
+        current = getattr(args, key, None)
+        if current is None or current in ('spatial_pos.csv', 'reduced_mtx.npy', 'figures', 'SaveData/'):
+            setattr(args, key, value)
+    return args
+
+def resolve_gene_list(args):
+    """Resolve LR gene list keyword or file path for adata_LR."""
+    if args.LRgene_path in (None, '', 'LR_genes', 'HV_genes', 'LR_HV_genes'):
+        return args.LRgene_path or 'LR_genes', args.species
+    gene_path = args.LRgene_path
+    if not os.path.isabs(gene_path):
+        candidate = os.path.join(args.system_path, gene_path)
+        if os.path.exists(candidate):
+            gene_path = candidate
+    return gene_path, args.species
+########################################################
+
 def get_figure_save_path(args):
     if os.path.isabs(args.figure_save_path):
         figure_dir = args.figure_save_path
@@ -149,13 +212,13 @@ def load_and_process_data(args):
     5. Orders data by image coordinates
     6. Saves ordered position and matrix files
     """
-    adata = datasets.NPC()
-    print(" **** Load the original NPC patient1 adata: **** \n", adata)
-    # Use LRgene_path as gene_list parameter (can be file path or 'LR_genes', 'HV_genes', 'LR_HV_genes')
-    lr_gene_path = os.path.join(args.system_path, args.LRgene_path)
-    adata = adata_LR(adata, gene_list=lr_gene_path)
+    adata = load_spatial_dataset(args)
+    print(f" **** Load the original adata ({args.dataset_class}): **** \n", adata)
+    ## 2026.08.02 update: For using default LR gene file
+    gene_list, species = resolve_gene_list(args)
+    adata = adata_LR(adata, gene_list=gene_list, species=species)
     adata = adata_preprocess(adata, normalize=False)
-    print(" **** Processed NPC patient1 adata: **** \n", adata)
+    print(f" **** Processed adata ({args.dataset_class}): **** \n", adata)
     gene_hv = np.array(adata.var_names)
     print(" **** The length of LR genes: ", len(gene_hv))
 
@@ -177,8 +240,8 @@ def load_and_process_data(args):
         print(f"Warning: Unknown dataset_class '{args.dataset_class}', using ST_class='Visium'")
     
     position_image = get_image_coord(file_paths, ST_class)
-    position = pd.read_csv(os.path.join(args.system_path, args.visium_path), header=None)
-    position = position.rename(columns={position.columns[-2]: 'pixel_x', position.columns[-1]: 'pixel_y'})
+    visium_full_path = os.path.join(args.system_path, args.visium_path)
+    position = load_tissue_positions(visium_full_path, ST_class)
     position_image = image_coord_merge(position_image, position, ST_class)
     position_order = update_st_coord(position_image)
     print(" **** The coords of image patch: **** \n", position_order.shape)
@@ -329,18 +392,32 @@ def infer_gene_expr(model, adata, args, gene_hv, logger, patch_size=112):
 
     return adata_infer, first_spot_first_variable, C, C2
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1', 'on'):
+        return True
+    if v.lower() in ('no', 'false', 'f', 'n', '0', 'off'):
+        return False
+    raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def main(args):
+    args = resolve_step1_paths(args)
     # Setup log file to save all terminal output (generates shared timestamp)
     tee, log_file_path, timestamp = setup_log_file(args)
     
     try:
         # Check if required files exist
         required_files = [
-            os.path.join(args.system_path, args.LRgene_path), 
             os.path.join(args.system_path, args.visium_path),
             os.path.join(args.system_path, args.image_embed_path),
             os.path.join(args.system_path, args.parame_path)
         ]
+        ## 2026.08.02 update: For using default LR gene file
+        gene_list, _ = resolve_gene_list(args)
+        if isinstance(gene_list, str) and (gene_list.endswith('.csv') or os.path.exists(gene_list)):
+            required_files.append(gene_list if os.path.isabs(gene_list)
+                                  else os.path.join(args.system_path, gene_list))
         
         for file_path in required_files:
             if not check_file_exists(file_path):
@@ -474,7 +551,10 @@ def main(args):
         # Note: impute_adata doesn't have k parameter, it uses weight_exponent instead
         adata_imput = impute_adata(adata, adata_infer, C2, gene_hv, 
                                 dataset_class=args.dataset_class, weight_exponent=2)
-        _, data_impt = weight_adata(adata_infer, adata_imput, gene_hv, w=args.weight_w)
+        _, data_impt = weight_adata(
+            adata_infer, adata_imput, gene_hv,
+            w=args.weight_w, do_scale=args.do_scale
+        )
         _, data_impt_reshape = reshape_latent_image(
         torch.tensor(data_impt), dataset_class=args.dataset_class
         )
@@ -546,7 +626,11 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CellContrast Model Training and Inference")
     parser.add_argument('--system_path', type=str, required=True, help='System path for data and weights')
-    parser.add_argument('--LRgene_path', type=str, required=True, help='Path to LR genes')
+    parser.add_argument('--LRgene_path', type=str, default='LR_genes',
+                        help="LR gene source: 'LR_genes' (default, bundled human list), "
+                             "'HV_genes', 'LR_HV_genes', or path to a CSV file")
+    parser.add_argument('--species', type=str, default='human',
+                        help="Species for bundled LR gene list: 'human' or 'mouse' (default: human)")
     parser.add_argument('--dataset_class', type=str, required=True, 
                         help='Dataset class: Visium16, Visium64, or VisiumHD')
     parser.add_argument('--image_class', type=str, default='Virchow2',
@@ -555,20 +639,36 @@ if __name__ == "__main__":
     parser.add_argument('--image_embed_path', type=str, required=True, help='Path to image embeddings')
     parser.add_argument('--visium_path', type=str, required=True, help='Path to Visium data')
     parser.add_argument('--parame_path', type=str, required=True, help='Path to parameter file')
-    parser.add_argument('--spatial_pos_path', type=str, default='spatial_pos.csv', 
-                        help='Path to save spatial positions (relative to system_path)')
-    parser.add_argument('--reduced_mtx_path', type=str, default='reduced_mtx.npy', 
-                        help='Path to save reduced matrix (relative to system_path)')
-    parser.add_argument('--figure_save_path', type=str, default='figures', help='Directory to save figures')
+    parser.add_argument('--spatial_pos_path', type=str, default=None,
+                        help='Path to save spatial positions (default: <data_root>/OrderData/position_order.csv)')
+    parser.add_argument('--reduced_mtx_path', type=str, default=None,
+                        help='Path to save reduced matrix (default: <data_root>/OrderData/matrix_order.npy)')
+    parser.add_argument('--figure_save_path', type=str, default=None,
+                        help='Directory to save figures (default: <data_root>/Figures/)')
     parser.add_argument('--weight_save_path', type=str, default=None, 
                         help='Path to pre-trained weights, if available')
-    parser.add_argument('--patch_size', type=int, default=112, 
-                        help='Patch size used for image feature extraction (default: 112)')
-    parser.add_argument('--save_data_path', type=str, default='SaveData/', 
-                        help='Directory to save h5ad files (relative to system_path, default: SaveData/)')
+    parser.add_argument('--patch_size', type=int, default=None,
+                        help='Patch size from Step 0 (default: 64 for Visium16/HIPT, 112 for Visium64/Virchow2)')
+    parser.add_argument('--save_data_path', type=str, default=None,
+                        help='Directory to save h5ad files (default: <data_root>/SaveData/)')
     parser.add_argument('--weight_w', type=float, default=0.5, 
                         help='Weight parameter for combining adata_infer and adata_imput (default: 0.5)')
+    parser.add_argument('--do_scale', type=str2bool, default=False,
+                        help='Scale expression before combining in weight_adata (default: False)')
     args = parser.parse_args()
+    if args.patch_size is None:
+        if args.dataset_class == 'VisiumHD':
+            args.patch_size = 32 if args.image_class == 'HIPT' else 28
+        elif args.dataset_class == 'Visium16':
+            args.patch_size = 64
+        elif args.dataset_class == 'Visium64':
+            args.patch_size = 112
+        elif args.image_class == 'HIPT':
+            args.patch_size = 64
+        elif args.image_class == 'Virchow2':
+            args.patch_size = 112
+        else:
+            args.patch_size = 64
 
     main(args)
 
@@ -580,19 +680,12 @@ if __name__ == "__main__":
 ###################
 # python ./demo/Step1_FineST_train_infer.py \
 #     --system_path '/home/lingyu/ssd/Python/FineST_submit/FineST/' \
-#     --parame_path 'FineST_tutorial_data/parameter/parameters_NPC_virchow2.json' \
+#     --parame_path 'parameter/parameters_NPC_virchow2.json' \
 #     --dataset_class 'Visium64' \
 #     --image_class 'Virchow2' \
 #     --gene_selected 'CD70' \
-#     --LRgene_path 'FineST_tutorial_data/LRgene/LRgene_CellChatDB_baseline.csv' \
 #     --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
-#     --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/pth_112_14' \
-#     --spatial_pos_path 'FineST_tutorial_data/OrderData/position_order.csv' \
-#     --reduced_mtx_path 'FineST_tutorial_data/OrderData/matrix_order.npy' \
-#     --figure_save_path 'FineST_tutorial_data/Figures/' \
-#     --save_data_path 'FineST_tutorial_data/SaveData/' \
-#     --patch_size 112 \
-#     --weight_w 0.5
+#     --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/pth_112_14'
 
 ###################
 # Example 2: Only Infer (if already trained) using Virchow2 with Visium64 (patch_size=112)
@@ -612,24 +705,20 @@ if __name__ == "__main__":
 #     --figure_save_path 'FineST_tutorial_data/Figures/' \
 #   --save_data_path 'FineST_tutorial_data/SaveData/' \
 #     --patch_size 112 \
-#     --weight_w 0.5
+#     --weight_w 0.5 \
+#     --do_scale False
 
 ###################
 # Example 3: Train and Infer (if haven't trained) using HIPT with Visium16 (patch_size=64)
 ###################
 # python ./demo/Step1_FineST_train_infer.py \
-#   --system_path '/home/lingyu/ssd/Python/FineST_submit/FineST/' \
-#   --parame_path 'parameter/parameters_NPC_HIPT.json' \
-#   --dataset_class 'Visium16' \
-#   --image_class 'HIPT' \
-#   --gene_selected 'CD70' \
-#   --LRgene_path 'FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv' \
-#   --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
-#   --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/pth_64_16' \
-#   --spatial_pos_path 'FineST_tutorial_data/OrderData/position_order.csv' \
-#   --reduced_mtx_path 'FineST_tutorial_data/OrderData/matrix_order.npy' \
-#   --figure_save_path 'FineST_tutorial_data/Figures/' \
-#   --save_data_path 'FineST_tutorial_data/SaveData/' \
+#     --system_path '/home/lingyu/ssd/Python/FineST_submit/FineST/' \
+#     --parame_path 'parameter/parameters_NPC_HIPT.json' \
+#     --dataset_class 'Visium16' \
+#     --image_class 'HIPT' \
+#     --gene_selected 'CD70' \
+#     --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
+#     --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/pth_64_16'
 #   --patch_size 64 \
 #   --weight_w 0.5
 

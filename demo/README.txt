@@ -3,3 +3,6 @@ Image_feature_extraction.py is renamed from HIPT_image_feature_extract_virchow2.
 
 ## 2026.02.02
 Revised FineST_train_infer.py and High_resolution_imputation.py
+
+## 2026.08.02
+Update Image_feature_extraction.py, add UNI

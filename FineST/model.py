@@ -16,14 +16,14 @@ logging.getLogger().setLevel(logging.INFO)
 # 2025.01.08 adjust for istar
 #############################
 def build_loaders(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_path, 
-                  image_clacss='HIPT', dataset_class='Visium'):
+                  image_class='HIPT', dataset_class='Visium'):
     """
     Build loaders for training and testing.
         batch_size : int. Batch size.
         image_embed_path : str. Path to image embeddings.
         spatial_pos_path : str. Path to spatial positions.
         reduced_mtx_path : str. Path to reduced expression matrix.
-        image_clacss : str. Image class.
+        image_class : str. Image class.
         dataset_class : str. Dataset class.
     Returns:
         train_loader : DataLoader. Train loader.
@@ -32,7 +32,7 @@ def build_loaders(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_pa
     setup_seed(666)
 
     ## set image_paths, according 'image_clacss'
-    if image_clacss == 'istar':
+    if image_class == 'istar':
     
         dataset = DatasetCreat_istar(
             image_paths=image_embed_path,
@@ -40,7 +40,7 @@ def build_loaders(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_pa
             reduced_mtx_path=reduced_mtx_path,   
             dataset_class=dataset_class
         )
-    elif image_clacss == 'HIPT' or image_clacss == 'Virchow2':
+    elif image_class == 'HIPT' or image_class == 'Virchow2':
         import glob
         image_paths = glob.glob(str(image_embed_path))
         image_paths.sort()
@@ -78,14 +78,14 @@ def build_loaders(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_pa
 
 
 def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_path, 
-                            image_clacss='HIPT', dataset_class='Visium'):
+                            image_class='HIPT', dataset_class='Visium'):
     """
     Build loaders for inference.
         batch_size : int. Batch size.
         image_embed_path : str. Path to image embeddings.
         spatial_pos_path : str. Path to spatial positions.
         reduced_mtx_path : str. Path to reduced expression matrix.
-        image_clacss : str. Image class.
+        image_class : str. Image class.
         dataset_class : str. Dataset class.
     Returns:
         all_dataset : DataLoader. Inference loader.
@@ -93,7 +93,7 @@ def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, redu
     setup_seed(666)
 
     ## set image_paths, according 'image_clacss'
-    if image_clacss == 'istar':
+    if image_class == 'istar':
     
         dataset = DatasetCreat_istar(
             image_paths=image_embed_path,
@@ -101,7 +101,7 @@ def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, redu
             reduced_mtx_path=reduced_mtx_path,   
             dataset_class=dataset_class
         )
-    elif image_clacss == 'HIPT' or image_clacss == 'Virchow2':
+    elif image_class == 'HIPT' or image_class == 'Virchow2':
         import glob
         image_paths = glob.glob(str(image_embed_path))
         image_paths.sort()

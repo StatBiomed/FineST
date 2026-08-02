@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>FineST README Preview</title>
+<style>
+body { font-family: system-ui; max-width: 980px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+img { max-width: 100%; }
+pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow: auto; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</style></head><body><div class="document" id="finest-contrastive-learning-integrates-histology-and-spatial-transcriptomics-for-nuclei-resolved-ligand-receptor-analysis">
+<h1 class="title">FineST: Contrastive learning integrates histology and spatial transcriptomics for nuclei-resolved ligand-receptor analysis</h1>
+<p><a class="reference external image-reference" href="https://www.nature.com/articles/s41467-026-70528-7"><object data="https://img.shields.io/badge/Paper-Nature_Communications-b31b1b.svg" type="image/svg+xml">Paper</object></a> <a class="reference external image-reference" href="https://www.python.org/"><object data="https://img.shields.io/badge/Python-3.8+-3776ab.svg" type="image/svg+xml">Python</object></a> <a class="reference external image-reference" href="https://pytorch.org/"><object data="https://img.shields.io/badge/PyTorch-1.7%2B-ee4c2c.svg" type="image/svg+xml">PyTorch</object></a> <a class="reference external image-reference" href="https://github.com/StatBiomed/FineST/blob/main/LICENSE"><object data="https://img.shields.io/badge/License-Apache--2.0-green.svg" type="image/svg+xml">License</object></a> <a class="reference external image-reference" href="https://finest-rtd-tutorial.readthedocs.io"><object data="https://img.shields.io/badge/Docs-Readthedocs-blue.svg" type="image/svg+xml">Documentation</object></a> <a class="reference external image-reference" href="https://pypi.org/project/finest/"><object data="https://img.shields.io/badge/PyPI-finest-orange.svg" type="image/svg+xml">PyPI</object></a></p>
+<p>🔬 <strong>FineST</strong> (Fine-grained Spatial Transcriptomics) is a contrastive learning framework that
+integrates <strong>HE histology images</strong> with <strong>spatial transcriptomics data</strong> to
+uncover fine-grained molecular and cellular interactions in tissue.</p>
+<p>📋 It facilitates precise nuclei segmentation,
+high-resolution RNA expression imputation,
+and fine-grained ligand-receptor (LR) and cell-cell communication (CCC) discovery
+on <strong>whole-slide images (WSIs)</strong> or <strong>regions of interest (ROIs)</strong>.</p>
+<img alt="https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework.png?raw=true" class="align-center" src="https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework.png?raw=true" style="width: 800px;" />
+<div class="contents local topic" id="quick-navigation">
+<p class="topic-title"><strong>Quick Navigation</strong></p>
+<ul class="simple">
+<li><a class="reference internal" href="#what-is-finest" id="toc-entry-1">What is FineST?</a><ul>
+<li><a class="reference internal" href="#overview" id="toc-entry-2">Overview</a></li>
+<li><a class="reference internal" href="#supported-st-platforms-and-image-encoders" id="toc-entry-3">Supported ST platforms and image encoders</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#installation" id="toc-entry-4">Installation</a><ul>
+<li><a class="reference internal" href="#conda-recommended" id="toc-entry-5">Conda (recommended)</a></li>
+<li><a class="reference internal" href="#pypi" id="toc-entry-6">PyPI</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#quick-start" id="toc-entry-7">Quick start</a><ul>
+<li><a class="reference internal" href="#download-demo-datasets" id="toc-entry-8">Download demo datasets</a></li>
+<li><a class="reference internal" href="#experienced-bioinformatics-users" id="toc-entry-9">Experienced bioinformatics users</a></li>
+<li><a class="reference internal" href="#bioinformatics-beginners" id="toc-entry-10">Bioinformatics beginners</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#step-by-step-tutorials" id="toc-entry-11">Step-by-step tutorials</a><ul>
+<li><a class="reference internal" href="#visium-npc-demo" id="toc-entry-12">Visium (NPC demo)</a></li>
+<li><a class="reference internal" href="#visium-hd-crc-16m-demo" id="toc-entry-13">Visium HD (CRC 16µm demo)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#command-line-workflow" id="toc-entry-14">Command-line workflow</a><ul>
+<li><a class="reference internal" href="#step-0-he-image-feature-extraction" id="toc-entry-15">⚙️ Step 0: HE image feature extraction</a></li>
+<li><a class="reference internal" href="#step-1-training-finest-model" id="toc-entry-16">🧠 Step 1: Training FineST model</a></li>
+<li><a class="reference internal" href="#step-2-super-resolution-imputation-visium" id="toc-entry-17">📐 Step 2: Super-resolution imputation (Visium)</a></li>
+<li><a class="reference internal" href="#step-3-fine-grained-ligand-receptor-interaction" id="toc-entry-18">💬 Step 3: Fine-grained ligand-receptor interaction</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#roi-selection-with-napari" id="toc-entry-19">ROI selection with Napari</a></li>
+<li><a class="reference internal" href="#citation-and-contact" id="toc-entry-20">Citation and Contact</a></li>
+</ul>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="what-is-finest">
+<h1><a class="toc-backref" href="#toc-entry-1">What is FineST?</a></h1>
+<div class="section" id="overview">
+<h2><a class="toc-backref" href="#toc-entry-2">Overview</a></h2>
+<p>📊 <strong>Core applications</strong></p>
+<ul class="simple">
+<li>📈 <strong>Imputation</strong> — recover weak or missing gene signals using HE image context</li>
+<li>🔬 <strong>Resolution</strong> — refine Visium spots to sub-spot / single-cell, Visium HD 16-µm bin to 8-µm bin</li>
+<li>🔗 <strong>Discovery</strong> — identify fine-grained LR pairs and CCC patterns at super resolution (7 or 8-µm)</li>
+</ul>
+<p>🎯 <strong>Key capabilities</strong></p>
+<ul class="simple">
+<li>💰 <strong>Cost-efficient</strong> — leverage existing HE images; no extra sequencing required for imputation</li>
+<li>🖼️ <strong>Morphology-aware</strong> — contrastive learning links HE cell morphology to gene expression</li>
+<li>⚡ <strong>Multi-resolution</strong> — enhance spot/bin resolution to sub-spot, single-cell, or 8-µm bins</li>
+<li>🌍 <strong>Broad applicability</strong> — supports Visium, Visium HD datasets for WSI- or ROI-based analysis</li>
+</ul>
+<p>🧠 <strong>How it works</strong></p>
+<p>FineST follows a four-step pipeline:</p>
+<ol class="arabic simple">
+<li>🖼️ <strong>Step 0</strong> — HE image feature extraction (HIPT / Virchow2)</li>
+<li>🔄 <strong>Step 1</strong> — <strong>Training</strong> FineST model on within-spot or 16-µm bin expression</li>
+<li>📐 <strong>Step 2</strong> — Super-resolution <strong>Imputation</strong> at sub-spot or single-cell level</li>
+<li>💬 <strong>Step 3</strong> — Fast <strong>Discovery</strong> of LR pairs and CCC patterns (SpatialDM + SparseAEH)</li>
+</ol>
+</div>
+<div class="section" id="supported-st-platforms-and-image-encoders">
+<h2><a class="toc-backref" href="#toc-entry-3">Supported ST platforms and image encoders</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="14%" />
+<col width="47%" />
+<col width="39%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Capability</th>
+<th class="head">Visium (sparse&gt;80%)</th>
+<th class="head">Visium HD (sparse&gt;90%)</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Signal imputation</td>
+<td>Impute spot-level gene expression</td>
+<td>Impute 16-µm bin gene expression</td>
+</tr>
+<tr><td>Resolution enhancement</td>
+<td>55-µm → 7/8-µm: sub-spot or single-cell, also support between-spot interpolation</td>
+<td>16-µm → 7/8-µm: sub-bin or single-cell</td>
+</tr>
+<tr><td>Fine-grained discovery</td>
+<td><ol class="first last arabic simple">
+<li>Cell-type deconvolution, 2. LR interaction, 3. CCC pattern</li>
+</ol>
+</td>
+<td><ol class="first last arabic simple" start="4">
+<li>Pathway enrichment, 5. Cell colocalization, 6. L-R-TF-TG program</li>
+</ol>
+</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="25%" />
+<col width="4%" />
+<col width="35%" />
+<col width="16%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Histology foundation model</th>
+<th class="head">Dim</th>
+<th class="head">Visium</th>
+<th class="head">Visium HD</th>
+<th class="head">FineST-enhanced</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>HIPT (Publicly available; Quick start)</td>
+<td>384</td>
+<td>patch 64-pix (55-µm spot), need rescale to 0.5um/pixel</td>
+<td>patch 32-pix (16-µm bin)</td>
+<td>→ tile 16-pixel (8-µm sub-spot)</td>
+</tr>
+<tr><td>Virchow2 (Require Token, Paper setting)</td>
+<td>1280</td>
+<td>patch 112-pix (55-µm spot), need rescale to 0.5um/pixel</td>
+<td>patch 28-pix (16-µm bin)</td>
+<td>→ tile 14-pixel (7-µm sub-spot)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="installation">
+<h1><a class="toc-backref" href="#toc-entry-4">Installation</a></h1>
+<p>🔧 <strong>Environment setup (Prerequisites)</strong></p>
+<ul class="simple">
+<li>🖥️ <strong>OS</strong>: Linux (Ubuntu recommended)</li>
+<li>🐍 <strong>Python</strong>: 3.8+</li>
+<li>🎮 <strong>GPU</strong>: NVIDIA GPU with CUDA strongly recommended (A100 used for FineST paper)</li>
+<li>🔥 <strong>PyTorch</strong>: 1.7+ with CUDA (install separately; see <a class="reference external" href="https://pytorch.org/get-started/locally/">PyTorch</a>)</li>
+</ul>
+<div class="section" id="conda-recommended">
+<h2><a class="toc-backref" href="#toc-entry-5">Conda (recommended)</a></h2>
+<pre class="code bash literal-block">
+git<span class="whitespace"> </span>clone<span class="whitespace"> </span>https://github.com/StatBiomed/FineST.git<span class="whitespace">
+</span>conda<span class="whitespace"> </span>create<span class="whitespace"> </span>--name<span class="whitespace"> </span>FineST<span class="whitespace"> </span><span class="name variable">python</span><span class="operator">=</span><span class="literal number">3</span>.8<span class="whitespace">
+</span>conda<span class="whitespace"> </span>activate<span class="whitespace"> </span>FineST<span class="whitespace">
+</span><span class="name builtin">cd</span><span class="whitespace"> </span>FineST<span class="whitespace">
+</span>pip<span class="whitespace"> </span>install<span class="whitespace"> </span>-r<span class="whitespace"> </span>requirements.txt
+</pre>
+<p>Verify:</p>
+<pre class="code bash literal-block">
+python<span class="whitespace"> </span>-c<span class="whitespace"> </span><span class="literal string double">&quot;import torch; print(torch.__version__); print(torch.cuda.is_available())&quot;</span>
+</pre>
+</div>
+<div class="section" id="pypi">
+<h2><a class="toc-backref" href="#toc-entry-6">PyPI</a></h2>
+<pre class="code bash literal-block">
+pip<span class="whitespace"> </span>install<span class="whitespace"> </span>-U<span class="whitespace"> </span>FineST<span class="whitespace">
+
+</span><span class="comment single">## Alternatively, install from GitHub for latest version:
+</span>pip<span class="whitespace"> </span>install<span class="whitespace"> </span>-U<span class="whitespace"> </span>git+https://github.com/StatBiomed/FineST
+</pre>
+<p><strong>Note:</strong> To run the Jupyter notebook tutorials, register this environment as a kernel:</p>
+<pre class="code bash literal-block">
+python<span class="whitespace"> </span>-m<span class="whitespace"> </span>pip<span class="whitespace"> </span>install<span class="whitespace"> </span>ipykernel<span class="whitespace">
+</span>python<span class="whitespace"> </span>-m<span class="whitespace"> </span>ipykernel<span class="whitespace"> </span>install<span class="whitespace"> </span>--user<span class="whitespace"> </span>--name<span class="operator">=</span>FineST
+</pre>
+</div>
+</div>
+<div class="section" id="quick-start">
+<h1><a class="toc-backref" href="#toc-entry-7">Quick start</a></h1>
+<p>🗂️ <strong>Project Structure (Repository layout)</strong></p>
+<pre class="code text literal-block">
+FineST/
+├── FineST/              # Python package (model, inference, plottings, ...)
+├── demo/                # Command-line scripts (Step 0–2)
+├── tutorial/            # End-to-end Visium notebooks
+├── docs/source/         # Detailed notebooks (Visium, Visium HD, LR, CCC, cell-type deconvolution, ...)
+├── parameter/           # Model hyperparameter JSON files
+├── docs/fig/            # Framework figures
+└── test_demo.sh         # Quick demo script
+</pre>
+<div class="section" id="download-demo-datasets">
+<h2><a class="toc-backref" href="#toc-entry-8">Download demo datasets</a></h2>
+<p>📥 <strong>Visium tutorial data</strong> (<em>FineST_tutorial_data</em>) is available on <a class="reference external" href="https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8?usp=sharing">Google Drive</a>.</p>
+<pre class="code bash literal-block">
+pip<span class="whitespace"> </span>install<span class="whitespace"> </span>gdown<span class="whitespace">
+</span>gdown<span class="whitespace"> </span>--folder<span class="whitespace"> </span>https://drive.google.com/drive/folders/1rZ235pexAMVvRzbVZt1ONOu7Dcuqz5BD?usp<span class="operator">=</span>drive_link
+</pre>
+<p>📥 <strong>Visium HD demo data</strong> (<em>Dataset/CRC16um</em>) is available on <a class="reference external" href="https://www.10xgenomics.com/products/visium-hd-spatial-gene-expression/dataset-human-crc">10x Genomics - Sample P2 CRC</a>.</p>
+<pre class="code bash literal-block">
+wget<span class="whitespace"> </span>https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Human_Colon_Cancer_P2/Visium_HD_Human_Colon_Cancer_P2_tissue_image.btf<span class="whitespace">
+</span>wget<span class="whitespace"> </span>https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Human_Colon_Cancer_P2/Visium_HD_Human_Colon_Cancer_P2_spatial.tar.gz<span class="whitespace">
+</span>wget<span class="whitespace"> </span>https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Human_Colon_Cancer_P2/Visium_HD_Human_Colon_Cancer_P2_binned_outputs.tar.gz
+</pre>
+</div>
+<div class="section" id="experienced-bioinformatics-users">
+<h2><a class="toc-backref" href="#toc-entry-9">Experienced bioinformatics users</a></h2>
+<p>🚀 <strong>Command-line demo</strong> (~10 min, Visium + HIPT)</p>
+<pre class="code bash literal-block">
+bash<span class="whitespace"> </span>test_demo.sh
+</pre>
+<p>This script runs Step 0–2 (HIPT feature extraction → training → between-spot interpolation).</p>
+</div>
+<div class="section" id="bioinformatics-beginners">
+<h2><a class="toc-backref" href="#toc-entry-10">Bioinformatics beginners</a></h2>
+<p>⚡ <strong>Jupyter Notebook tutorials</strong> (recommended first run)</p>
+<p>🧬 <strong>Visium end-to-end (~10 min)</strong></p>
+<ul class="simple">
+<li>HIPT: <a class="reference external" href="tutorial/NPC_Train_Impute_demo_HIPT.ipynb">NPC_Train_Impute_demo_HIPT.ipynb</a></li>
+<li>Virchow2: <a class="reference external" href="tutorial/NPC_Train_Impute_demo.ipynb">NPC_Train_Impute_demo.ipynb</a></li>
+</ul>
+<p>🗺️ <strong>Visium HD end-to-end (~1–3 hours, large data)</strong></p>
+<ul class="simple">
+<li>HIPT: <a class="reference external" href="docs/source/CRC16_Train_Impute_count_HIPT.ipynb">CRC16_Train_Impute_count_HIPT.ipynb</a></li>
+<li>Virchow2: <a class="reference external" href="docs/source/CRC16_Train_Impute_count.ipynb">CRC16_Train_Impute_count.ipynb</a></li>
+</ul>
+<p>💬 <strong>LR / CCC discovery (after imputation)</strong></p>
+<ul class="simple">
+<li>Visium: <a class="reference external" href="docs/source/NPC_LRI_CCC_count.ipynb">NPC_LRI_CCC_count.ipynb</a></li>
+<li>Visium HD: <a class="reference external" href="docs/source/CRC_LRI_CCC_count.ipynb">CRC_LRI_CCC_count.ipynb</a></li>
+</ul>
+<p>✂️ <strong>ROI-based analysis (~1 min)</strong></p>
+<ul class="simple">
+<li>ROI selection and cropping: <a class="reference external" href="docs/source/Crop_ROI_Boundary_image.ipynb">Crop_ROI_Boundary_image.ipynb</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="step-by-step-tutorials">
+<h1><a class="toc-backref" href="#toc-entry-11">Step-by-step tutorials</a></h1>
+<p>📚 <strong>Tutorials and scripts organized by task.</strong> For the complete online manual, see <a class="reference external" href="https://finest-rtd-tutorial.readthedocs.io">FineST tutorial</a>.</p>
+<div class="section" id="visium-npc-demo">
+<h2><a class="toc-backref" href="#toc-entry-12">Visium (NPC demo)</a></h2>
+<ul class="simple">
+<li><strong>Imputation + 8µm enhancement (HIPT):</strong> <a class="reference external" href="tutorial/NPC_Train_Impute_demo_HIPT.ipynb">NPC_Train_Impute_demo_HIPT.ipynb</a></li>
+<li><strong>Imputation + 7µm enhancement (Virchow2):</strong> <a class="reference external" href="tutorial/NPC_Train_Impute_demo.ipynb">NPC_Train_Impute_demo.ipynb</a></li>
+<li><strong>Between-spot interpolation:</strong> <a class="reference external" href="docs/source/Between_spot_demo.ipynb">Between_spot_demo.ipynb</a></li>
+<li><strong>LR pair &amp; CCC discovery:</strong> <a class="reference external" href="docs/source/NPC_LRI_CCC_count.ipynb">NPC_LRI_CCC_count.ipynb</a></li>
+<li><strong>Cell-type deconvolution:</strong> <a class="reference external" href="docs/source/transDeconv_NPC_count.ipynb">transDeconv_NPC_count.ipynb</a></li>
+<li><strong>Performance evaluation:</strong> <a class="reference external" href="docs/source/NPC_Evaluate.ipynb">NPC_Evaluate.ipynb</a></li>
+</ul>
+</div>
+<div class="section" id="visium-hd-crc-16m-demo">
+<h2><a class="toc-backref" href="#toc-entry-13">Visium HD (CRC 16µm demo)</a></h2>
+<ul class="simple">
+<li><strong>Imputation + 8µm enhancement (HIPT):</strong> <a class="reference external" href="docs/source/CRC16_Train_Impute_count_HIPT.ipynb">CRC16_Train_Impute_count_HIPT.ipynb</a></li>
+<li><strong>Imputation + 7µm enhancement (Virchow2):</strong> <a class="reference external" href="docs/source/CRC16_Train_Impute_count.ipynb">CRC16_Train_Impute_count.ipynb</a></li>
+<li><strong>LR pair &amp; CCC discovery:</strong> <a class="reference external" href="docs/source/CRC_LRI_CCC_count.ipynb">CRC_LRI_CCC_count.ipynb</a></li>
+<li><strong>Cell-type deconvolution:</strong> <a class="reference external" href="docs/source/transDeconv_CRC_count.ipynb">transDeconv_CRC_count.ipynb</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="command-line-workflow">
+<h1><a class="toc-backref" href="#toc-entry-14">Command-line workflow</a></h1>
+<p>🔄 <strong>End-to-end workflow:</strong></p>
+<pre class="code text literal-block">
+Step 0  🖼️  HE image feature extraction     demo/Image_feature_extraction.py
+            (Additional: Spot_interpolation.py / StarDist_nuclei_segmente.py)
+Step 1  🧠  Train on within-spot / 16µm     demo/Step1_FineST_train_infer.py
+Step 2  📐  Super-resolution imputation     demo/Step2_High_resolution_imputation.py
+Step 3  💬  LR pair &amp; CCC discovery         docs/source/*_LRI_CCC_count.ipynb
+</pre>
+<div class="section" id="step-0-he-image-feature-extraction">
+<h2><a class="toc-backref" href="#toc-entry-15">⚙️ Step 0: HE image feature extraction</a></h2>
+<p>🖼️ <strong>Visium — within-spots</strong></p>
+<pre class="code bash literal-block">
+<span class="comment single">## HIPT (recommended)
+</span>python<span class="whitespace"> </span>./demo/Image_feature_extraction.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset<span class="whitespace"> </span>NPC<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--position_path<span class="whitespace"> </span>FineST_tutorial_data/spatial/tissue_positions_list.csv<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--rawimage_path<span class="whitespace"> </span>FineST_tutorial_data/20210809-C-AH4199551.tif<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale_image<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--method<span class="whitespace"> </span>HIPT<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--patch_size<span class="whitespace"> </span><span class="literal number">64</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_img<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/pth_64_16_image<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_pth<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/pth_64_16<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--logging<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/Logging/<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale<span class="whitespace"> </span><span class="literal number">0</span>.789<span class="whitespace">
+
+</span><span class="comment single">## Virchow2 (requires Hugging Face token)
+</span>python<span class="whitespace"> </span>./demo/Image_feature_extraction.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset<span class="whitespace"> </span>NPC<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--position_path<span class="whitespace"> </span>FineST_tutorial_data/spatial/tissue_positions_list.csv<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--rawimage_path<span class="whitespace"> </span>FineST_tutorial_data/20210809-C-AH4199551.tif<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale_image<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--method<span class="whitespace"> </span>Virchow2<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--patch_size<span class="whitespace"> </span><span class="literal number">112</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_img<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/pth_112_14_image<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_pth<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/pth_112_14<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--logging<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/Logging/<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale<span class="whitespace"> </span><span class="literal number">0</span>.789
+</pre>
+<p>🗺️ <strong>Visium HD — 16-µm bins</strong></p>
+<pre class="code bash literal-block">
+<span class="comment single">## HIPT (recommended)
+</span>python<span class="whitespace"> </span>./demo/Image_feature_extraction.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset<span class="whitespace"> </span>HD_CRC_16um<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--position_path<span class="whitespace"> </span>Dataset/CRC16um/square_016um/tissue_positions.parquet<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--rawimage_path<span class="whitespace"> </span>Dataset/CRC16um/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale_image<span class="whitespace"> </span>True<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--method<span class="whitespace"> </span>HIPT<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--patch_size<span class="whitespace"> </span><span class="literal number">32</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_img<span class="whitespace"> </span>Dataset/CRC16um/HIPT/HD_CRC_16um_pth_32_16_image<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_pth<span class="whitespace"> </span>Dataset/CRC16um/HIPT/HD_CRC_16um_pth_32_16<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--logging<span class="whitespace"> </span>Dataset/CRC16um/HIPT/Logging/<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale<span class="whitespace"> </span><span class="literal number">0</span>.548<span class="whitespace">
+
+</span><span class="comment single">## Virchow2 (requires Hugging Face token)
+</span>python<span class="whitespace"> </span>./demo/Image_feature_extraction.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset<span class="whitespace"> </span>HD_CRC_16um<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--position_path<span class="whitespace"> </span>Dataset/CRC16um/square_016um/tissue_positions.parquet<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--rawimage_path<span class="whitespace"> </span>Dataset/CRC16um/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale_image<span class="whitespace"> </span>True<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--method<span class="whitespace"> </span>Virchow2<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--patch_size<span class="whitespace"> </span><span class="literal number">28</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_img<span class="whitespace"> </span>Dataset/CRC16um/Virchow2/HD_CRC_16um_pth_28_14_image<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_pth<span class="whitespace"> </span>Dataset/CRC16um/Virchow2/HD_CRC_16um_pth_28_14<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--logging<span class="whitespace"> </span>Dataset/CRC16um/Virchow2/Logging/<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale<span class="whitespace"> </span><span class="literal number">0</span>.548
+</pre>
+<p>FineST standardizes image resolution to <strong>0.5 µm/pixel</strong> using <tt class="docutils literal"><span class="pre">--scale</span></tt> before patch extraction.
+Only takes effect when <tt class="docutils literal">scale_image=True</tt>.</p>
+<p><strong>Formula:</strong> <tt class="docutils literal"><span class="pre">--scale</span> = microns_per_pixel / 0.5</tt></p>
+<ul class="simple">
+<li><strong>Visium (NPC demo)</strong><ul>
+<li>Get <tt class="docutils literal">microns_per_pixel</tt> from <tt class="docutils literal">scalefactors_json.json</tt>:
+<tt class="docutils literal">microns_per_pixel = 55 / spot_diameter_fullres</tt></li>
+<li>Example (<tt class="docutils literal">Dataset/NPC/patient1/</tt>): <tt class="docutils literal">spot_diameter_fullres = 139.45</tt>
+→ <tt class="docutils literal">55 / 139.45 ≈ 0.394</tt> µm/px → <tt class="docutils literal"><span class="pre">--scale</span> ≈ 0.789</tt></li>
+<li>NPC commands use <tt class="docutils literal">scale_image=False</tt>, so <tt class="docutils literal"><span class="pre">--scale</span></tt> is <strong>not applied</strong>
+(value kept in commands for reference when you enable rescaling).</li>
+</ul>
+</li>
+<li><strong>Visium HD (CRC 16 µm)</strong><ul>
+<li>Read <tt class="docutils literal">microns_per_pixel</tt> directly from <tt class="docutils literal">scalefactors_json.json</tt></li>
+<li>Example (<tt class="docutils literal">Dataset/CRC16um/square_016um/</tt>): <tt class="docutils literal">0.274</tt> µm/px
+→ <tt class="docutils literal"><span class="pre">--scale</span> = 0.274 / 0.5 ≈ 0.548</tt></li>
+<li>Set <tt class="docutils literal">scale_image=True</tt> so <tt class="docutils literal"><span class="pre">--scale</span></tt> is applied.</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="step-1-training-finest-model">
+<h2><a class="toc-backref" href="#toc-entry-16">🧠 Step 1: Training FineST model</a></h2>
+<p>🖼️ <strong>Visium — within-spots</strong></p>
+<pre class="code bash literal-block">
+<span class="comment single">## HIPT with Visium16 (patch_size=64)
+</span>python<span class="whitespace"> </span>./demo/Step1_FineST_train_infer.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--system_path<span class="whitespace"> </span><span class="literal string single">'./FineST/'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--parame_path<span class="whitespace"> </span><span class="literal string single">'parameter/parameters_NPC_HIPT.json'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset_class<span class="whitespace"> </span><span class="literal string single">'Visium16'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_class<span class="whitespace"> </span><span class="literal string single">'HIPT'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--gene_selected<span class="whitespace"> </span><span class="literal string single">'CD70'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--visium_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/spatial/tissue_positions_list.csv'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_embed_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/ImgEmbeddings/pth_64_16'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--do_scale<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--weight_w<span class="whitespace"> </span><span class="literal number">0</span>.5<span class="whitespace">
+
+</span><span class="comment single">## Virchow2 with Visium64 (patch_size=112)
+</span>python<span class="whitespace"> </span>./demo/Step1_FineST_train_infer.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--system_path<span class="whitespace"> </span><span class="literal string single">'./FineST/'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--parame_path<span class="whitespace"> </span><span class="literal string single">'parameter/parameters_NPC_virchow2.json'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset_class<span class="whitespace"> </span><span class="literal string single">'Visium64'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_class<span class="whitespace"> </span><span class="literal string single">'Virchow2'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--gene_selected<span class="whitespace"> </span><span class="literal string single">'CD70'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--visium_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/spatial/tissue_positions_list.csv'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_embed_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/ImgEmbeddings/pth_112_14'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--do_scale<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--weight_w<span class="whitespace"> </span><span class="literal number">0</span>.5
+</pre>
+<p>🗺️ <strong>Visium HD — 16-µm bins</strong></p>
+<pre class="code bash literal-block">
+<span class="comment single">## HIPT with VisiumHD (patch_size=32)
+</span>python<span class="whitespace"> </span>./demo/Step1_FineST_train_infer.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--system_path<span class="whitespace"> </span><span class="literal string single">'./'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--parame_path<span class="whitespace"> </span><span class="literal string single">'parameter/parameters_CRC16_HIPT.json'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset_class<span class="whitespace"> </span><span class="literal string single">'VisiumHD'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_class<span class="whitespace"> </span><span class="literal string single">'HIPT'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--gene_selected<span class="whitespace"> </span><span class="literal string single">'SPP1'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--visium_path<span class="whitespace"> </span><span class="literal string single">'Dataset/CRC16um/square_016um/tissue_positions.parquet'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_embed_path<span class="whitespace"> </span><span class="literal string single">'Dataset/CRC16um/HIPT/HD_CRC_16um_pth_32_16'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--do_scale<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--weight_w<span class="whitespace"> </span><span class="literal number">0</span>.5<span class="whitespace">
+
+</span><span class="comment single">## Virchow2 with VisiumHD (patch_size=28)
+</span>python<span class="whitespace"> </span>./demo/Step1_FineST_train_infer.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--system_path<span class="whitespace"> </span><span class="literal string single">'./'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--parame_path<span class="whitespace"> </span><span class="literal string single">'parameter/parameters_CRC16_virchow2.json'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset_class<span class="whitespace"> </span><span class="literal string single">'VisiumHD'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_class<span class="whitespace"> </span><span class="literal string single">'Virchow2'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--gene_selected<span class="whitespace"> </span><span class="literal string single">'SPP1'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--visium_path<span class="whitespace"> </span><span class="literal string single">'Dataset/CRC16um/square_016um/tissue_positions.parquet'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_embed_path<span class="whitespace"> </span><span class="literal string single">'Dataset/CRC16um/Virchow2/HD_CRC_16um_pth_28_14'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--do_scale<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--weight_w<span class="whitespace"> </span><span class="literal number">0</span>.5
+</pre>
+<p><strong>Key parameters</strong></p>
+<ul class="simple">
+<li><strong>Must match Step 0</strong><ul>
+<li><tt class="docutils literal"><span class="pre">--dataset_class</span></tt> — sub-spot tiling: <tt class="docutils literal">Visium16</tt> (HIPT, 16 tiles),
+<tt class="docutils literal">Visium64</tt> (Virchow2, 64 tiles), <tt class="docutils literal">VisiumHD</tt> (Visium HD)</li>
+<li><tt class="docutils literal"><span class="pre">--image_class</span></tt> — image encoder: <tt class="docutils literal">HIPT</tt> (384-dim) or <tt class="docutils literal">Virchow2</tt> (1280-dim);
+must be the same method used in Step 0</li>
+</ul>
+</li>
+<li><strong>Imputation blending</strong> (shown in commands above; adjust as needed)<ul>
+<li><tt class="docutils literal"><span class="pre">--do_scale</span></tt> (default <tt class="docutils literal">False</tt>) — z-score expression before combining
+image-inferred (<tt class="docutils literal">adata_infer</tt>) and neighbor-smoothed (<tt class="docutils literal">adata_smooth</tt>) signals</li>
+<li><tt class="docutils literal"><span class="pre">--weight_w</span></tt> (default <tt class="docutils literal">0.5</tt>) — blend weight:
+<tt class="docutils literal">adata_imput = weight_w × adata_infer + (1 - weight_w) × adata_smooth</tt></li>
+</ul>
+</li>
+<li><strong>Auto-inferred</strong> (usually omit from command line)<ul>
+<li>Output directories <tt class="docutils literal">OrderData/</tt>, <tt class="docutils literal">Figures/</tt>, <tt class="docutils literal">SaveData/</tt> are derived from
+<tt class="docutils literal"><span class="pre">--image_embed_path</span></tt>.</li>
+<li>LR genes default to the bundled human list: <tt class="docutils literal"><span class="pre">--LRgene_path</span> 'LR_genes'</tt></li>
+<li>Users can specify the LR gene file explicitly, e.g.:
+<tt class="docutils literal"><span class="pre">--LRgene_path</span> 'FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'</tt></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="step-2-super-resolution-imputation-visium">
+<h2><a class="toc-backref" href="#toc-entry-17">📐 Step 2: Super-resolution imputation (Visium)</a></h2>
+<p><strong>Enhance spatial resolution</strong></p>
+<ul class="simple">
+<li>Option A — sub-spot level (geometric segmentation within each spot)</li>
+<li>Option B — single-cell level (nuclei segmentation with <tt class="docutils literal">StarDist</tt>)</li>
+</ul>
+<p>For <strong>Visium</strong> (~5k spots; 55-µm spot diameter; 100-µm center-to-center distance), interpolate additional spots between original spots first to increase spatial coverage (~3× spots), then extract between-spot image features and impute.</p>
+<div class="section" id="interpolate-between-spots">
+<h3>Interpolate between spots</h3>
+<pre class="code bash literal-block">
+<span class="comment single">## Interpolate spots in horizontal and vertical directions
+</span>python<span class="whitespace"> </span>./demo/Spot_interpolation.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--position_path<span class="whitespace"> </span>FineST_tutorial_data/spatial/tissue_positions_list.csv
+</pre>
+</div>
+<div class="section" id="option-a-sub-spot-resolution">
+<h3>Option A: Sub-spot resolution</h3>
+<p>Step A1: Extract image features for between-spots</p>
+<pre class="code bash literal-block">
+<span class="comment single">## HIPT (recommended)
+</span>python<span class="whitespace"> </span>./demo/Image_feature_extraction.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset<span class="whitespace"> </span>NEW_NPC<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--position_path<span class="whitespace"> </span>FineST_tutorial_data/spatial/tissue_positions_list_add.csv<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--rawimage_path<span class="whitespace"> </span>FineST_tutorial_data/20210809-C-AH4199551.tif<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale_image<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--method<span class="whitespace"> </span>HIPT<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--patch_size<span class="whitespace"> </span><span class="literal number">64</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_img<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/NEW_pth_64_16_image<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_pth<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/NEW_pth_64_16<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--logging<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/Logging/<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale<span class="whitespace"> </span><span class="literal number">0</span>.789<span class="whitespace">
+
+</span><span class="comment single">## Virchow2 (requires Hugging Face token)
+</span>python<span class="whitespace"> </span>./demo/Image_feature_extraction.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset<span class="whitespace"> </span>NEW_NPC<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--position_path<span class="whitespace"> </span>FineST_tutorial_data/spatial/tissue_positions_list_add.csv<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--rawimage_path<span class="whitespace"> </span>FineST_tutorial_data/20210809-C-AH4199551.tif<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale_image<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--method<span class="whitespace"> </span>Virchow2<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--patch_size<span class="whitespace"> </span><span class="literal number">112</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_img<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/NEW_pth_112_14_image<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_pth<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/NEW_pth_112_14<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--logging<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/Logging/<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale<span class="whitespace"> </span><span class="literal number">0</span>.789
+</pre>
+<p>Step A2: Impute at sub-spot resolution</p>
+<p>Requires the Step 1 weights folder (<tt class="docutils literal"><span class="pre">--weight_save_path</span></tt>). Replace <tt class="docutils literal">weights[timestamp]</tt> with your actual folder name.</p>
+<pre class="code bash literal-block">
+<span class="comment single">## HIPT with Visium16
+</span>python<span class="whitespace"> </span>./demo/Step2_High_resolution_imputation.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--system_path<span class="whitespace"> </span><span class="literal string single">'./FineST/'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--parame_path<span class="whitespace"> </span><span class="literal string single">'parameter/parameters_NPC_HIPT.json'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset_class<span class="whitespace"> </span><span class="literal string single">'Visium16'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--gene_selected<span class="whitespace"> </span><span class="literal string single">'CD70'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--visium_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/spatial/tissue_positions_list.csv'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--imag_within_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/ImgEmbeddings/pth_64_16'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--imag_betwen_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/ImgEmbeddings/NEW_pth_64_16'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--weight_save_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/Figures/weights[timestamp]'</span><span class="whitespace">
+
+</span><span class="comment single">## Virchow2 with Visium64
+</span>python<span class="whitespace"> </span>./demo/Step2_High_resolution_imputation.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--system_path<span class="whitespace"> </span><span class="literal string single">'./FineST/'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--parame_path<span class="whitespace"> </span><span class="literal string single">'parameter/parameters_NPC_virchow2.json'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset_class<span class="whitespace"> </span><span class="literal string single">'Visium64'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--gene_selected<span class="whitespace"> </span><span class="literal string single">'CD70'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--visium_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/spatial/tissue_positions_list.csv'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--imag_within_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/ImgEmbeddings/pth_112_14'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--imag_betwen_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/ImgEmbeddings/NEW_pth_112_14'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--weight_save_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/Figures/weights[timestamp]'</span>
+</pre>
+<p><strong>Key inputs (Option A)</strong></p>
+<ul class="simple">
+<li><tt class="docutils literal">pth_64_16/</tt> or <tt class="docutils literal">pth_112_14/</tt> — within-spot image features (Step 0)</li>
+<li><tt class="docutils literal">NEW_pth_64_16/</tt> or <tt class="docutils literal">NEW_pth_112_14/</tt> — between-spot image features (Step A1)</li>
+<li><tt class="docutils literal">weights[timestamp]/</tt> — trained model from Step 1 (e.g., <tt class="docutils literal">weights20260204191708183236</tt>)</li>
+</ul>
+<p><strong>Key outputs (Option A)</strong></p>
+<ul class="simple">
+<li><tt class="docutils literal">SaveData/adata_imput_all_subspot.h5ad</tt> — sub-spot level expression (~16× per spot for HIPT; ~64× for Virchow2)</li>
+<li><tt class="docutils literal">SaveData/adata_imput_all_spot.h5ad</tt> — spot-level aggregated expression (~3× spatial density after interpolation)</li>
+</ul>
+</div>
+<div class="section" id="option-b-single-cell-nuclei-resolution">
+<h3>Option B: Single-cell (nuclei) resolution</h3>
+<p>Run <strong>after Option A</strong> (needs <tt class="docutils literal">adata_imput_all_spot.h5ad</tt> from Step A2).</p>
+<p><strong>Step B1 — Nuclei segmentation</strong></p>
+<pre class="code bash literal-block">
+python<span class="whitespace"> </span>./demo/StarDist_nuclei_segmente.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--tissue<span class="whitespace"> </span>NPC_allspot_p075<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--out_dir<span class="whitespace"> </span>FineST_tutorial_data/NucleiSegments<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--adata_path<span class="whitespace"> </span>FineST_tutorial_data/SaveData/adata_imput_all_spot.h5ad<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--img_path<span class="whitespace"> </span>FineST_tutorial_data/20210809-C-AH4199551.tif<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--prob_thresh<span class="whitespace"> </span><span class="literal number">0</span>.75
+</pre>
+<p>Adjust <tt class="docutils literal"><span class="pre">--prob_thresh</span></tt> if segmentation is too sparse or dense (NPC demo: <tt class="docutils literal">0.75</tt>). Nuclei segmentation results are saved in <tt class="docutils literal">FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/</tt>.</p>
+<p><strong>Step B2 — Extract image features for single-nuclei</strong></p>
+<pre class="code bash literal-block">
+<span class="comment single">## HIPT
+</span>python<span class="whitespace"> </span>./demo/Image_feature_extraction.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset<span class="whitespace"> </span>sc_NPC<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--position_path<span class="whitespace"> </span>FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/position_all_tissue_sc.csv<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--rawimage_path<span class="whitespace"> </span>FineST_tutorial_data/20210809-C-AH4199551.tif<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale_image<span class="whitespace"> </span>False<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--method<span class="whitespace"> </span>HIPT<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--patch_size<span class="whitespace"> </span><span class="literal number">16</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_img<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16_image<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--output_pth<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--logging<span class="whitespace"> </span>FineST_tutorial_data/ImgEmbeddings/Logging/<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--scale<span class="whitespace"> </span><span class="literal number">0</span>.789
+</pre>
+<p><strong>Step B3 — Impute at single-cell resolution</strong></p>
+<pre class="code bash literal-block">
+python<span class="whitespace"> </span>./demo/Step2_High_resolution_imputation.py<span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--system_path<span class="whitespace"> </span><span class="literal string single">'./FineST/'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--parame_path<span class="whitespace"> </span><span class="literal string single">'parameter/parameters_NPC_HIPT.json'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--dataset_class<span class="whitespace"> </span><span class="literal string single">'VisiumSC'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--gene_selected<span class="whitespace"> </span><span class="literal string single">'CD70'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--image_embed_path_sc<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16'</span><span class="whitespace"> </span><span class="literal string escape">\
+</span><span class="whitespace">   </span>--weight_save_path<span class="whitespace"> </span><span class="literal string single">'FineST_tutorial_data/Figures/weights[timestamp]'</span>
+</pre>
+<p><strong>Key outputs (Option B)</strong></p>
+<ul class="simple">
+<li><tt class="docutils literal">SaveData/adata_imput_all_sc.h5ad</tt> — single-nuclei resolution expression.</li>
+</ul>
+<p><strong>Key parameters (Step 2)</strong></p>
+<ul class="simple">
+<li>Match Step 0/1: <tt class="docutils literal"><span class="pre">--dataset_class</span></tt>, <tt class="docutils literal"><span class="pre">--parame_path</span></tt>, <tt class="docutils literal"><span class="pre">--weight_save_path</span></tt> (Step 1 weights folder)</li>
+<li>Image features: <tt class="docutils literal"><span class="pre">--imag_within_path</span></tt> + <tt class="docutils literal"><span class="pre">--imag_betwen_path</span></tt> (Option A); <tt class="docutils literal"><span class="pre">--image_embed_path_sc</span></tt> (Option B)</li>
+<li>Auto-inferred: <tt class="docutils literal">Figures/</tt>, <tt class="docutils literal">OrderData/</tt>, <tt class="docutils literal">SaveData/</tt> output paths</li>
+<li>LR genes: default <tt class="docutils literal"><span class="pre">--LRgene_path</span> 'LR_genes'</tt> (bundled human list; same as Step 1)</li>
+</ul>
+<p><strong>Note:</strong> Full command chains for Options A and B are also in <tt class="docutils literal">test_demo.sh</tt>.</p>
+</div>
+<div class="section" id="visium-hd-16-m-8-m">
+<h3>Visium HD (16 µm → 8 µm)</h3>
+<p>Visium HD uses continuous bin squares and does not require spot interpolation. See the end-to-end notebook:
+<a class="reference external" href="docs/source/CRC16_Train_Impute_count_HIPT.ipynb">CRC16_Train_Impute_count_HIPT.ipynb</a> or <a class="reference external" href="docs/source/CRC16_Train_Impute_count_Virchow2.ipynb">CRC16_Train_Impute_count_Virchow2.ipynb</a>.</p>
+</div>
+</div>
+<div class="section" id="step-3-fine-grained-ligand-receptor-interaction">
+<h2><a class="toc-backref" href="#toc-entry-18">💬 Step 3: Fine-grained ligand-receptor interaction</a></h2>
+<p>Identify ligand-receptor interactions and communication patterns based on <a class="reference external" href="https://github.com/StatBiomed/SpatialDM">SpatialDM</a> and
+<a class="reference external" href="https://github.com/jackywangtj66/SparseAEH">SparseAEH</a>.</p>
+<ul class="simple">
+<li>Visium: <a class="reference external" href="docs/source/NPC_LRI_CCC_count.ipynb">NPC_LRI_CCC_count.ipynb</a></li>
+<li>Visium HD: <a class="reference external" href="docs/source/CRC_LRI_CCC_count.ipynb">CRC_LRI_CCC_count.ipynb</a></li>
+</ul>
+<p>Perform cell-type deconvolution on super-resolved gene expression data with <tt class="docutils literal">expDeconv()</tt> from <a class="reference external" href="https://transpa.readthedocs.io/en/latest/transDeconv.html">TransImpute</a>.</p>
+<ul class="simple">
+<li>Visium: <a class="reference external" href="docs/source/transDeconv_NPC_count.ipynb">transDeconv_NPC_count.ipynb</a></li>
+<li>Visium HD: <a class="reference external" href="docs/source/transDeconv_CRC_count.ipynb">transDeconv_CRC_count.ipynb</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="roi-selection-with-napari">
+<h1><a class="toc-backref" href="#toc-entry-19">ROI selection with Napari</a></h1>
+<p>To analyze a specific region of interest (ROI) on the HE image, use <a class="reference external" href="https://github.com/napari/napari">napari</a>:</p>
+<pre class="code python literal-block">
+<span class="keyword namespace">from</span> <span class="name namespace">PIL</span> <span class="keyword namespace">import</span> <span class="name">Image</span><span class="whitespace">
+</span><span class="name">Image</span><span class="operator">.</span><span class="name">MAX_IMAGE_PIXELS</span> <span class="operator">=</span> <span class="keyword constant">None</span><span class="whitespace">
+</span><span class="keyword namespace">import</span> <span class="name namespace">matplotlib.pyplot</span> <span class="keyword">as</span> <span class="name namespace">plt</span><span class="whitespace">
+</span><span class="keyword namespace">import</span> <span class="name namespace">napari</span><span class="whitespace">
+
+</span><span class="name">image</span> <span class="operator">=</span> <span class="name">plt</span><span class="operator">.</span><span class="name">imread</span><span class="punctuation">(</span><span class="literal string double">&quot;FineST_tutorial_data/20210809-C-AH4199551.tif&quot;</span><span class="punctuation">)</span><span class="whitespace">
+</span><span class="name">viewer</span> <span class="operator">=</span> <span class="name">napari</span><span class="operator">.</span><span class="name">view_image</span><span class="punctuation">(</span><span class="name">image</span><span class="punctuation">,</span> <span class="name">channel_axis</span><span class="operator">=</span><span class="literal number integer">2</span><span class="punctuation">,</span> <span class="name">ndisplay</span><span class="operator">=</span><span class="literal number integer">2</span><span class="punctuation">)</span><span class="whitespace">
+</span><span class="name">napari</span><span class="operator">.</span><span class="name">run</span><span class="punctuation">()</span>
+</pre>
+<p>For detailed instructions and ROI extraction, please see
+| <a class="reference external" href="https://finest-rtd-tutorial.readthedocs.io/en/latest/Crop_ROI_Boundary_image.html">online tutorial</a>, or
+| <a class="reference external" href="https://drive.google.com/file/d/1y3sb_Eemq3OV2gkxwu4gZBhLFp-gpzpH/view?usp=sharing">video guide</a>.</p>
+<p><strong>Quick guide:</strong></p>
+<ul class="simple">
+<li>A <strong>shapes</strong> layer is automatically added when opening napari</li>
+<li>Use the <tt class="docutils literal">Add Polygons</tt> tool to draw ROI(s) on the HE image</li>
+<li>Optionally rename the ROI layer for clarity</li>
+</ul>
+<p>FineST also supports extracting cropped image and AnnData with <tt class="docutils literal">fst.crop_img_adata()</tt>
+(see <a class="reference external" href="docs/source/Crop_ROI_Boundary_image.ipynb">Crop_ROI_Boundary_image.ipynb</a>).</p>
+</div>
+<div class="section" id="citation-and-contact">
+<h1><a class="toc-backref" href="#toc-entry-20">Citation and Contact</a></h1>
+<p>If you use FineST in your research, please cite:</p>
+<p>Li, L., Wang, T., Liang, Z., Yu, H., Ma, S., Yu, L., &amp; Huang, Y. (2026).
+FineST: contrastive learning integrates histology and spatial transcriptomics for
+nuclei-resolved ligand-receptor analysis.
+<a class="reference external" href="https://www.nature.com/articles/s41467-026-70528-7">Nature Communications</a>, 17(1), 4645.</p>
+<pre class="code text literal-block">
+&#64;article{li2026finest,
+  title={FineST: contrastive learning integrates histology and spatial transcriptomics for nuclei-resolved ligand-receptor analysis},
+  author={Li, Lingyu and Wang, Tianjie and Liang, Zhuo and Yu, Huajian and Ma, Stephanie and Yu, Lequan and Huang, Yuanhua},
+  journal={Nature Communications},
+  volume={17},
+  number={1},
+  pages={4645},
+  year={2026},
+  publisher={Nature Publishing Group UK London}
+}
+</pre>
+<p>For any enquiries, please contact Dr. Lingyu Li (<a class="reference external" href="mailto:lingyuli&#64;hku.hk">lingyuli&#64;hku.hk</a>) or Dr. Yuanhua Huang (<a class="reference external" href="mailto:yuanhua&#64;hku.hk">yuanhua&#64;hku.hk</a>).</p>
+</div>
+</div>
+</body></html>

@@ -80,6 +80,45 @@ def ensure_dir_exists(file_path):
     if dir_path: 
         os.makedirs(dir_path, exist_ok=True)
 
+def infer_data_root(image_embed_path):
+    """Infer dataset root from an ImgEmbeddings subdirectory."""
+    normalized = image_embed_path.rstrip('/').replace('\\', '/')
+    parts = normalized.split('/')
+    if len(parts) >= 2 and parts[-2] == 'ImgEmbeddings':
+        return '/'.join(parts[:-2])
+    return os.path.dirname(os.path.dirname(normalized))
+
+def resolve_step2_paths(args):
+    """Fill default output paths from image embedding directories."""
+    embed_path = args.imag_within_path or args.imag_betwen_path or args.image_embed_path_sc
+    if not embed_path:
+        return args
+    data_root = infer_data_root(embed_path)
+    defaults = {
+        'figure_save_path': f'{data_root}/Figures/',
+        'spatial_pos_path': f'{data_root}/OrderData/position_order_all.csv',
+        'spatial_pos_path_sc': f'{data_root}/OrderData/position_order_sc.csv',
+        'adata_all_supr_path': f'{data_root}/SaveData/adata_imput_all_subspot.h5ad',
+        'adata_all_spot_path': f'{data_root}/SaveData/adata_imput_all_spot.h5ad',
+        'adata_super_path_sc': f'{data_root}/SaveData/adata_imput_all_sc.h5ad',
+    }
+    for key, value in defaults.items():
+        current = getattr(args, key, None)
+        if current is None or current in ('figures', 'spatial_pos.csv'):
+            setattr(args, key, value)
+    return args
+
+def resolve_gene_list(args):
+    """Resolve LR gene list keyword or file path for adata_LR."""
+    if args.LRgene_path in (None, '', 'LR_genes', 'HV_genes', 'LR_HV_genes'):
+        return args.LRgene_path or 'LR_genes', getattr(args, 'species', 'human')
+    gene_path = args.LRgene_path
+    if not os.path.isabs(gene_path):
+        candidate = os.path.join(args.system_path, gene_path)
+        if os.path.exists(candidate):
+            gene_path = candidate
+    return gene_path, getattr(args, 'species', 'human')
+
 def get_figure_save_path(args):
     """Get and create figure save directory."""
     if os.path.isabs(args.figure_save_path):
@@ -145,9 +184,8 @@ def load_and_process_data(args):
     adata = datasets.NPC()
     print(" **** Load the original NPC patient1 adata: **** \n", adata)
     
-    # Use LRgene_path as gene_list parameter (can be file path or 'LR_genes', 'HV_genes', 'LR_HV_genes')
-    lr_gene_path = os.path.join(args.system_path, args.LRgene_path)
-    adata = adata_LR(adata, gene_list=lr_gene_path)
+    gene_list, species = resolve_gene_list(args)
+    adata = adata_LR(adata, gene_list=gene_list, species=species)
     adata = adata_preprocess(adata, normalize=False)
     print(" **** Processed NPC patient1 adata: **** \n", adata)
     gene_hv = np.array(adata.var_names)
@@ -363,6 +401,7 @@ def main(args):
     4. Imputes super-resolved gene expression
     5. Saves results and visualizations
     """
+    args = resolve_step2_paths(args)
     try:
         # Setup log file first (before any other output)
         tee, log_file_path, timestamp = setup_log_file(args)
@@ -374,10 +413,11 @@ def main(args):
         logger, parame_path, params, _ = setup_logging(args, timestamp, figure_dir)
         
         # Check if required files exist
-        required_files = [
-            args.LRgene_path,
-            os.path.join(args.system_path, args.parame_path)
-        ]
+        required_files = [os.path.join(args.system_path, args.parame_path)]
+        gene_list, _ = resolve_gene_list(args)
+        if isinstance(gene_list, str) and (gene_list.endswith('.csv') or os.path.exists(gene_list)):
+            required_files.append(gene_list if os.path.isabs(gene_list)
+                                  else os.path.join(args.system_path, gene_list))
         
         if args.dataset_class in ['Visium16', 'Visium64']:
             required_files.extend([
@@ -512,7 +552,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FineST High-Resolution Imputation")
 
     parser.add_argument('--system_path', type=str, required=True, help='System path for data and weights')
-    parser.add_argument('--LRgene_path', type=str, required=True, help='Path to LR genes (relative to system_path)')
+    parser.add_argument('--LRgene_path', type=str, default='LR_genes',
+                        help="LR gene source: 'LR_genes' (default), 'HV_genes', 'LR_HV_genes', or CSV path")
+    parser.add_argument('--species', type=str, default='human',
+                        help="Species for bundled LR gene list: 'human' or 'mouse' (default: human)")
     parser.add_argument('--dataset_class', type=str, required=True, 
                        help='Dataset class: Visium16, Visium64, VisiumSC, or VisiumHD')
     parser.add_argument('--gene_selected', type=str, required=True, help='Marker gene for visualization')
@@ -525,23 +568,23 @@ if __name__ == "__main__":
                        help='Path to within-spot image embeddings (relative to system_path)')
     parser.add_argument('--imag_betwen_path', type=str, required=False, 
                        help='Path to between-spot image embeddings (relative to system_path)')
-    parser.add_argument('--spatial_pos_path', type=str, default='spatial_pos.csv', 
-                       help='Path to save spatial positions (relative to system_path)')
-    parser.add_argument('--adata_all_supr_path', type=str, required=False, 
-                       help='Path to predicted super adata (relative to system_path)')
-    parser.add_argument('--adata_all_spot_path', type=str, required=False, 
-                       help='Path to predicted spot adata (relative to system_path)')
+    parser.add_argument('--spatial_pos_path', type=str, default=None,
+                       help='Path to save spatial positions (default: <data_root>/OrderData/position_order_all.csv)')
+    parser.add_argument('--adata_all_supr_path', type=str, default=None,
+                       help='Path to sub-spot imputed h5ad (default: <data_root>/SaveData/adata_imput_all_subspot.h5ad)')
+    parser.add_argument('--adata_all_spot_path', type=str, default=None,
+                       help='Path to spot-level imputed h5ad (default: <data_root>/SaveData/adata_imput_all_spot.h5ad)')
 
     ## single-nuclei from nuclei segmentation: 
     parser.add_argument('--image_embed_path_sc', type=str, required=False, 
                        help='Path to single-nuclei image embeddings (relative to system_path)')
-    parser.add_argument('--spatial_pos_path_sc', type=str, required=False, 
-                       help='Path to save sc spatial positions (relative to system_path)')
-    parser.add_argument('--adata_super_path_sc', type=str, required=False, 
-                       help='Path to predicted super adata for sc (relative to system_path)')
+    parser.add_argument('--spatial_pos_path_sc', type=str, default=None,
+                       help='Path to sc spatial positions (default: <data_root>/OrderData/position_order_sc.csv)')
+    parser.add_argument('--adata_super_path_sc', type=str, default=None,
+                       help='Path to sc imputed h5ad (default: <data_root>/SaveData/adata_imput_all_sc.h5ad)')
 
-    parser.add_argument('--figure_save_path', type=str, default='figures', 
-                       help='Directory to save figures (relative to system_path)')
+    parser.add_argument('--figure_save_path', type=str, default=None,
+                       help='Directory to save figures (default: <data_root>/Figures/)')
     parser.add_argument('--weight_save_path', type=str, required=True, 
                        help='Path to pre-trained weights directory (relative to system_path or absolute)')
 

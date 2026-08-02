@@ -16,7 +16,11 @@
 ##            there are some 'blank' patches. And compare the '_spot.csv' and 'all_spot_sc.csv'
 ## 2025.06.20 using 'FineST_demo'
 ## 2026.02.03 LLY make the final clean version
-
+## 2026.04.14 LLY add the pixel_size_raw and pixel_size to get "scale" for the image
+## 2026.04.14 LLY add UNI method
+## 2026.05.20 Xenium Select4 — VUHD113 (CSV: X_pix_HE/Y_pix_HE from 0.2125 um/px)
+##            Target 0.5 um/px so patch_size=16 -> ~8 um: scale_image=True, scale=0.2125/0.5=0.425
+## 2026.07.06 LLY add the CODEX_HCC HE cell feature extraction from given cell_data.csv and HE image(.tif) with X Y
 
 import os
 import sys
@@ -47,6 +51,10 @@ from typing import Tuple, List, Optional
 
 ## Constants
 DEFAULT_SCALE = 0.5
+# 10x Xenium registered HE / morphology (µm per pixel at full resolution)
+XENIUM_UM_PER_PX = 0.2125
+TARGET_UM_PER_PX = 0.5  # CODEX / Visium-HD style target for patch_size=16 -> ~8 µm
+XENIUM_SCALE_TO_TARGET_UM = XENIUM_UM_PER_PX / TARGET_UM_PER_PX  # 0.425
 DEFAULT_SEED = 666
 LARGE_DATASET_THRESHOLD = 50000
 LARGE_DATASET_STEP = 1000
@@ -56,10 +64,11 @@ SMALL_DATASET_STEP = 100
 logging.getLogger().setLevel(logging.INFO)
 
 
-def setup_logger(model_save_folder: str) -> logging.Logger:
+def setup_logger(model_save_folder: str, method: str = "HIPT") -> logging.Logger:
     """Setup logger with file and console handlers."""
     level = logging.INFO
-    log_name = 'HIPT_image_feature_extract.log'
+    method_tag = str(method).strip() if method is not None else "HIPT"
+    log_name = f'{method_tag}_image_feature_extract.log'
     formatter = logging.Formatter(
         '[%(asctime)s] %(levelname)s - %(message)s', 
         datefmt='%Y-%m-%d %H:%M:%S'
@@ -100,6 +109,27 @@ def get_logging_step(total_items: int) -> int:
     """Get logging step based on dataset size."""
     return LARGE_DATASET_STEP if total_items > LARGE_DATASET_THRESHOLD else SMALL_DATASET_STEP
 
+
+
+##########################################
+# 2026.04.14 LLY add but not used for now
+# The CODEX HE, HE_micron_per_pixel_size=0.5000061356695383 um / 1 pixel, so no need to rescale
+##########################################
+## Important for recale factor to keep 0.5 um/pixel
+def get_scale_factor(HE_micron_per_pixel_size: float, logger: logging.Logger) -> float:
+    """
+    Calculate the scale factor to rescale an image to a standard resolution of 0.5 μm/pixel.
+    Note: if 10x, HE_micron_per_pixel_size = 55 μm / spot_diameter_fullres
+    """
+    standard_pixel_size = 0.5  # target resolution is 0.5 um/pixel 
+    if abs(HE_micron_per_pixel_size - standard_pixel_size) < 1e-3:
+        scale = 1.0
+    else:
+        scale = HE_micron_per_pixel_size / standard_pixel_size
+    logger.info(f"scale factor for rescale image to 0.5 um/pixel: {scale:.3f}")
+    return scale
+    
+
 ## Rescale image to decrease split_num
 def rescale_image(img: np.ndarray, scale: float) -> np.ndarray:
     """Rescale image to decrease split_num."""
@@ -116,6 +146,19 @@ def rescale_image(img: np.ndarray, scale: float) -> np.ndarray:
 # def get_patch_size(diameter, tile_size=14):
 #     return int((diameter // tile_size) * tile_size)
 
+def _scale_positions_for_image(
+    tissue_position: pd.DataFrame, scale_image: bool, scale: float
+) -> pd.DataFrame:
+    if not scale_image:
+        return tissue_position
+    if "pxl_row_in_fullres" not in tissue_position.columns:
+        return tissue_position
+    out = tissue_position.copy()
+    out["pxl_row_in_fullres"] = out["pxl_row_in_fullres"] * scale
+    out["pxl_col_in_fullres"] = out["pxl_col_in_fullres"] * scale
+    return out
+
+
 def load_tissue_position(position_path: str, scale_image: bool, scale: float, logger: logging.Logger) -> pd.DataFrame:
     """Load and process tissue position file."""
     _, ext = os.path.splitext(position_path)
@@ -123,6 +166,73 @@ def load_tissue_position(position_path: str, scale_image: bool, scale: float, lo
     if ext == ".csv":
         tissue_position = pd.read_csv(position_path)
         logger.info(f"Loaded CSV with shape: {tissue_position.shape}")
+
+        #########################################################
+        ## 2026.05.20 Xenium Select4 — VUILD96LA (coords: x_centroid, y_centroid)
+        ## Xenium / Weiqin HE: x_centroid,y_centroid in µm; X_pix_HE,Y_pix_HE on HE grid
+        if "x_centroid" in tissue_position.columns and "y_centroid" in tissue_position.columns:
+            tissue_position = tissue_position.copy()
+            if "cell_id" in tissue_position.columns:
+                tissue_position = tissue_position.set_index("cell_id", drop=False)
+            if "X_pix_HE" in tissue_position.columns and "Y_pix_HE" in tissue_position.columns:
+                tissue_position["pxl_row_in_fullres"] = tissue_position["X_pix_HE"]
+                tissue_position["pxl_col_in_fullres"] = tissue_position["Y_pix_HE"]
+                src = "X_pix_HE/Y_pix_HE"
+            else:
+                tissue_position["pxl_row_in_fullres"] = (
+                    tissue_position["x_centroid"] / XENIUM_UM_PER_PX
+                )
+                tissue_position["pxl_col_in_fullres"] = (
+                    tissue_position["y_centroid"] / XENIUM_UM_PER_PX
+                )
+                src = f"x_centroid/y_centroid / {XENIUM_UM_PER_PX}"
+            tissue_position = _scale_positions_for_image(
+                tissue_position, scale_image, scale
+            )
+            logger.info(
+                f"Mapped {src} -> pxl_row/pxl_col (HE full-res px); "
+                f"scale_image={scale_image}, scale={scale:.4f} "
+                f"({len(tissue_position):,} cells)"
+            )
+            return tissue_position
+        #########################################################
+
+        #########################################################            
+        ## 2026.05.20 Xenium Select4 — VUILD96LA (coords: x_centroid, y_centroid) For Lu’s StarDist
+        ## StarDist on HE: centroid_x, centroid_y = full-resolution HE pixel coordinates
+        if "centroid_x" in tissue_position.columns and "centroid_y" in tissue_position.columns:
+            tissue_position = tissue_position.copy()
+            tissue_position["pxl_row_in_fullres"] = tissue_position["centroid_x"]
+            tissue_position["pxl_col_in_fullres"] = tissue_position["centroid_y"]
+            tissue_position = _scale_positions_for_image(
+                tissue_position, scale_image, scale
+            )
+            logger.info(
+                "Mapped StarDist centroid_x/centroid_y -> pxl_row/pxl_col (HE full-res px); "
+                f"scale_image={scale_image}, scale={scale:.4f} "
+                f"({len(tissue_position):,} detections)"
+            )
+            return tissue_position
+        #########################################################
+
+        #########################################################
+        ## 2026.07.06 CODEX HCC s4769 — {acq_id}.cell_data.csv: X,Y on aligned HE (full-res px)
+        if "X" in tissue_position.columns and "Y" in tissue_position.columns:
+            tissue_position = tissue_position.copy()
+            if "CELL_ID" in tissue_position.columns:
+                tissue_position = tissue_position.set_index("CELL_ID", drop=False)
+            tissue_position["pxl_row_in_fullres"] = tissue_position["X"]
+            tissue_position["pxl_col_in_fullres"] = tissue_position["Y"]
+            tissue_position = _scale_positions_for_image(
+                tissue_position, scale_image, scale
+            )
+            logger.info(
+                "Mapped CODEX cell_data X/Y -> pxl_row/pxl_col (HE full-res px); "
+                f"scale_image={scale_image}, scale={scale:.4f} "
+                f"({len(tissue_position):,} cells)"
+            )
+            return tissue_position
+        #########################################################
         
         if tissue_position.shape[1] == 6:
             if 'cell_nums' not in tissue_position.columns.tolist():
@@ -176,6 +286,9 @@ def load_tissue_position(position_path: str, scale_image: bool, scale: float, lo
                 else:
                     # Assume standard order: array_row, array_col, pxl_row_in_fullres, pxl_col_in_fullres
                     tissue_position.columns = ['array_row', 'array_col', 'pxl_row_in_fullres', 'pxl_col_in_fullres']
+        tissue_position = _scale_positions_for_image(
+            tissue_position, scale_image, scale
+        )
     elif ext == ".parquet":
         tissue_position = (pd.read_parquet(position_path)
                         .set_index('barcode')
@@ -304,7 +417,7 @@ def main(dataset: str, position_path: str, rawimage_path: str, scale_image: bool
     # Create the folder with a unique timestamp
     dir_name = logging_folder + datetime.now().strftime('%Y%m%d%H%M%S%f')
     os.makedirs(dir_name, exist_ok=True)
-    logger = setup_logger(dir_name)
+    logger = setup_logger(dir_name, method=method)
 
     # Set seed for reproducibility
     setup_seed(DEFAULT_SEED)
@@ -401,10 +514,6 @@ def main(dataset: str, position_path: str, rawimage_path: str, scale_image: bool
     logger.info(f"Image segmentation time: {execution_time:.2f} seconds")
 
 
-    # Add HIPT to path
-    sys.path.append("./FineST")
-    from HIPT.HIPT_4K import vision_transformer as vits
-
     ######################################################################
     # HIPT-vit_256(): 
     # from size '3 x patch_size x patch_size' to size '1 x 384' (16*16)
@@ -413,8 +522,11 @@ def main(dataset: str, position_path: str, rawimage_path: str, scale_image: bool
     # should be consistent with {image_width, image_height}
     # Please check it !!!
 
-    # Add HIPT to path
-    sys.path.append("./FineST")
+    # Add HIPT to path (package lives next to demo/: FineST/FineST/HIPT)
+    _script_dir = os.path.dirname(os.path.abspath(__file__))
+    _hipt_root = os.path.abspath(os.path.join(_script_dir, '..', 'FineST'))
+    if _hipt_root not in sys.path:
+        sys.path.insert(0, _hipt_root)
     from HIPT.HIPT_4K import vision_transformer as vits
 
     ######################################################################
@@ -472,7 +584,8 @@ def main(dataset: str, position_path: str, rawimage_path: str, scale_image: bool
                 transforms.ToTensor(), 
                 transforms.Normalize(mean=mean, std=std)
             ])
-        
+        logger.info(f"HIPT model loaded successfully and transform created")
+
     elif method == 'Virchow2':
         logger.info(f"Method: {method}")
         # Import timm only when using Virchow2 method
@@ -508,6 +621,102 @@ def main(dataset: str, position_path: str, rawimage_path: str, scale_image: bool
                 transforms.ToTensor(), 
                 transforms.Normalize(mean=mean, std=std)
             ])
+        logger.info(f"Virchow2 model loaded successfully and transform created")
+
+    elif method == 'UNI':
+        logger.info(f"Method: {method}")
+
+        # Import timm only when using UNI method
+        try:
+            import timm
+            from huggingface_hub import hf_hub_download
+        except ImportError:
+            error_msg = (
+                "timm package is required for UNI method. "
+                "Please install it with: pip install timm"
+            )
+            logger.error(error_msg)
+            raise ImportError(error_msg)
+
+        ######################################################################
+        # UNI(): 
+        # from size '3 x patch_size x patch_size' to size '1 x 1024' (16*16)
+        ######################################################################    
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        local_dir = os.path.join(
+            script_dir,
+            "UNI",
+            "assets",
+            "ckpts",
+            "vit_large_patch16_224.dinov2.uni_mass100k"
+        )
+        os.makedirs(local_dir, exist_ok=True)  # create directory if it does not exist
+        weight_file = hf_hub_download(
+            repo_id="MahmoodLab/UNI",
+            filename="pytorch_model.bin",
+            local_dir=local_dir,
+            force_download=False    # True: download even if already in cache
+        )
+
+        model = timm.create_model(
+            "vit_large_patch16_224", 
+            img_size=224, 
+            patch_size=16, 
+            init_values=1e-5, 
+            num_classes=0, 
+            dynamic_img_size=True
+        )
+        model.load_state_dict(torch.load(weight_file, map_location="cpu"), strict=True)
+
+        def eval_transforms():
+            mean, std = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+            return transforms.Compose([
+                # transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)
+            ])
+
+        model.to(device)
+        model = model.eval()
+
+        ######################################################################
+        # 2026.04.14 LLY add - used for no local model weights
+        ######################################################################
+        # # Import timm only when using UNI method
+        # try:
+        #     import timm
+        #     from timm.data import resolve_data_config
+        #     from timm.data.transforms_factory import create_transform
+        #     # from huggingface_hub import login
+        #     # login() # login with your User Access Token for UNI, found at https://huggingface.co/settings/tokens
+        # except ImportError:
+        #     error_msg = (
+        #         "timm package is required for UNI method. "
+        #         "Please install it with: pip install timm"
+        #     )
+        #     logger.error(error_msg)
+        #     raise ImportError(error_msg)
+        
+        # ######################################################################
+        # # UNI(): 
+        # # from size '3 x patch_size x patch_size' to size '1 x 1024' (16*16)
+        # # pretrained=True needed to load UNI weights (and download weights for the first time)
+        # # init_values need to be passed in to successfully load LayerScale parameters (e.g. - block.0.ls1.gamma)
+        # ## Note!!! Automatically download model weights to the huggingface_hub cache in your home directory.
+        # ##         "~/.cache/huggingface/hub/models--MahmoodLab--UNI"
+        # ######################################################################        
+        # model = timm.create_model(
+        #     "hf-hub:MahmoodLab/uni", 
+        #     pretrained=True, 
+        #     init_values=1e-5, 
+        #     dynamic_img_size=True
+        # )
+        # model.to(device)
+        # transform = create_transform(**resolve_data_config(model.pretrained_cfg, model=model))
+        # model = model.eval()
+
+        logger.info(f"UNI model loaded successfully and transform created")
+
     else:
         raise ValueError(f"Unsupported method: {method}")
 
@@ -522,36 +731,43 @@ def main(dataset: str, position_path: str, rawimage_path: str, scale_image: bool
     # Process patches
     os.makedirs(output_pth, exist_ok=True)
     patches_list = os.listdir(output_img)
+    step = get_logging_step(len(patches_list))
+    transform_fn = eval_transforms()
 
     start_time = time.time()
-    for i, patch in enumerate(patches_list):
+    with torch.inference_mode():
+        for i, patch in enumerate(patches_list):
 
-        patch_base_name, extension = os.path.splitext(patch)
-        patch_path = os.path.join(output_img, patch)
-        patch_image = Image.open(patch_path)
+            patch_base_name, extension = os.path.splitext(patch)
+            patch_path = os.path.join(output_img, patch)
+            with Image.open(patch_path) as patch_image:
+                patch_image = patch_image.convert("RGB")
 
-        if method == 'Virchow2':
-            p_image = eval_transforms()(patch_image).unsqueeze(dim=0).to(device)    # torch.Size([1, 3, 64, 64])
-            lay = model(p_image)  # size: 1 x 261 x 1280
-            # tokens 1-4 are register tokens so we ignore those
-            subtensors = lay[:, 5:]  # size: 1 x 256 x 1280
-            subtensors_list = torch.split(subtensors, 1, dim=1)
-   
-        elif method == 'HIPT':
-            p_image = eval_transforms()(patch_image).unsqueeze(dim=0).to(device)    # torch.Size([1, 3, 64, 64])
-            lay = model.get_intermediate_layers(p_image, 1)[0]  # torch.Size([1, 17, 384])
-            subtensors = lay[:, :, :]  # torch.Size([1, 17, 384])
-            subtensors_list = torch.split(subtensors, 1, dim=1)
-            subtensors_list = subtensors_list[1:]
+                if method == 'HIPT':
+                    p_image = transform_fn(patch_image).unsqueeze(dim=0).to(device, non_blocking=True)    # torch.Size([1, 3, 64, 64])
+                    lay = model.get_intermediate_layers(p_image, 1)[0]  # torch.Size([1, 17, 384])
+                    subtensors = lay[:, :, :]  # torch.Size([1, 17, 384])
+                    subtensors_list = torch.split(subtensors, 1, dim=1)
+                    subtensors_list = subtensors_list[1:]
 
-        # Save image embeddings
-        saved_name = patch_base_name + '.pth'
-        
-        step = get_logging_step(len(patches_list))
-        if i % step == 0:
-            logger.info(f"saved_name: {i}, {saved_name}")
-        saved_path = os.path.join(output_pth, saved_name)
-        torch.save(subtensors_list, saved_path)
+                elif method == 'Virchow2':
+                    p_image = transform_fn(patch_image).unsqueeze(dim=0).to(device, non_blocking=True)    # torch.Size([1, 3, 64, 64])
+                    lay = model(p_image)  # size: 1 x 261 x 1280
+                    # tokens 1-4 are register tokens so we ignore those
+                    subtensors = lay[:, 5:]  # size: 1 x 256 x 1280
+                    subtensors_list = torch.split(subtensors, 1, dim=1)
+       
+                elif method == 'UNI':
+                    p_image = transform_fn(patch_image).unsqueeze(dim=0).to(device, non_blocking=True)    # torch.Size([1, 3, 64, 64])
+                    lay = model(p_image)  # size: 1 x 1024
+                    subtensors_list = (lay.unsqueeze(1),)  # size: 1 x 1 x 1024
+
+            # Save image embeddings
+            saved_name = patch_base_name + '.pth'
+            if i % step == 0:
+                logger.info(f"saved_name: {i}, {saved_name}")
+            saved_path = os.path.join(output_pth, saved_name)
+            torch.save(subtensors_list, saved_path)
 
     end_time = time.time()
     execution_time = end_time - start_time
@@ -591,69 +807,3 @@ if __name__ == '__main__':
     
 
 ## Python script examples with `Virchow2` model
-
-##########################
-# NPC: sub-spot 
-##########################
-# python ./demo/Image_feature_extraction.py \
-#    --dataset NPC \
-#    --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv \
-#    --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-#    --scale_image False \
-#    --method Virchow2 \
-#    --patch_size 112 \
-#    --output_img FineST_tutorial_data/ImgEmbeddings/pth_112_14_image \
-#    --output_pth FineST_tutorial_data/ImgEmbeddings/pth_112_14 \
-#    --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
-#    --scale 0.5  # Optional, default is 0.5
-
-
-##########################
-# CRC 16um: 
-##########################
-# python ./demo/Image_feature_extraction.py \
-#     --dataset HD_CRC_16um \
-#     --position_path ./Dataset/CRC16um/square_016um/tissue_positions.parquet \
-#     --rawimage_path ./Dataset/CRC16um/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
-#     --scale_image True \
-#     --method Virchow2 \
-#     --patch_size 28 \
-#     --output_img ./Dataset/CRC16um/HIPT/HD_CRC_16um_pth_28_14_image_test \
-#     --output_pth ./Dataset/CRC16um/HIPT/HD_CRC_16um_pth_28_14_test \
-#     --logging ./Logging/HIPT_HD_CRC_16um/ \
-#     --scale 0.5  # Optional, default is 0.5
-
-
-##########################
-# NPC: single nuclei
-##########################
-# python ./demo/Image_feature_extraction.py \
-#    --dataset AH_Patient1 \
-#    --position_path ./Dataset/NPC/StarDist/DataOutput/NPC1_allspot_p075_test/_position_all_tissue_sc.csv \
-#    --rawimage_path ./Dataset/NPC/patient1/20210809-C-AH4199551.tif \
-#    --scale_image False \
-#    --method Virchow2 \
-#    --patch_size 14 \
-#    --output_img ./Dataset/NPC/HIPT/sc_Patient1_pth_14_14_image \
-#    --output_pth ./Dataset/NPC/HIPT/sc_Patient1_pth_14_14 \
-#    --logging ./Logging/HIPT_AH_Patient1/ \
-#    --scale 0.5  # Optional, default is 0.5
-
-
-
-## Python script examples with `HIPT` model
-
-##########################
-# NPC: sub-spot 
-##########################
-# python ./demo/Image_feature_extraction.py \
-#    --dataset NPC \
-#    --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv \
-#    --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-#    --scale_image False \
-#    --method HIPT \
-#    --patch_size 64 \
-#    --output_img FineST_tutorial_data/ImgEmbeddings/pth_64_16_image \
-#    --output_pth FineST_tutorial_data/ImgEmbeddings/pth_64_16 \
-#    --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
-#    --scale 0.5  # Optional, default is 0.5

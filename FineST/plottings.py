@@ -115,7 +115,7 @@ import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
 def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r,
-                                 marker, marker_size, edgecolors, title_font_size=16, tick_font_size=16,
+                                 marker, marker_size, edgecolors, line_widths=1, title_font_size=16, tick_font_size=16,
                                  scale=True, mtx_sender=None, mtx_receiver=None, mask=None, mode='colorbar', 
                                  **kwargs):
     """
@@ -189,19 +189,19 @@ def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cma
         
         plt.scatter(spatial_loc[cond_both_low, 0], spatial_loc[cond_both_low, 1],
                     c=color_dict['both_low'], label='Both low', marker=marker, s=marker_size, 
-                    edgecolors=edgecolors, linewidths=1)
+                    edgecolors=edgecolors, linewidths=line_widths)
         plt.scatter(spatial_loc[cond_sender_high, 0], spatial_loc[cond_sender_high, 1],
                     c=color_dict['sender_high'], label=f'{L[0]}_high', marker=marker, s=marker_size, 
-                    edgecolors=edgecolors, linewidths=1)
+                    edgecolors=edgecolors, linewidths=line_widths)
         plt.scatter(spatial_loc[cond_receiver_high, 0], spatial_loc[cond_receiver_high, 1],
                     c=color_dict['receiver_high'], label=f'{R[0]}_High', marker=marker, s=marker_size, 
-                    edgecolors=edgecolors, linewidths=1)
+                    edgecolors=edgecolors, linewidths=line_widths)
         plt.scatter(spatial_loc[cond_both_high, 0], spatial_loc[cond_both_high, 1],
                     c=color_dict['both_high'], label='Both high', marker=marker, s=marker_size, 
-                    edgecolors=edgecolors, linewidths=1)
+                    edgecolors=edgecolors, linewidths=line_widths)
         plt.scatter(spatial_loc[cond_invalid, 0], spatial_loc[cond_invalid, 1],
                     c=color_dict['invalid'], label='Not significant', marker=marker, s=marker_size, 
-                    edgecolors=edgecolors, linewidths=1)
+                    edgecolors=edgecolors, linewidths=line_widths)
         ## Legend
         legend_handles = [
             mlines.Line2D([], [], color=color_dict['both_low'], marker='o', linestyle='None', 
@@ -221,7 +221,7 @@ def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cma
     else:
         ## colorbar model
         scatter_kwargs = dict(x=spatial_loc[:, 0], y=spatial_loc[:, 1], c=spots.loc[pair],
-                              cmap=cmap, marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+                              cmap=cmap, marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=line_widths)
         
         if scale:
             scatter_kwargs['vmax'] = 1
@@ -239,7 +239,7 @@ def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cma
         ax = axes[l]
         scatter = ax.scatter(spatial_loc[:, 0], spatial_loc[:, 1], c=sample[:, L[l]].X.toarray().flatten(),
                              cmap=cmap_l, marker=marker, s=marker_size,
-                             edgecolors=edgecolors, linewidths=1, **kwargs)
+                             edgecolors=edgecolors, linewidths=line_widths, **kwargs)
         colorbar = plt.colorbar(scatter, ax=ax)
         colorbar.ax.tick_params(labelsize=tick_font_size)
         plt_util_invert_y('Ligand: ' + L[l], title_font_size=title_font_size, tick_font_size=tick_font_size, ax=ax)
@@ -249,7 +249,7 @@ def plot_selected_pair_dot_class(sample, pair, spots, selected_ind, figsize, cma
         ax = axes[l1 + l]
         scatter = ax.scatter(spatial_loc[:, 0], spatial_loc[:, 1], c=sample[:, R[l]].X.toarray().flatten(),
                              cmap=cmap_r, marker=marker, s=marker_size,
-                             edgecolors=edgecolors, linewidths=1, **kwargs)
+                             edgecolors=edgecolors, linewidths=line_widths, **kwargs)
         colorbar = plt.colorbar(scatter, ax=ax)
         colorbar.ax.tick_params(labelsize=tick_font_size)
         plt_util_invert_y('Receptor: ' + R[l], title_font_size=title_font_size, tick_font_size=tick_font_size, ax=ax)
@@ -259,7 +259,7 @@ def plot_pairs_dot_class(sample, pairs_to_plot, SCS='p_value', mode=None, pdf=No
                         # cmap='Greens', cmap_l='Purples', cmap_r='Purples',
                         cmap='Greens', cmap_l='Spectral_r', cmap_r='Spectral_r',   
                         # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', 
-                        marker='o', marker_size=5, edgecolors='lightgrey', **kwargs):
+                        marker='o', marker_size=5, edgecolors='lightgrey', line_widths=1, **kwargs):
     
     """
     Plot the pairs dot class.
@@ -311,6 +311,7 @@ def plot_pairs_dot_class(sample, pairs_to_plot, SCS='p_value', mode=None, pdf=No
                 plot_selected_pair_dot_class(
                     sample, pair, spot_data, selected_ind, figsize, cmap=cmap,
                     cmap_l=cmap_l, cmap_r=cmap_r, marker=marker, marker_size=marker_size, edgecolors=edgecolors,
+                    linewidths=line_widths,
                     mtx_sender=mtx_sender, mtx_receiver=mtx_receiver, mask=mask, mode=final_mode, **kwargs
                 )
                 pdf_pages.savefig(transparent=trans)
@@ -322,6 +323,7 @@ def plot_pairs_dot_class(sample, pairs_to_plot, SCS='p_value', mode=None, pdf=No
             plot_selected_pair_dot_class(
                 sample, pair, spot_data, selected_ind, figsize, cmap=cmap,
                 cmap_l=cmap_l, cmap_r=cmap_r, marker=marker, marker_size=marker_size, edgecolors=edgecolors,
+                linewidths=line_widths,
                 mtx_sender=mtx_sender, mtx_receiver=mtx_receiver, mask=mask, mode=final_mode, **kwargs
             )
             plt.show()
@@ -1916,7 +1918,7 @@ def sparseAEH_clusters(gaussian_subspot, label='counts', w=None, s=5, marker='s'
 # 2025.02.07 update font size
 #############################
 def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cmap_l, cmap_r,
-                           marker, marker_size, edgecolors, title_font_size=16, tick_font_size=16,
+                           marker, marker_size, edgecolors, linewidths=1, title_font_size=16, tick_font_size=16,
                            scale=True, **kwargs):
     """
     Plot selected pair dot
@@ -1948,7 +1950,7 @@ def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cma
     plt.subplot(1, 5, 1)
 
     scatter_kwargs = dict(x=spatial_loc[:, 0], y=spatial_loc[:, 1], c=spots.loc[pair],
-                          cmap=cmap, marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=1)
+                          cmap=cmap, marker=marker, s=marker_size, edgecolors=edgecolors, linewidths=linewidths)
     if scale:
         scatter_kwargs['vmax'] = 1
     scatter_kwargs.update(kwargs)
@@ -1962,7 +1964,7 @@ def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cma
         plt.subplot(1, 5, 2 + l)
         scatter = plt.scatter(spatial_loc[:, 0], spatial_loc[:, 1], c=sample[:, L[l]].X.toarray().flatten(),
                               cmap=cmap_l, marker=marker, s=marker_size,
-                              edgecolors=edgecolors, linewidths=1, **kwargs)
+                              edgecolors=edgecolors, linewidths=linewidths, **kwargs)
         colorbar = plt.colorbar(scatter)
         colorbar.ax.tick_params(labelsize=tick_font_size)
         plt_util_invert('Ligand: ' + L[l], title_font_size=title_font_size, tick_font_size=tick_font_size)
@@ -1970,7 +1972,7 @@ def plot_selected_pair_dot(sample, pair, spots, selected_ind, figsize, cmap, cma
         plt.subplot(1, 5, 2 + l1 + l)
         scatter = plt.scatter(spatial_loc[:, 0], spatial_loc[:, 1], c=sample[:, R[l]].X.toarray().flatten(),
                               cmap=cmap_r, marker=marker, s=marker_size,
-                              edgecolors=edgecolors, linewidths=1, **kwargs)
+                              edgecolors=edgecolors, linewidths=linewidths, **kwargs)
         colorbar = plt.colorbar(scatter)
         colorbar.ax.tick_params(labelsize=tick_font_size)
         plt_util_invert('Receptor: ' + R[l], title_font_size=title_font_size, tick_font_size=tick_font_size)
@@ -1994,7 +1996,7 @@ def plot_pairs_dot(sample, pairs_to_plot, SCS='p_value', pdf=None, trans=False, 
                    # cmap='Greens', cmap_l='Spectral_r', cmap_r='Spectral_r',   
                    cmap='Greens', cmap_l='Purples', cmap_r='Purples',
                    # cmap='Greens', cmap_l='coolwarm', cmap_r='coolwarm', 
-                   marker='o', marker_size=5, edgecolors='lightgrey', **kwargs):    # edgecolors
+                   marker='o', marker_size=5, edgecolors='lightgrey', linewidths=1, **kwargs):    # edgecolors
     """
     Plot pairs dot
         sample : AnnData. Annotated data matrix.
@@ -2035,7 +2037,8 @@ def plot_pairs_dot(sample, pairs_to_plot, SCS='p_value', pdf=None, trans=False, 
             for pair in pairs_to_plot:
                 plot_selected_pair_dot(sample, pair, spot_data, selected_ind, figsize, cmap=cmap,
                                         cmap_l=cmap_l, cmap_r=cmap_r, 
-                                        marker=marker, marker_size=marker_size, edgecolors=edgecolors, **kwargs)
+                                        marker=marker, marker_size=marker_size, edgecolors=edgecolors, 
+                                        linewidths=linewidths, **kwargs)
                 pdf_pages.savefig(transparent=trans)
                 plt.show()
                 plt.close()
@@ -2043,7 +2046,8 @@ def plot_pairs_dot(sample, pairs_to_plot, SCS='p_value', pdf=None, trans=False, 
         for pair in pairs_to_plot:
             plot_selected_pair_dot(sample, pair, spot_data, selected_ind, figsize, cmap=cmap,
                                     cmap_l=cmap_l, cmap_r=cmap_r, 
-                                    marker=marker, marker_size=marker_size, edgecolors=edgecolors, **kwargs)
+                                    marker=marker, marker_size=marker_size, edgecolors=edgecolors, 
+                                    linewidths=linewidths, **kwargs)
             plt.show()
             plt.close()
 

@@ -28,14 +28,9 @@
    --dataset_class 'Visium16' \
    --image_class 'HIPT' \
    --gene_selected 'CD70' \
-   --LRgene_path 'FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv' \
    --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
    --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/pth_64_16' \
-   --spatial_pos_path 'FineST_tutorial_data/OrderData/position_order.csv' \
-   --reduced_mtx_path 'FineST_tutorial_data/OrderData/matrix_order.npy' \
-   --figure_save_path 'FineST_tutorial_data/Figures/' \
-   --save_data_path 'FineST_tutorial_data/SaveData/' \
-   --patch_size 64 \
+   --do_scale False \
    --weight_w 0.5
 
 ########################################################

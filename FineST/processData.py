@@ -333,6 +333,17 @@ def get_allspot_coors(input_coord_all):
     print("Are there any duplicate rows? :", duplicate_rows)
     return spatial_loc
 
+########################################################
+# 2026.08.02 update: For using default LR gene file
+########################################################
+def _default_lr_gene_file(species='human'):
+    """Return the bundled LR gene list CSV inside the FineST package."""
+    import FineST
+    if species not in ('human', 'mouse'):
+        raise ValueError("species must be 'human' or 'mouse'.")
+    filename = f'LRgene_CellChatDB_baseline_{species}.csv'
+    return os.path.join(os.path.dirname(FineST.__file__), 'datasets', 'LR_gene', filename)
+
 
 def adata_LR(adata, gene_list='LR_genes', species='human', n_top_genes=500):
     """
@@ -366,26 +377,16 @@ def adata_LR(adata, gene_list='LR_genes', species='human', n_top_genes=500):
         LRgenes = list(pd.read_csv(gene_list).iloc[:, 0])
         genes = LRgenes
     elif gene_list == 'LR_genes':
-        ## Use default LR genes file based on species
-        if species == 'human':
-            file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'
-        elif species == 'mouse':
-            file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_mouse.csv'
-        else:
-            raise ValueError("species must be 'human' or 'mouse'.")
+        ## 2026.08.02 update: For using default LR gene file
+        file_path = _default_lr_gene_file(species)
         LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
         genes = LRgenes
     elif gene_list == 'HV_genes':
+        ## 2026.08.02 update: For using default LR gene file
         _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=n_top_genes)
         genes = list(HVgenes)
     elif gene_list == 'LR_HV_genes':
-        ## Use default LR genes file based on species
-        if species == 'human':
-            file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'
-        elif species == 'mouse':
-            file_path = './FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_mouse.csv'
-        else:
-            raise ValueError("species must be 'human' or 'mouse'.")
+        file_path = _default_lr_gene_file(species)
         LRgenes = list(pd.read_csv(file_path).iloc[:, 0])
         _, HVgenes = adata_preprocess(adata.copy(), n_top_genes=n_top_genes)
         ## Guarantee: Before LRgenes, HVgenes was removed.
