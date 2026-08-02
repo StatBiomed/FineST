@@ -152,8 +152,7 @@ Quick start
    FineST/
    ├── FineST/              # Python package (model, inference, plottings, ...)
    ├── demo/                # Command-line scripts (Step 0–2)
-   ├── tutorial/            # End-to-end Visium notebooks
-   ├── docs/source/         # Detailed notebooks (Visium, Visium HD, LR, CCC, cell-type deconvolution, ...)
+   ├── docs/source/         # Jupyter notebooks (Visium, Visium HD, LR, CCC, ...)
    ├── parameter/           # Model hyperparameter JSON files
    ├── docs/fig/            # Framework figures
    └── test_demo.sh         # Quick demo script
@@ -196,13 +195,13 @@ Bioinformatics beginners
 
 🧬 **Visium end-to-end (~10 min)**
 
-* HIPT: `NPC_Train_Impute_demo_HIPT.ipynb <tutorial/NPC_Train_Impute_demo_HIPT.ipynb>`_
-* Virchow2: `NPC_Train_Impute_demo.ipynb <tutorial/NPC_Train_Impute_demo.ipynb>`_
+* HIPT: `NPC_Train_Impute_count_HIPT.ipynb <docs/source/NPC_Train_Impute_count_HIPT.ipynb>`_
+* Virchow2: `NPC_Train_Impute_count_virchow2.ipynb <docs/source/NPC_Train_Impute_count_virchow2.ipynb>`_
 
 🗺️ **Visium HD end-to-end (~1–3 hours, large data)**
 
 * HIPT: `CRC16_Train_Impute_count_HIPT.ipynb <docs/source/CRC16_Train_Impute_count_HIPT.ipynb>`_
-* Virchow2: `CRC16_Train_Impute_count.ipynb <docs/source/CRC16_Train_Impute_count.ipynb>`_
+* Virchow2: `CRC16_Train_Impute_count_virchow2.ipynb <docs/source/CRC16_Train_Impute_count_virchow2.ipynb>`_
 
 💬 **LR / CCC discovery (after imputation)**
 
@@ -221,8 +220,8 @@ Step-by-step tutorials
 Visium (NPC demo)
 -----------------
 
-* **Imputation + 8µm enhancement (HIPT):** `NPC_Train_Impute_demo_HIPT.ipynb <tutorial/NPC_Train_Impute_demo_HIPT.ipynb>`_
-* **Imputation + 7µm enhancement (Virchow2):** `NPC_Train_Impute_demo.ipynb <tutorial/NPC_Train_Impute_demo.ipynb>`_
+* **Imputation + 8µm enhancement (HIPT):** `NPC_Train_Impute_count_HIPT.ipynb <docs/source/NPC_Train_Impute_count_HIPT.ipynb>`_
+* **Imputation + 7µm enhancement (Virchow2):** `NPC_Train_Impute_count_virchow2.ipynb <docs/source/NPC_Train_Impute_count_virchow2.ipynb>`_
 * **Between-spot interpolation:** `Between_spot_demo.ipynb <docs/source/Between_spot_demo.ipynb>`_
 * **LR pair & CCC discovery:** `NPC_LRI_CCC_count.ipynb <docs/source/NPC_LRI_CCC_count.ipynb>`_
 * **Cell-type deconvolution:** `transDeconv_NPC_count.ipynb <docs/source/transDeconv_NPC_count.ipynb>`_
@@ -232,7 +231,7 @@ Visium HD (CRC 16µm demo)
 -------------------------
 
 * **Imputation + 8µm enhancement (HIPT):** `CRC16_Train_Impute_count_HIPT.ipynb <docs/source/CRC16_Train_Impute_count_HIPT.ipynb>`_
-* **Imputation + 7µm enhancement (Virchow2):** `CRC16_Train_Impute_count.ipynb <docs/source/CRC16_Train_Impute_count.ipynb>`_
+* **Imputation + 7µm enhancement (Virchow2):** `CRC16_Train_Impute_count_virchow2.ipynb <docs/source/CRC16_Train_Impute_count_virchow2.ipynb>`_
 * **LR pair & CCC discovery:** `CRC_LRI_CCC_count.ipynb <docs/source/CRC_LRI_CCC_count.ipynb>`_
 * **Cell-type deconvolution:** `transDeconv_CRC_count.ipynb <docs/source/transDeconv_CRC_count.ipynb>`_
 
@@ -576,7 +575,7 @@ Visium HD (16 µm → 8 µm)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Visium HD uses continuous bin squares and does not require spot interpolation. See the end-to-end notebook:
-`CRC16_Train_Impute_count_HIPT.ipynb <docs/source/CRC16_Train_Impute_count_HIPT.ipynb>`_ or `CRC16_Train_Impute_count_Virchow2.ipynb <docs/source/CRC16_Train_Impute_count_Virchow2.ipynb>`_.
+`CRC16_Train_Impute_count_HIPT.ipynb <docs/source/CRC16_Train_Impute_count_HIPT.ipynb>`_ or `CRC16_Train_Impute_count_virchow2.ipynb <docs/source/CRC16_Train_Impute_count_virchow2.ipynb>`_.
 
 💬 Step 3: Fine-grained ligand-receptor interaction
 ---------------------------------------------------

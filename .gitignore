@@ -22,6 +22,7 @@ logging/
 tutorial_local/
 build/
 docs/build/
+docs/_preview
 develop-eggs/
 FineST.egg-info/
 finest.egg-info/

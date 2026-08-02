@@ -35,8 +35,10 @@ sys.path.insert(0, os.path.abspath('.'))
 # notebooks_url = "https://raw.githubusercontent.com/StatBiomed/FineST/main/docs/source/"
 # notebooks = [
 #     "Between_spot_demo.ipynb",
-#     "CRC16_Train_Impute_count.ipynb",
-#     "NPC_Train_Impute_count.ipynb",
+#     "CRC16_Train_Impute_count_HIPT.ipynb",
+#     "CRC16_Train_Impute_count_virchow2.ipynb",
+#     "NPC_Train_Impute_count_HIPT.ipynb",
+#     "NPC_Train_Impute_count_virchow2.ipynb",
 #     "NPC_LRI_CCC_count.ipynb",
 #     "CRC_LRI_CCC_count.ipynb",
 #     "transDeconv_NPC_count.ipynb",

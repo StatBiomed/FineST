@@ -50,5 +50,5 @@ The FineST conda environment can be used for Jupyter notebooks:
 
 **Tutorial notebooks:**
 
-* `NPC_Train_Impute_demo.ipynb <https://github.com/StatBiomed/FineST/tree/main/tutorial/NPC_Train_Impute_demo.ipynb>`_ (using Virchow2; requires Hugging Face token, approval may take days)
-* `NPC_Train_Impute_demo_HIPT.ipynb <https://github.com/StatBiomed/FineST/blob/main/tutorial/NPC_Train_Impute_demo_HIPT.ipynb>`_ (using HIPT; recommended for quick start)
+* `NPC_Train_Impute_count_virchow2.ipynb <https://github.com/StatBiomed/FineST/tree/main/docs/source/NPC_Train_Impute_count_virchow2.ipynb>`_ (using Virchow2; requires Hugging Face token, approval may take days)
+* `NPC_Train_Impute_count_HIPT.ipynb <https://github.com/StatBiomed/FineST/blob/main/docs/source/NPC_Train_Impute_count_HIPT.ipynb>`_ (using HIPT; recommended for quick start)

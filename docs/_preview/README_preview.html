@@ -268,8 +268,7 @@ python<span class="whitespace"> </span>-m<span class="whitespace"> </span>pip<sp
 FineST/
 ├── FineST/              # Python package (model, inference, plottings, ...)
 ├── demo/                # Command-line scripts (Step 0–2)
-├── tutorial/            # End-to-end Visium notebooks
-├── docs/source/         # Detailed notebooks (Visium, Visium HD, LR, CCC, cell-type deconvolution, ...)
+├── docs/source/         # Jupyter notebooks (Visium, Visium HD, LR, CCC, ...)
 ├── parameter/           # Model hyperparameter JSON files
 ├── docs/fig/            # Framework figures
 └── test_demo.sh         # Quick demo script
@@ -301,13 +300,13 @@ bash<span class="whitespace"> </span>test_demo.sh
 <p>⚡ <strong>Jupyter Notebook tutorials</strong> (recommended first run)</p>
 <p>🧬 <strong>Visium end-to-end (~10 min)</strong></p>
 <ul class="simple">
-<li>HIPT: <a class="reference external" href="tutorial/NPC_Train_Impute_demo_HIPT.ipynb">NPC_Train_Impute_demo_HIPT.ipynb</a></li>
-<li>Virchow2: <a class="reference external" href="tutorial/NPC_Train_Impute_demo.ipynb">NPC_Train_Impute_demo.ipynb</a></li>
+<li>HIPT: <a class="reference external" href="docs/source/NPC_Train_Impute_count_HIPT.ipynb">NPC_Train_Impute_count_HIPT.ipynb</a></li>
+<li>Virchow2: <a class="reference external" href="docs/source/NPC_Train_Impute_count_virchow2.ipynb">NPC_Train_Impute_count_virchow2.ipynb</a></li>
 </ul>
 <p>🗺️ <strong>Visium HD end-to-end (~1–3 hours, large data)</strong></p>
 <ul class="simple">
 <li>HIPT: <a class="reference external" href="docs/source/CRC16_Train_Impute_count_HIPT.ipynb">CRC16_Train_Impute_count_HIPT.ipynb</a></li>
-<li>Virchow2: <a class="reference external" href="docs/source/CRC16_Train_Impute_count.ipynb">CRC16_Train_Impute_count.ipynb</a></li>
+<li>Virchow2: <a class="reference external" href="docs/source/CRC16_Train_Impute_count_virchow2.ipynb">CRC16_Train_Impute_count_virchow2.ipynb</a></li>
 </ul>
 <p>💬 <strong>LR / CCC discovery (after imputation)</strong></p>
 <ul class="simple">
@@ -326,8 +325,8 @@ bash<span class="whitespace"> </span>test_demo.sh
 <div class="section" id="visium-npc-demo">
 <h2><a class="toc-backref" href="#toc-entry-12">Visium (NPC demo)</a></h2>
 <ul class="simple">
-<li><strong>Imputation + 8µm enhancement (HIPT):</strong> <a class="reference external" href="tutorial/NPC_Train_Impute_demo_HIPT.ipynb">NPC_Train_Impute_demo_HIPT.ipynb</a></li>
-<li><strong>Imputation + 7µm enhancement (Virchow2):</strong> <a class="reference external" href="tutorial/NPC_Train_Impute_demo.ipynb">NPC_Train_Impute_demo.ipynb</a></li>
+<li><strong>Imputation + 8µm enhancement (HIPT):</strong> <a class="reference external" href="docs/source/NPC_Train_Impute_count_HIPT.ipynb">NPC_Train_Impute_count_HIPT.ipynb</a></li>
+<li><strong>Imputation + 7µm enhancement (Virchow2):</strong> <a class="reference external" href="docs/source/NPC_Train_Impute_count_virchow2.ipynb">NPC_Train_Impute_count_virchow2.ipynb</a></li>
 <li><strong>Between-spot interpolation:</strong> <a class="reference external" href="docs/source/Between_spot_demo.ipynb">Between_spot_demo.ipynb</a></li>
 <li><strong>LR pair &amp; CCC discovery:</strong> <a class="reference external" href="docs/source/NPC_LRI_CCC_count.ipynb">NPC_LRI_CCC_count.ipynb</a></li>
 <li><strong>Cell-type deconvolution:</strong> <a class="reference external" href="docs/source/transDeconv_NPC_count.ipynb">transDeconv_NPC_count.ipynb</a></li>
@@ -338,7 +337,7 @@ bash<span class="whitespace"> </span>test_demo.sh
 <h2><a class="toc-backref" href="#toc-entry-13">Visium HD (CRC 16µm demo)</a></h2>
 <ul class="simple">
 <li><strong>Imputation + 8µm enhancement (HIPT):</strong> <a class="reference external" href="docs/source/CRC16_Train_Impute_count_HIPT.ipynb">CRC16_Train_Impute_count_HIPT.ipynb</a></li>
-<li><strong>Imputation + 7µm enhancement (Virchow2):</strong> <a class="reference external" href="docs/source/CRC16_Train_Impute_count.ipynb">CRC16_Train_Impute_count.ipynb</a></li>
+<li><strong>Imputation + 7µm enhancement (Virchow2):</strong> <a class="reference external" href="docs/source/CRC16_Train_Impute_count_virchow2.ipynb">CRC16_Train_Impute_count_virchow2.ipynb</a></li>
 <li><strong>LR pair &amp; CCC discovery:</strong> <a class="reference external" href="docs/source/CRC_LRI_CCC_count.ipynb">CRC_LRI_CCC_count.ipynb</a></li>
 <li><strong>Cell-type deconvolution:</strong> <a class="reference external" href="docs/source/transDeconv_CRC_count.ipynb">transDeconv_CRC_count.ipynb</a></li>
 </ul>
@@ -651,7 +650,7 @@ python<span class="whitespace"> </span>./demo/Step2_High_resolution_imputation.p
 <div class="section" id="visium-hd-16-m-8-m">
 <h3>Visium HD (16 µm → 8 µm)</h3>
 <p>Visium HD uses continuous bin squares and does not require spot interpolation. See the end-to-end notebook:
-<a class="reference external" href="docs/source/CRC16_Train_Impute_count_HIPT.ipynb">CRC16_Train_Impute_count_HIPT.ipynb</a> or <a class="reference external" href="docs/source/CRC16_Train_Impute_count_Virchow2.ipynb">CRC16_Train_Impute_count_Virchow2.ipynb</a>.</p>
+<a class="reference external" href="docs/source/CRC16_Train_Impute_count_HIPT.ipynb">CRC16_Train_Impute_count_HIPT.ipynb</a> or <a class="reference external" href="docs/source/CRC16_Train_Impute_count_virchow2.ipynb">CRC16_Train_Impute_count_virchow2.ipynb</a>.</p>
 </div>
 </div>
 <div class="section" id="step-3-fine-grained-ligand-receptor-interaction">

@@ -55,13 +55,21 @@ Please refer to our tutorials for details:
 
 **Step1 and Step2** Train FineST and impute super-resolved spatial RNA-seq.
 
-* `FineST on Visium HD for super-resolved gene expression prediction (from 16um to 8um)`_.
+* `FineST on Visium HD for super-resolved gene expression prediction (from 16um to 8um, HIPT)`_.
 
-.. _FineST on Visium HD for super-resolved gene expression prediction (from 16um to 8um): docs/source/CRC16_Train_Impute_count.ipynb
+.. _FineST on Visium HD for super-resolved gene expression prediction (from 16um to 8um, HIPT): docs/source/CRC16_Train_Impute_count_HIPT.ipynb
 
-* `FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell)`_.
+* `FineST on Visium HD for super-resolved gene expression prediction (from 16um to 8um, Virchow2)`_.
 
-.. _FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell): docs/source/NPC_Train_Impute_count.ipynb
+.. _FineST on Visium HD for super-resolved gene expression prediction (from 16um to 8um, Virchow2): docs/source/CRC16_Train_Impute_count_virchow2.ipynb
+
+* `FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell, HIPT)`_.
+
+.. _FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell, HIPT): docs/source/NPC_Train_Impute_count_HIPT.ipynb
+
+* `FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell, Virchow2)`_.
+
+.. _FineST on Visium for super-resolved gene expression prediction (sub-spot or single-cell, Virchow2): docs/source/NPC_Train_Impute_count_virchow2.ipynb
 
 * `FineST on Visium for enhencing gene expression signal (for HCCP1T dataset)`_.
 
@@ -136,8 +144,10 @@ If you are interested in **FineST**, please contact Dr. Lingyu Li (`lingyuli@hku
    :hidden:
 
    Between_spot_demo
-   CRC16_Train_Impute_count
-   NPC_Train_Impute_count
+   CRC16_Train_Impute_count_HIPT
+   CRC16_Train_Impute_count_virchow2
+   NPC_Train_Impute_count_HIPT
+   NPC_Train_Impute_count_virchow2
    NPC_LRI_CCC_count
    CRC_LRI_CCC
    transDeconv_NPC_count
