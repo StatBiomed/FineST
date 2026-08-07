@@ -1,6 +1,19 @@
-========================================================================================================================
+==========================================================================================================================
 FineST: Contrastive learning integrates histology and spatial transcriptomics for nuclei-resolved ligand-receptor analysis
-========================================================================================================================
+==========================================================================================================================
+
+.. _Between_spot_demo.ipynb: docs/source/Between_spot_demo.ipynb
+.. _CRC16_Train_Impute_count_HIPT.ipynb: docs/source/CRC16_Train_Impute_count_HIPT.ipynb
+.. _CRC16_Train_Impute_count_virchow2.ipynb: docs/source/CRC16_Train_Impute_count_virchow2.ipynb
+.. _CRC_LRI_CCC_count.ipynb: docs/source/CRC_LRI_CCC_count.ipynb
+.. _Crop_ROI_Boundary_image.ipynb: docs/source/Crop_ROI_Boundary_image.ipynb
+.. _HCC_P1T_Train_Impute.ipynb: docs/source/HCC_P1T_Train_Impute.ipynb
+.. _NPC_Evaluate.ipynb: docs/source/NPC_Evaluate.ipynb
+.. _NPC_LRI_CCC_count.ipynb: docs/source/NPC_LRI_CCC_count.ipynb
+.. _NPC_Train_Impute_count_HIPT.ipynb: docs/source/NPC_Train_Impute_count_HIPT.ipynb
+.. _NPC_Train_Impute_count_Virchow2.ipynb: docs/source/NPC_Train_Impute_count_Virchow2.ipynb
+.. _transDeconv_CRC_count.ipynb: docs/source/transDeconv_CRC_count.ipynb
+.. _transDeconv_NPC_count.ipynb: docs/source/transDeconv_NPC_count.ipynb
 
 |Paper| |Python| |PyTorch| |License| |Docs| |PyPI|
 
@@ -34,8 +47,8 @@ uncover fine-grained molecular and cellular interactions in tissue.
 
 📋 It facilitates precise nuclei segmentation, 
 high-resolution RNA expression imputation, 
-and fine-grained ligand-receptor (LR) and cell-cell communication (CCC) discovery 
-on **whole-slide images (WSIs)** or **regions of interest (ROIs)**.
+and fine-grained ligand-receptor (LR) interaction and cell-cell communication (CCC) pattern discovery 
+on **whole-slide image (WSI)** or **region of interest (ROI)**.
 
 .. image:: https://github.com/StatBiomed/FineST/blob/main/docs/fig/FineST_framework.png?raw=true
    :width: 800px
@@ -44,7 +57,7 @@ on **whole-slide images (WSIs)** or **regions of interest (ROIs)**.
 
 .. contents:: **Quick Navigation**
    :local:
-   :depth: 2
+   :depth: 4
 
 |
 
@@ -150,43 +163,97 @@ Quick start
 .. code-block:: text
 
    FineST/
-   ├── FineST/              # Python package (model, inference, plottings, ...)
-   ├── demo/                # Command-line scripts (Step 0–2)
-   ├── docs/source/         # Jupyter notebooks (Visium, Visium HD, LR, CCC, ...)
+   ├── FineST/              # Python package (model, inference, CLI modules, ...)
+   ├── docs/source/         # Jupyter notebooks — Visium, Visium HD, LR, CCC (recommended)
    ├── parameter/           # Model hyperparameter JSON files
-   ├── docs/fig/            # Framework figures
-   └── test_demo.sh         # Quick demo script
+   ├── finetune/            # Bundled pretrained checkpoints (e.g. CRC Visium HD HIPT)
+   ├── run_NPC_tutorial_HIPT.sh      # NPC Visium demo (FineST_tutorial_data)
+   ├── run_CRC_VisiumHD_HIPT.sh      # CRC Visium HD demo (FineST_tutorial_data_VisiumHD)
 
 
 Download demo datasets
 ----------------------
 
-📥 **Visium tutorial data** (*FineST_tutorial_data*) is available on `Google Drive <https://drive.google.com/drive/folders/10WvKW2EtQVuH3NWUnrde4JOW_Dd_H6r8?usp=sharing>`_.
+📥 **Visium tutorial data** (*FineST_tutorial_data*) is available on `Google Drive <https://drive.google.com/drive/folders/1rZ235pexAMVvRzbVZt1ONOu7Dcuqz5BD?usp=drive_link>`_.
 
 .. code-block:: bash
 
    pip install gdown
    gdown --folder https://drive.google.com/drive/folders/1rZ235pexAMVvRzbVZt1ONOu7Dcuqz5BD?usp=drive_link
 
-📥 **Visium HD demo data** (*Dataset/CRC16um*) is available on `10x Genomics - Sample P2 CRC <https://www.10xgenomics.com/products/visium-hd-spatial-gene-expression/dataset-human-crc>`_.
+📥 **Visium HD demo data** (*FineST_tutorial_data_VisiumHD*) from `10x Genomics - Sample P2 CRC <https://www.10xgenomics.com/products/visium-hd-spatial-gene-expression/dataset-human-crc>`_.
+
+From the package root (``FineST/``), create the data folder, download, extract, and arrange files to match ``run_CRC_VisiumHD_HIPT.sh``:
 
 .. code-block:: bash
 
-   wget https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Human_Colon_Cancer_P2/Visium_HD_Human_Colon_Cancer_P2_tissue_image.btf
-   wget https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Human_Colon_Cancer_P2/Visium_HD_Human_Colon_Cancer_P2_spatial.tar.gz
-   wget https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Human_Colon_Cancer_P2/Visium_HD_Human_Colon_Cancer_P2_binned_outputs.tar.gz
+   ## 1) Create data root next to the package scripts
+   mkdir -p FineST_tutorial_data_VisiumHD
+   cd FineST_tutorial_data_VisiumHD
+
+   ## 2) Download 10x Visium HD (P2 CRC) files
+   BASE=https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Human_Colon_Cancer_P2
+   wget ${BASE}/Visium_HD_Human_Colon_Cancer_P2_tissue_image.btf
+   wget ${BASE}/Visium_HD_Human_Colon_Cancer_P2_spatial.tar.gz
+   wget ${BASE}/Visium_HD_Human_Colon_Cancer_P2_binned_outputs.tar.gz
+
+   ## 3) Extract archives
+   tar -xzf Visium_HD_Human_Colon_Cancer_P2_binned_outputs.tar.gz
+   tar -xzf Visium_HD_Human_Colon_Cancer_P2_spatial.tar.gz
+
+   ## 4) Arrange layout expected by FineST CLI / run_CRC_VisiumHD_HIPT.sh
+   mkdir -p square_016um
+   cp binned_outputs/square_016um/spatial/tissue_positions.parquet square_016um/
+   cp binned_outputs/square_016um/spatial/scalefactors_json.json square_016um/
+   mv Visium_HD_Human_Colon_Cancer_P2_tissue_image.btf \
+      Visium_HD_Human_Colon_Cancer_tissue_image.btf
+
+   cd ..
+
+Expected layout after step 4:
+
+.. code-block:: text
+
+   FineST_tutorial_data_VisiumHD/
+   ├── Visium_HD_Human_Colon_Cancer_tissue_image.btf   # HE image (data root)
+   ├── square_016um/
+   │   ├── tissue_positions.parquet
+   │   └── scalefactors_json.json
+   ├── binned_outputs/          # from 10x extract (kept; optional after copy)
+   └── ...                      # optional: spatial/ from spatial.tar.gz
 
 
 Experienced bioinformatics users
 --------------------------------
 
-🚀 **Command-line demo** (~10 min, Visium + HIPT)
+🚀 **Command-line demos** (from the package root)
+
+**For Visium (NPC, HIPT)** — ~10 min
 
 .. code-block:: bash
 
-   bash test_demo.sh
+   bash run_NPC_tutorial_HIPT.sh
 
-This script runs Step 0–2 (HIPT feature extraction → training → between-spot interpolation).
+* Reproduces ``NPC_Train_Impute_count_HIPT.ipynb`` (Sections 0–5)
+* ``DATA_ROOT`` default: ``FineST_tutorial_data`` (download above)
+* Outputs under ``{DATA_ROOT}/{Figures,OrderData,SaveData}/``
+* Evaluation (infer/impute vs measured spots) on by default; ``RUN_EVAL=0`` to skip
+
+**For Visium HD (CRC16, HIPT)** — longer; needs data layout above
+
+.. code-block:: bash
+
+   ## First run: extract HE embeddings (~hours), then train/infer/eval
+   RUN_STEP0=1 bash run_CRC_VisiumHD_HIPT.sh
+
+   ## Later runs: skip Step 0 if FineST_tutorial_data_VisiumHD/HIPT/ already exists
+   bash run_CRC_VisiumHD_HIPT.sh
+
+* ``DATA_ROOT`` default: ``FineST_tutorial_data_VisiumHD`` (replaces notebook ``FineST_local/Dataset/CRC16um/``)
+* Expression: ``FineST.datasets.CRC16um()`` / ``CRC08um()`` (Figshare; auto on first run)
+* Weights: ``finetune/20260801162414255436/``
+* Embeddings: ``RUN_STEP0=1`` writes ``HIPT/HD_CRC_16um_pth_32_16/``; or place precomputed and keep ``RUN_STEP0=0``
+* Evaluation (vs 16 µm input + native 8 µm) on by default; ``RUN_EVAL=0`` to skip
 
 Bioinformatics beginners
 ------------------------
@@ -195,22 +262,22 @@ Bioinformatics beginners
 
 🧬 **Visium end-to-end (~10 min)**
 
-* HIPT: `NPC_Train_Impute_count_HIPT.ipynb <docs/source/NPC_Train_Impute_count_HIPT.ipynb>`_
-* Virchow2: `NPC_Train_Impute_count_virchow2.ipynb <docs/source/NPC_Train_Impute_count_virchow2.ipynb>`_
+* HIPT: `NPC_Train_Impute_count_HIPT.ipynb`_
+* Virchow2: `NPC_Train_Impute_count_Virchow2.ipynb`_
 
 🗺️ **Visium HD end-to-end (~1–3 hours, large data)**
 
-* HIPT: `CRC16_Train_Impute_count_HIPT.ipynb <docs/source/CRC16_Train_Impute_count_HIPT.ipynb>`_
-* Virchow2: `CRC16_Train_Impute_count_virchow2.ipynb <docs/source/CRC16_Train_Impute_count_virchow2.ipynb>`_
+* HIPT: `CRC16_Train_Impute_count_HIPT.ipynb`_
+* Virchow2: `CRC16_Train_Impute_count_virchow2.ipynb`_
 
 💬 **LR / CCC discovery (after imputation)**
 
-* Visium: `NPC_LRI_CCC_count.ipynb <docs/source/NPC_LRI_CCC_count.ipynb>`_
-* Visium HD: `CRC_LRI_CCC_count.ipynb <docs/source/CRC_LRI_CCC_count.ipynb>`_
+* Visium: `NPC_LRI_CCC_count.ipynb`_
+* Visium HD: `CRC_LRI_CCC_count.ipynb`_
 
 ✂️ **ROI-based analysis (~1 min)** 
 
-* ROI selection and cropping: `Crop_ROI_Boundary_image.ipynb <docs/source/Crop_ROI_Boundary_image.ipynb>`_
+* ROI selection and cropping: `Crop_ROI_Boundary_image.ipynb`_
 
 Step-by-step tutorials
 ======================
@@ -220,20 +287,24 @@ Step-by-step tutorials
 Visium (NPC demo)
 -----------------
 
-* **Imputation + 8µm enhancement (HIPT):** `NPC_Train_Impute_count_HIPT.ipynb <docs/source/NPC_Train_Impute_count_HIPT.ipynb>`_
-* **Imputation + 7µm enhancement (Virchow2):** `NPC_Train_Impute_count_virchow2.ipynb <docs/source/NPC_Train_Impute_count_virchow2.ipynb>`_
-* **Between-spot interpolation:** `Between_spot_demo.ipynb <docs/source/Between_spot_demo.ipynb>`_
-* **LR pair & CCC discovery:** `NPC_LRI_CCC_count.ipynb <docs/source/NPC_LRI_CCC_count.ipynb>`_
-* **Cell-type deconvolution:** `transDeconv_NPC_count.ipynb <docs/source/transDeconv_NPC_count.ipynb>`_
-* **Performance evaluation:** `NPC_Evaluate.ipynb <docs/source/NPC_Evaluate.ipynb>`_
+* **Imputation + 8µm enhancement (HIPT):** `NPC_Train_Impute_count_HIPT.ipynb`_
+* **Imputation + 7µm enhancement (Virchow2):** `NPC_Train_Impute_count_Virchow2.ipynb`_
+* **Between-spot interpolation:** `Between_spot_demo.ipynb`_
+* **LR pair & CCC discovery:** `NPC_LRI_CCC_count.ipynb`_
+* **Cell-type deconvolution:** `transDeconv_NPC_count.ipynb`_
+* **Performance evaluation:** `NPC_Evaluate.ipynb`_
+
+**Visium (HCC P1T demo)**
+
+* **Imputation + 7µm enhancement (Virchow2):** `HCC_P1T_Train_Impute.ipynb`_
 
 Visium HD (CRC 16µm demo)
 -------------------------
 
-* **Imputation + 8µm enhancement (HIPT):** `CRC16_Train_Impute_count_HIPT.ipynb <docs/source/CRC16_Train_Impute_count_HIPT.ipynb>`_
-* **Imputation + 7µm enhancement (Virchow2):** `CRC16_Train_Impute_count_virchow2.ipynb <docs/source/CRC16_Train_Impute_count_virchow2.ipynb>`_
-* **LR pair & CCC discovery:** `CRC_LRI_CCC_count.ipynb <docs/source/CRC_LRI_CCC_count.ipynb>`_
-* **Cell-type deconvolution:** `transDeconv_CRC_count.ipynb <docs/source/transDeconv_CRC_count.ipynb>`_
+* **Imputation + 8µm enhancement (HIPT):** `CRC16_Train_Impute_count_HIPT.ipynb`_
+* **Imputation + 7µm enhancement (Virchow2):** `CRC16_Train_Impute_count_virchow2.ipynb`_
+* **LR pair & CCC discovery:** `CRC_LRI_CCC_count.ipynb`_
+* **Cell-type deconvolution:** `transDeconv_CRC_count.ipynb`_
 
 Command-line workflow
 =====================
@@ -242,11 +313,47 @@ Command-line workflow
 
 .. code-block:: text
 
-   Step 0  🖼️  HE image feature extraction     demo/Image_feature_extraction.py
-               (Additional: Spot_interpolation.py / StarDist_nuclei_segmente.py)
-   Step 1  🧠  Train on within-spot / 16µm     demo/Step1_FineST_train_infer.py
-   Step 2  📐  Super-resolution imputation     demo/Step2_High_resolution_imputation.py
+   Step 0  🖼️  HE image feature extraction     python -m FineST.image_feature_extraction
+               (Additional: spot_interpolation / nuclei_segmentation)
+   Step 1  🧠  Train on within-spot / 16µm     python -m FineST.step1_FineST_train_infer
+   Step 2  📐  Super-resolution imputation     python -m FineST.step2_High_resolution_impute
    Step 3  💬  LR pair & CCC discovery         docs/source/*_LRI_CCC_count.ipynb
+
+
+**Path presets (``--data_root``)**
+
+CLI modules share the same path layout as the notebook tutorials
+(``docs/source/NPC_Train_Impute_count_*.ipynb``, Section 1.2). Pass
+``--data_root FineST_tutorial_data`` to auto-fill common paths; explicit
+arguments always override presets.
+
+**Python API**
+
+.. code-block:: python
+
+   import FineST as fst
+
+   presets = fst.tutorial_path_presets('FineST_tutorial_data', hist_model='Virchow2')
+   # presets['embed_dir_within'], presets['save_adata_imput_all_spot'], ...
+
+**Preset layout (Visium NPC demo)**
+
+.. code-block:: text
+
+   FineST_tutorial_data/
+   ├── spatial/tissue_positions_list.csv
+   ├── ImgEmbeddings/{HIPT|Virchow2}/pth_*_*/          # within-spot (Step 0)
+   ├── ImgEmbeddings/{HIPT|Virchow2}/NEW_pth_*_*/      # between-spot (Step 2A)
+   ├── ImgEmbeddings/{HIPT|Virchow2}/sc_pth_*_*/       # single-nuclei (Step 2B)
+   ├── OrderData/position_order*.csv
+   ├── Figures/
+   ├── SaveData/adata_*.h5ad
+   └── NucleiSegments/{save_folder}/position_all_tissue_sc.csv
+
+**CLI flags**
+
+* ``--data_root`` — Step 1, Step 2, nuclei segmentation
+* ``--hist_model HIPT|Virchow2`` — Step 0, Step 1, Step 2, nuclei (default: ``HIPT``; must match Step 0 embeddings)
 
 
 ⚙️ Step 0: HE image feature extraction
@@ -257,82 +364,78 @@ Command-line workflow
 .. code-block:: bash
 
    ## HIPT (recommended)
-   python ./demo/Image_feature_extraction.py \
-      --dataset NPC \
+   python -m FineST.image_feature_extraction \
       --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv \
       --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-      --scale_image False \
-      --method HIPT \
+      --dataset_class Visium \
+      --STfactor_path FineST_tutorial_data/spatial/scalefactors_json.json \
+      --is_05umperpix True \
+      --hist_model HIPT \
       --patch_size 64 \
-      --output_img FineST_tutorial_data/ImgEmbeddings/pth_64_16_image \
-      --output_pth FineST_tutorial_data/ImgEmbeddings/pth_64_16 \
-      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
-      --scale 0.789  
+      --data_save_dir FineST_tutorial_data
 
    ## Virchow2 (requires Hugging Face token)
-   python ./demo/Image_feature_extraction.py \
-      --dataset NPC \
+   python -m FineST.image_feature_extraction \
       --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv \
       --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-      --scale_image False \
-      --method Virchow2 \
+      --dataset_class Visium \
+      --STfactor_path FineST_tutorial_data/spatial/scalefactors_json.json \
+      --is_05umperpix True \
+      --hist_model Virchow2 \
       --patch_size 112 \
-      --output_img FineST_tutorial_data/ImgEmbeddings/pth_112_14_image \
-      --output_pth FineST_tutorial_data/ImgEmbeddings/pth_112_14 \
-      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
-      --scale 0.789  
+      --data_save_dir FineST_tutorial_data
 
 
 🗺️ **Visium HD — 16-µm bins**
 
+CLI demo root: ``FineST_tutorial_data_VisiumHD/`` (same as ``run_CRC_VisiumHD_HIPT.sh``).
+Notebooks may use ``FineST_local/Dataset/CRC16um/`` with the same relative layout under ``square_016um/``.
+
 .. code-block:: bash
 
    ## HIPT (recommended)
-   python ./demo/Image_feature_extraction.py \
-      --dataset HD_CRC_16um \
-      --position_path Dataset/CRC16um/square_016um/tissue_positions.parquet \
-      --rawimage_path Dataset/CRC16um/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
-      --scale_image True \
-      --method HIPT \
+   python -m FineST.image_feature_extraction \
+      --position_path FineST_tutorial_data_VisiumHD/square_016um/tissue_positions.parquet \
+      --rawimage_path FineST_tutorial_data_VisiumHD/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
+      --dataset_class VisiumHD \
+      --STfactor_path FineST_tutorial_data_VisiumHD/square_016um/scalefactors_json.json \
+      --is_05umperpix True \
+      --hist_model HIPT \
       --patch_size 32 \
-      --output_img Dataset/CRC16um/HIPT/HD_CRC_16um_pth_32_16_image \
-      --output_pth Dataset/CRC16um/HIPT/HD_CRC_16um_pth_32_16 \
-      --logging Dataset/CRC16um/HIPT/Logging/ \
-      --scale 0.548  
+      --output_pth FineST_tutorial_data_VisiumHD/HIPT/HD_CRC_16um_pth_32_16 \
+      --output_img FineST_tutorial_data_VisiumHD/HIPT/HD_CRC_16um_pth_32_16_image
 
    ## Virchow2 (requires Hugging Face token)
-   python ./demo/Image_feature_extraction.py \
-      --dataset HD_CRC_16um \
-      --position_path Dataset/CRC16um/square_016um/tissue_positions.parquet \
-      --rawimage_path Dataset/CRC16um/square_016um/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
-      --scale_image True \
-      --method Virchow2 \
+   python -m FineST.image_feature_extraction \
+      --position_path FineST_tutorial_data_VisiumHD/square_016um/tissue_positions.parquet \
+      --rawimage_path FineST_tutorial_data_VisiumHD/Visium_HD_Human_Colon_Cancer_tissue_image.btf \
+      --dataset_class VisiumHD \
+      --STfactor_path FineST_tutorial_data_VisiumHD/square_016um/scalefactors_json.json \
+      --is_05umperpix True \
+      --hist_model Virchow2 \
       --patch_size 28 \
-      --output_img Dataset/CRC16um/Virchow2/HD_CRC_16um_pth_28_14_image \
-      --output_pth Dataset/CRC16um/Virchow2/HD_CRC_16um_pth_28_14 \
-      --logging Dataset/CRC16um/Virchow2/Logging/ \
-      --scale 0.548  
+      --output_pth FineST_tutorial_data_VisiumHD/Virchow2/HD_CRC_16um_pth_28_14 \
+      --output_img FineST_tutorial_data_VisiumHD/Virchow2/HD_CRC_16um_pth_28_14_image
 
-FineST standardizes image resolution to **0.5 µm/pixel** using ``--scale`` before patch extraction.
-Only takes effect when ``scale_image=True``.
+FineST standardizes image resolution to **0.5 µm/pixel** before patch extraction.
+
+**Recommended:** pass ``--is_05umperpix True`` with ``--STfactor_path`` (path to ``scalefactors_json.json``) and ``--dataset_class Visium`` or ``VisiumHD``. FineST reads Space Ranger scale factors, sets ``scale_image=True``, and computes ``--scale`` automatically.
 
 **Formula:** ``--scale = microns_per_pixel / 0.5``
 
 * **Visium (NPC demo)**
 
-  - Get ``microns_per_pixel`` from ``scalefactors_json.json``:
-    ``microns_per_pixel = 55 / spot_diameter_fullres``
-  - Example (``Dataset/NPC/patient1/``): ``spot_diameter_fullres = 139.45``
+  - ``microns_per_pixel = 55 / spot_diameter_fullres`` from ``scalefactors_json.json``
+  - Example (``FineST_tutorial_data/spatial/``): ``spot_diameter_fullres = 139.45``
     → ``55 / 139.45 ≈ 0.394`` µm/px → ``--scale ≈ 0.789``
-  - NPC commands use ``scale_image=False``, so ``--scale`` is **not applied**
-    (value kept in commands for reference when you enable rescaling).
 
 * **Visium HD (CRC 16 µm)**
 
   - Read ``microns_per_pixel`` directly from ``scalefactors_json.json``
-  - Example (``Dataset/CRC16um/square_016um/``): ``0.274`` µm/px
+  - Example (``FineST_tutorial_data_VisiumHD/square_016um/``): ``0.274`` µm/px
     → ``--scale = 0.274 / 0.5 ≈ 0.548``
-  - Set ``scale_image=True`` so ``--scale`` is applied.
+
+**Manual alternative:** omit ``--is_05umperpix`` and set ``--scale_image True`` with an explicit ``--scale`` value.
 
 
 🧠 Step 1: Training FineST model
@@ -340,59 +443,72 @@ Only takes effect when ``scale_image=True``.
 
 🖼️ **Visium — within-spots**
 
+Run from the package root (same as ``run_NPC_tutorial_HIPT.sh``).
+
 .. code-block:: bash
 
    ## HIPT with Visium16 (patch_size=64)
-   python ./demo/Step1_FineST_train_infer.py \
-      --system_path './FineST/' \
+   python -m FineST.step1_FineST_train_infer \
+      --system_path './' \
+      --data_root FineST_tutorial_data \
       --parame_path 'parameter/parameters_NPC_HIPT.json' \
       --dataset_class 'Visium16' \
-      --image_class 'HIPT' \
+      --hist_model 'HIPT' \
       --gene_selected 'CD70' \
       --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
-      --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/pth_64_16' \
-      --do_scale False \
+      --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/HIPT/pth_64_16' \
+      --patch_size 64 \
+      --do_scale True \
       --weight_w 0.5
 
    ## Virchow2 with Visium64 (patch_size=112)
-   python ./demo/Step1_FineST_train_infer.py \
-      --system_path './FineST/' \
+   python -m FineST.step1_FineST_train_infer \
+      --system_path './' \
+      --data_root FineST_tutorial_data \
       --parame_path 'parameter/parameters_NPC_virchow2.json' \
       --dataset_class 'Visium64' \
-      --image_class 'Virchow2' \
+      --hist_model 'Virchow2' \
       --gene_selected 'CD70' \
       --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
-      --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/pth_112_14' \
-      --do_scale False \
+      --image_embed_path 'FineST_tutorial_data/ImgEmbeddings/Virchow2/pth_112_14' \
+      --patch_size 112 \
+      --do_scale True \
       --weight_w 0.5
 
 
 🗺️ **Visium HD — 16-µm bins**
 
+Same layout as ``run_CRC_VisiumHD_HIPT.sh``. Pretrained HIPT weights: ``finetune/20260801162414255436/``.
+
 .. code-block:: bash
 
    ## HIPT with VisiumHD (patch_size=32)
-   python ./demo/Step1_FineST_train_infer.py \
+   python -m FineST.step1_FineST_train_infer \
       --system_path './' \
+      --data_root FineST_tutorial_data_VisiumHD \
       --parame_path 'parameter/parameters_CRC16_HIPT.json' \
       --dataset_class 'VisiumHD' \
-      --image_class 'HIPT' \
+      --hist_model 'HIPT' \
       --gene_selected 'SPP1' \
-      --visium_path 'Dataset/CRC16um/square_016um/tissue_positions.parquet' \
-      --image_embed_path 'Dataset/CRC16um/HIPT/HD_CRC_16um_pth_32_16' \
-      --do_scale False \
-      --weight_w 0.5
+      --visium_path 'FineST_tutorial_data_VisiumHD/square_016um/tissue_positions.parquet' \
+      --image_embed_path 'FineST_tutorial_data_VisiumHD/HIPT/HD_CRC_16um_pth_32_16' \
+      --patch_size 32 \
+      --do_scale True \
+      --weight_w 0.5 \
+      --weight_save_path 'finetune/20260801162414255436'
 
    ## Virchow2 with VisiumHD (patch_size=28)
-   python ./demo/Step1_FineST_train_infer.py \
+   python -m FineST.step1_FineST_train_infer \
       --system_path './' \
+      --data_root FineST_tutorial_data_VisiumHD \
       --parame_path 'parameter/parameters_CRC16_virchow2.json' \
       --dataset_class 'VisiumHD' \
-      --image_class 'Virchow2' \
+      --hist_model 'Virchow2' \
       --gene_selected 'SPP1' \
-      --visium_path 'Dataset/CRC16um/square_016um/tissue_positions.parquet' \
-      --image_embed_path 'Dataset/CRC16um/Virchow2/HD_CRC_16um_pth_28_14' \
-      --do_scale False \
+      --visium_path 'FineST_tutorial_data_VisiumHD/square_016um/tissue_positions.parquet' \
+      --image_embed_path 'FineST_tutorial_data_VisiumHD/Virchow2/HD_CRC_16um_pth_28_14' \
+      --patch_size 28 \
+      --do_scale True \
       --weight_w 0.5
 
 **Key parameters**
@@ -401,181 +517,207 @@ Only takes effect when ``scale_image=True``.
 
   - ``--dataset_class`` — sub-spot tiling: ``Visium16`` (HIPT, 16 tiles),
     ``Visium64`` (Virchow2, 64 tiles), ``VisiumHD`` (Visium HD)
-  - ``--image_class`` — image encoder: ``HIPT`` (384-dim) or ``Virchow2`` (1280-dim);
-    must be the same method used in Step 0
+  - ``--hist_model`` — image encoder: ``HIPT`` (384-dim) or ``Virchow2`` (1280-dim);
+    must match Step 0
 
 * **Imputation blending** (shown in commands above; adjust as needed)
 
-  - ``--do_scale`` (default ``False``) — z-score expression before combining
-    image-inferred (``adata_infer``) and neighbor-smoothed (``adata_smooth``) signals
+  - ``--do_scale`` (CLI default ``False``; demos / scripts use ``True``) — z-score
+    expression before combining image-inferred (``adata_infer``) and
+    neighbor-smoothed (``adata_smooth``) signals
   - ``--weight_w`` (default ``0.5``) — blend weight:
     ``adata_imput = weight_w × adata_infer + (1 - weight_w) × adata_smooth``
 
 * **Auto-inferred** (usually omit from command line)
 
-  - Output directories ``OrderData/``, ``Figures/``, ``SaveData/`` are derived from
-    ``--image_embed_path``.
+  - With ``--data_root``, fills ``OrderData/``, ``Figures/``, ``SaveData/`` and related paths
+    (same layout as notebook Section 1.2).
+  - Without ``--data_root``, output directories are derived from ``--image_embed_path``.
   - LR genes default to the bundled human list: ``--LRgene_path 'LR_genes'``
   - Users can specify the LR gene file explicitly, e.g.:
     ``--LRgene_path 'FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv'``
 
 
-📐 Step 2: Super-resolution imputation (Visium)
-------------------------------------------------
+📐 Step 2: Super-resolution imputation
+--------------------------------------
 
-**Enhance spatial resolution**
+For **Visium** (~5k spots; 55-µm spot diameter; 100-µm center-to-center distance), enhance spatial resolution at **sub-spot** (geometric segmentation) or **single-cell** (nuclei segmentation with ``StarDist``) level.
 
-* Option A — sub-spot level (geometric segmentation within each spot)
-* Option B — single-cell level (nuclei segmentation with ``StarDist``)
+2.1 Visium: Sub-spot resolution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For **Visium** (~5k spots; 55-µm spot diameter; 100-µm center-to-center distance), interpolate additional spots between original spots first to increase spatial coverage (~3× spots), then extract between-spot image features and impute.
+Interpolate additional spots between original spots first to increase spatial coverage (~3× spots), then extract between-spot image features and impute.
 
-Interpolate between spots
-~~~~~~~~~~~~~~~~~~~~~~~~~
+2.1.1 Interpolate between-spots
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
    ## Interpolate spots in horizontal and vertical directions
-   python ./demo/Spot_interpolation.py \
+   python -m FineST.spot_interpolation \
       --position_path FineST_tutorial_data/spatial/tissue_positions_list.csv
 
-Option A: Sub-spot resolution
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Step A1: Extract image features for between-spots
+2.1.2 Extract image features for between-spots
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
    ## HIPT (recommended)
-   python ./demo/Image_feature_extraction.py \
-      --dataset NEW_NPC \
+   python -m FineST.image_feature_extraction \
       --position_path FineST_tutorial_data/spatial/tissue_positions_list_add.csv \
       --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-      --scale_image False \
-      --method HIPT \
+      --dataset_class Visium \
+      --STfactor_path FineST_tutorial_data/spatial/scalefactors_json.json \
+      --is_05umperpix True \
+      --hist_model HIPT \
       --patch_size 64 \
-      --output_img FineST_tutorial_data/ImgEmbeddings/NEW_pth_64_16_image \
-      --output_pth FineST_tutorial_data/ImgEmbeddings/NEW_pth_64_16 \
-      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
-      --scale 0.789
+      --data_save_dir FineST_tutorial_data \
+      --output_name NEW_pth_64_16
 
    ## Virchow2 (requires Hugging Face token)
-   python ./demo/Image_feature_extraction.py \
-      --dataset NEW_NPC \
+   python -m FineST.image_feature_extraction \
       --position_path FineST_tutorial_data/spatial/tissue_positions_list_add.csv \
       --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-      --scale_image False \
-      --method Virchow2 \
+      --dataset_class Visium \
+      --STfactor_path FineST_tutorial_data/spatial/scalefactors_json.json \
+      --is_05umperpix True \
+      --hist_model Virchow2 \
       --patch_size 112 \
-      --output_img FineST_tutorial_data/ImgEmbeddings/NEW_pth_112_14_image \
-      --output_pth FineST_tutorial_data/ImgEmbeddings/NEW_pth_112_14 \
-      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
-      --scale 0.789
+      --data_save_dir FineST_tutorial_data \
+      --output_name NEW_pth_112_14
 
-Step A2: Impute at sub-spot resolution
+2.1.3 Impute at sub-spot resolution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Requires the Step 1 weights folder (``--weight_save_path``). Replace ``weights[timestamp]`` with your actual folder name.
 
 .. code-block:: bash
 
    ## HIPT with Visium16
-   python ./demo/Step2_High_resolution_imputation.py \
-      --system_path './FineST/' \
+   python -m FineST.step2_High_resolution_impute \
+      --system_path './' \
+      --data_root FineST_tutorial_data \
+      --hist_model HIPT \
       --parame_path 'parameter/parameters_NPC_HIPT.json' \
       --dataset_class 'Visium16' \
       --gene_selected 'CD70' \
       --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
-      --imag_within_path 'FineST_tutorial_data/ImgEmbeddings/pth_64_16' \
-      --imag_betwen_path 'FineST_tutorial_data/ImgEmbeddings/NEW_pth_64_16' \
+      --imag_within_path 'FineST_tutorial_data/ImgEmbeddings/HIPT/pth_64_16' \
+      --imag_betwen_path 'FineST_tutorial_data/ImgEmbeddings/HIPT/NEW_pth_64_16' \
       --weight_save_path 'FineST_tutorial_data/Figures/weights[timestamp]'
 
    ## Virchow2 with Visium64
-   python ./demo/Step2_High_resolution_imputation.py \
-      --system_path './FineST/' \
+   python -m FineST.step2_High_resolution_impute \
+      --system_path './' \
+      --data_root FineST_tutorial_data \
+      --hist_model Virchow2 \
       --parame_path 'parameter/parameters_NPC_virchow2.json' \
       --dataset_class 'Visium64' \
       --gene_selected 'CD70' \
       --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
-      --imag_within_path 'FineST_tutorial_data/ImgEmbeddings/pth_112_14' \
-      --imag_betwen_path 'FineST_tutorial_data/ImgEmbeddings/NEW_pth_112_14' \
+      --imag_within_path 'FineST_tutorial_data/ImgEmbeddings/Virchow2/pth_112_14' \
+      --imag_betwen_path 'FineST_tutorial_data/ImgEmbeddings/Virchow2/NEW_pth_112_14' \
       --weight_save_path 'FineST_tutorial_data/Figures/weights[timestamp]'
 
-**Key inputs (Option A)**
+**Key inputs**
 
-* ``pth_64_16/`` or ``pth_112_14/`` — within-spot image features (Step 0)
-* ``NEW_pth_64_16/`` or ``NEW_pth_112_14/`` — between-spot image features (Step A1)
-* ``weights[timestamp]/`` — trained model from Step 1 (e.g., ``weights20260204191708183236``)
+* ``ImgEmbeddings/HIPT/pth_64_16/`` or ``ImgEmbeddings/Virchow2/pth_112_14/`` — within-spot image features (Step 0)
+* ``ImgEmbeddings/HIPT/NEW_pth_64_16/`` or ``ImgEmbeddings/Virchow2/NEW_pth_112_14/`` — between-spot image features
+* ``Figures/weights[timestamp]/`` — trained model from Step 1 (e.g., ``weights20260204191708183236``)
 
-**Key outputs (Option A)**
+**Key outputs**
 
 * ``SaveData/adata_imput_all_subspot.h5ad`` — sub-spot level expression (~16× per spot for HIPT; ~64× for Virchow2)
 * ``SaveData/adata_imput_all_spot.h5ad`` — spot-level aggregated expression (~3× spatial density after interpolation)
 
-Option B: Single-cell (nuclei) resolution
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2.2 Visium: Single-cell resolution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Run **after Option A** (needs ``adata_imput_all_spot.h5ad`` from Step A2).
+Nuclei segmentation with ``StarDist``. Run **after sub-spot imputation** (needs ``adata_imput_all_spot.h5ad``).
 
-**Step B1 — Nuclei segmentation**
+2.2.1 Nuclei segmentation
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
-   python ./demo/StarDist_nuclei_segmente.py \
-      --tissue NPC_allspot_p075 \
-      --out_dir FineST_tutorial_data/NucleiSegments \
+   ## Explicit paths
+   python -m FineST.nuclei_segmentation \
       --adata_path FineST_tutorial_data/SaveData/adata_imput_all_spot.h5ad \
-      --img_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+      --image_path FineST_tutorial_data/20210809-C-AH4199551.tif \
+      --prob_thresh 0.75 \
+      --save_folder NPC_allspot_p075 \
+      --out_dir FineST_tutorial_data/NucleiSegments
+
+   ## Or with path presets (``--save_folder`` still required)
+   python -m FineST.nuclei_segmentation \
+      --data_root FineST_tutorial_data \
+      --save_folder NPC_allspot_p075 \
       --prob_thresh 0.75
 
-Adjust ``--prob_thresh`` if segmentation is too sparse or dense (NPC demo: ``0.75``). Nuclei segmentation results are saved in ``FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/``.
+Adjust ``--prob_thresh`` if segmentation is too sparse or dense (NPC demo: ``0.75``). Nuclei segmentation results are saved in ``FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/``. CLI aliases: ``--tissue`` (``--save_folder``), ``--img_path`` (``--image_path``).
 
-**Step B2 — Extract image features for single-nuclei**
+2.2.2 Extract image features for single-nuclei
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
    ## HIPT
-   python ./demo/Image_feature_extraction.py \
-      --dataset sc_NPC \
+   python -m FineST.image_feature_extraction \
       --position_path FineST_tutorial_data/NucleiSegments/NPC_allspot_p075/position_all_tissue_sc.csv \
       --rawimage_path FineST_tutorial_data/20210809-C-AH4199551.tif \
-      --scale_image False \
-      --method HIPT \
+      --dataset_class Visium \
+      --STfactor_path FineST_tutorial_data/spatial/scalefactors_json.json \
+      --is_05umperpix True \
+      --hist_model HIPT \
       --patch_size 16 \
-      --output_img FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16_image \
-      --output_pth FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16 \
-      --logging FineST_tutorial_data/ImgEmbeddings/Logging/ \
-      --scale 0.789
+      --data_save_dir FineST_tutorial_data \
+      --output_name sc_pth_16_16
 
-**Step B3 — Impute at single-cell resolution**
+2.2.3 Impute at single-cell resolution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
-   python ./demo/Step2_High_resolution_imputation.py \
-      --system_path './FineST/' \
+   python -m FineST.step2_High_resolution_impute \
+      --system_path './' \
+      --data_root FineST_tutorial_data \
+      --hist_model HIPT \
       --parame_path 'parameter/parameters_NPC_HIPT.json' \
       --dataset_class 'VisiumSC' \
       --gene_selected 'CD70' \
-      --image_embed_path_sc 'FineST_tutorial_data/ImgEmbeddings/sc_pth_16_16' \
+      --image_embed_path_sc 'FineST_tutorial_data/ImgEmbeddings/HIPT/sc_pth_16_16' \
       --weight_save_path 'FineST_tutorial_data/Figures/weights[timestamp]'
 
-**Key outputs (Option B)**
+**Key inputs**
 
-* ``SaveData/adata_imput_all_sc.h5ad`` — single-nuclei resolution expression.
+* ``SaveData/adata_imput_all_spot.h5ad`` — spot-level expression from sub-spot imputation
+* ``NucleiSegments/{save_folder}/position_all_tissue_sc.csv`` — nuclei coordinates
+* ``ImgEmbeddings/HIPT/sc_pth_16_16/`` — single-nuclei image features
+* ``Figures/weights[timestamp]/`` — trained model from Step 1
+
+**Key outputs**
+
+* ``SaveData/adata_imput_all_sc.h5ad`` — single-nuclei resolution expression
 
 **Key parameters (Step 2)**
 
-* Match Step 0/1: ``--dataset_class``, ``--parame_path``, ``--weight_save_path`` (Step 1 weights folder)
-* Image features: ``--imag_within_path`` + ``--imag_betwen_path`` (Option A); ``--image_embed_path_sc`` (Option B)
-* Auto-inferred: ``Figures/``, ``OrderData/``, ``SaveData/`` output paths
-* LR genes: default ``--LRgene_path 'LR_genes'`` (bundled human list; same as Step 1)
+* Match Step 0/1: ``dataset_class`` (``Visium16`` / ``Visium64`` / ``VisiumSC``), parameter JSON, Step 1 weights folder
+* Image features: within-spot + between-spot embeddings (sub-spot);
+  ``ImgEmbeddings/HIPT/sc_pth_16_16/`` or ``ImgEmbeddings/Virchow2/sc_pth_14_14/`` (single-cell)
+* Auto-inferred: with ``--data_root`` (+ ``--hist_model``), fills ``Figures/``, ``OrderData/``, ``SaveData/`` output paths; otherwise inferred from embedding paths
+* LR genes: default ``LR_genes`` (bundled human list; same as Step 1)
 
-**Note:** Full command chains for Options A and B are also in ``test_demo.sh``.
+**Note:** Sub-spot CLI chain (through Step 2B) is in ``run_NPC_tutorial_HIPT.sh``.
+Single-cell / nuclei steps are in ``docs/source/NPC_Train_Impute_count_HIPT.ipynb`` /
+``docs/source/NPC_Train_Impute_count_Virchow2.ipynb`` (Section 6).
 
-Visium HD (16 µm → 8 µm)
-~~~~~~~~~~~~~~~~~~~~~~~~
 
-Visium HD uses continuous bin squares and does not require spot interpolation. See the end-to-end notebook:
-`CRC16_Train_Impute_count_HIPT.ipynb <docs/source/CRC16_Train_Impute_count_HIPT.ipynb>`_ or `CRC16_Train_Impute_count_virchow2.ipynb <docs/source/CRC16_Train_Impute_count_virchow2.ipynb>`_.
+2.3 Visium HD: (16 µm → 8 µm) enhancement
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Visium HD uses continuous bin squares and does not require spot interpolation.
+See ``run_CRC_VisiumHD_HIPT.sh`` and the end-to-end notebooks:
+`CRC16_Train_Impute_count_HIPT.ipynb`_ or `CRC16_Train_Impute_count_virchow2.ipynb`_.
 
 💬 Step 3: Fine-grained ligand-receptor interaction
 ---------------------------------------------------
@@ -583,13 +725,13 @@ Visium HD uses continuous bin squares and does not require spot interpolation. S
 Identify ligand-receptor interactions and communication patterns based on `SpatialDM <https://github.com/StatBiomed/SpatialDM>`_ and
 `SparseAEH <https://github.com/jackywangtj66/SparseAEH>`_.
 
-* Visium: `NPC_LRI_CCC_count.ipynb <docs/source/NPC_LRI_CCC_count.ipynb>`_
-* Visium HD: `CRC_LRI_CCC_count.ipynb <docs/source/CRC_LRI_CCC_count.ipynb>`_
+* Visium: `NPC_LRI_CCC_count.ipynb`_
+* Visium HD: `CRC_LRI_CCC_count.ipynb`_
 
 Perform cell-type deconvolution on super-resolved gene expression data with ``expDeconv()`` from `TransImpute <https://transpa.readthedocs.io/en/latest/transDeconv.html>`_.
 
-* Visium: `transDeconv_NPC_count.ipynb <docs/source/transDeconv_NPC_count.ipynb>`_
-* Visium HD: `transDeconv_CRC_count.ipynb <docs/source/transDeconv_CRC_count.ipynb>`_
+* Visium: `transDeconv_NPC_count.ipynb`_
+* Visium HD: `transDeconv_CRC_count.ipynb`_
 
 ROI selection with Napari
 =========================
@@ -619,7 +761,7 @@ For detailed instructions and ROI extraction, please see
 
 
 FineST also supports extracting cropped image and AnnData with ``fst.crop_img_adata()``
-(see `Crop_ROI_Boundary_image.ipynb <docs/source/Crop_ROI_Boundary_image.ipynb>`_).
+(see `Crop_ROI_Boundary_image.ipynb`_).
 
 Citation and Contact
 ====================

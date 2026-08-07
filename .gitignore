@@ -4,6 +4,7 @@
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 
@@ -12,17 +13,26 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+Version/
+External/
 Reproduction/
 figshare/
 Example/
 FineSTtest/
-Example/
+demo/
+Tutorial/
+tutorial_local/
+FineST_local/
 Dataset/
 logging/
-tutorial_local/
+FineST_tutorial_data/
+FineST_tutorial_data_VisiumHD/
+README_preview.html
+preview_readme.sh
+docs/_preview/
+docs/_preview/**
 build/
 docs/build/
-docs/_preview
 develop-eggs/
 FineST.egg-info/
 finest.egg-info/
@@ -40,6 +50,45 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# ------------------------------------------------------------
+# Local tutorial / pipeline outputs (do NOT upload to GitHub)
+# Created under DATA_ROOT or package root when running scripts
+# ------------------------------------------------------------
+SaveData/
+OrderData/
+Figures/
+ImgEmbeddings/
+NucleiSegments/
+**/SaveData/
+**/OrderData/
+**/Figures/
+**/ImgEmbeddings/
+**/NucleiSegments/
+**/weights*/
+**/Logging/
+ContrastCRC16geneLR/
+ContrastP1geneLR/
+binned_outputs/
+spatial/
+
+# Large raw / intermediate data artifacts
+*.h5ad
+*.btf
+*.tif
+*.tiff
+*.parquet
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.pt
+!finetune/
+!finetune/*/
+!finetune/*/*.pt
+!finetune/**/
+!finetune/**/*.pt
+!finetune/README.txt
 
 # PyInstaller
 # -Usually these files are written by a python script from a template
@@ -87,6 +136,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+**/.ipynb_checkpoints/**
 
 # pyenv
 .python-version
@@ -123,6 +173,7 @@ venv.bak/
 data/outs
 temp/
 
-# Model weights (download separately)
+# Model weights (download separately); keep HIPT DINO ckpts if already tracked
 FineST/UNI/assets/ckpts/**/*.bin
 *.pth
+!FineST/HIPT/HIPT_4K/Checkpoints/*.pth

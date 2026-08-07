@@ -27,7 +27,7 @@ If pre-trained weights are available, set ``--weight_save_path`` to skip trainin
       --system_path '/home/lingyu/ssd/Python/FineST/FineST/' \
       --parame_path 'parameter/parameters_NPC_HIPT.json' \
       --dataset_class 'Visium16' \
-      --image_class 'HIPT' \
+      --hist_model 'HIPT' \
       --gene_selected 'CD70' \
       --LRgene_path 'FineST/datasets/LR_gene/LRgene_CellChatDB_baseline_human.csv' \
       --visium_path 'FineST_tutorial_data/spatial/tissue_positions_list.csv' \
@@ -42,7 +42,7 @@ If pre-trained weights are available, set ``--weight_save_path`` to skip trainin
 **Key parameters:**
 
 * ``--dataset_class``: ``'Visium16'`` (HIPT, patch_size=64), ``'Visium64'`` (Virchow2, patch_size=112), or ``'VisiumHD'``
-* ``--image_class``: ``'HIPT'`` or ``'Virchow2'`` (must match Step0)
+* ``--hist_model``: ``'HIPT'`` or ``'Virchow2'`` (must match Step0)
 * ``--weight_save_path``: (optional) Path to pre-trained weights to skip training
 
 **Expected output:**
