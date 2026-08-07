@@ -1,3 +1,6 @@
+## 2026.08.05 Update first_obs_first_var_expr using reconstructed_matrix_reshaped_tensor
+## 2026.08.05 add resolve_dataset_class
+
 import logging
 logging.getLogger().setLevel(logging.INFO)
 from .utils import *
@@ -2056,7 +2059,8 @@ def plot_pairs_dot(sample, pairs_to_plot, SCS='p_value', pdf=None, trans=False, 
 # 2024.11.11 For all spot gene expression
 ###########################################
 def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2, 
-                       gene_hv, label, marker='h', s=8, figsize=(9, 7), cmap=cnt_color, save_path=None):
+                       gene_hv, label, marker='h', s=8, figsize=(9, 7), cmap=cnt_color,
+                       save_path=None, save_dir=None, save_suffix=None):
     """
     Plot gene expression all spots
         gene : str. Gene.
@@ -2065,7 +2069,18 @@ def gene_expr_allspots(gene, spatial_loc_all, recon_ref_adata_image_f2,
         gene_hv : list. Gene headers.
         label : str. Label.
         marker : str. Marker.
+        save_path : str, optional. Full output path. Overrides save_dir / save_suffix.
+        save_dir : str, optional. Directory for auto-named output
+            ``{gene}[_{save_suffix}].pdf``.
+        save_suffix : str, optional. Suffix appended after gene name when using save_dir.
     """
+    if save_path is None and save_dir is not None:
+        os.makedirs(save_dir, exist_ok=True)
+        filename = str(gene)
+        if save_suffix:
+            filename = f'{filename}_{save_suffix}'
+        save_path = os.path.join(save_dir, f'{filename}.pdf')
+
     def plot_gene_data_dot(spatial_loc, genedata, title, ax, s):
         """
         Plot gene data dot
@@ -2159,10 +2174,12 @@ def gene_expr_compare(adata, gene, data_impt_reshape, gene_hv, marker='o', s=2,
 
 ###########################################
 # 2025.01.29 Add the infer and impt FineST
+# 2026.08.05 Update gene_expr to support save_dir and save_suffix
 ###########################################
 def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22, 
               figsize=(9, 7), cnt_color=cnt_color, 
-              trans=False, format='pdf', save_path=None):
+              trans=False, format='pdf', save_path=None,
+              save_dir=None, save_suffix=None):
     """
     Plot gene expression
         adata : AnnData. Annotated data matrix.
@@ -2172,7 +2189,18 @@ def gene_expr(adata, matrix_order_df, gene_selet, marker='h', s=22,
         s : int. Size.
         figsize : tuple. Figure size.
         cnt_color : str. Colormap.
+        save_path : str, optional. Full output path. Overrides save_dir / save_suffix.
+        save_dir : str, optional. Directory for auto-named output
+            ``{gene_selet}[_{save_suffix}].{format}``.
+        save_suffix : str, optional. Suffix appended after gene name when using save_dir.
     """
+    if save_path is None and save_dir is not None:
+        os.makedirs(save_dir, exist_ok=True)
+        filename = str(gene_selet)
+        if save_suffix:
+            filename = f'{filename}_{save_suffix}'
+        save_path = os.path.join(save_dir, f'{filename}.{format}')
+
     if isinstance(matrix_order_df, pd.DataFrame):
         fig, ax1 = plt.subplots(1, 1, figsize=figsize)
         scatter_plot = ax1.scatter(adata.obsm['spatial'][:, 0], adata.obsm['spatial'][:, 1], 
@@ -2205,14 +2233,10 @@ def subspot_expr(C, value, patch_size=56, dataset_class=None,
                  marker='o', s=1800, rotation=None,
                  fig_size=(2.5, 2.5), trans=False, format='pdf', save_path=None):
     """
-    Plot subspot expression
-        C : numpy array. Spatial coordinates.
-        value : numpy array. Value.
-        patch_size : int. Patch size.
-        dataset_class : str. Dataset class.
-        marker : str. Marker.
-        s : int. Size.
-        rotation : float. Rotation.
+    Plot sub-spot expression on a coordinate grid.
+
+    Low-level plotting helper. For the first-spot / first-gene demo plot,
+    prefer :func:`first_obs_first_var_expr`.
     """
     fig, ax = plt.subplots(figsize=fig_size)
     scatter = ax.scatter(C[:, 0], C[:, 1], c=value, marker=marker, s=s)
@@ -2252,6 +2276,65 @@ def subspot_expr(C, value, patch_size=56, dataset_class=None,
         plt.savefig(save_path, transparent=trans, format=format, dpi=300, bbox_inches='tight')
 
     plt.show()
+
+###########################################
+# 2026.08.05 Update plot_subspot_expr using reconstructed_matrix_reshaped_tensor
+###########################################
+def first_obs_first_var_expr(
+    reconstructed_matrix_reshaped_tensor,
+    adata,
+    gene_hv,
+    patch_size=56,
+    enhance_resolution=None,
+    dataset_class=None,
+    obs_idx=0,
+    var_idx=0,
+    marker='o',
+    s=1800,
+    rotation=None,
+    fig_size=(2.5, 2.5),
+    trans=False,
+    format='pdf',
+    save_path=None,
+):
+    """Plot sub-spot splitting for one spot and one gene.
+
+    Wraps ``subspot_coord_expr_adata`` (``p=obs_idx``, ``q=var_idx``) and
+    ``subspot_expr``.
+
+    Returns
+    -------
+    first_obs_first_var : np.ndarray
+        Expression values of sub-spots for the selected spot/gene.
+    C : np.ndarray
+        Sub-spot coordinates for the selected spot.
+    """
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class)
+    first_obs_first_var, C, _, _, _ = subspot_coord_expr_adata(
+        reconstructed_matrix_reshaped_tensor,
+        adata,
+        gene_hv,
+        p=obs_idx,
+        q=var_idx,
+        patch_size=patch_size,
+        dataset_class=dataset_class,
+    )
+    print("first_obs_first_var shape:", first_obs_first_var.shape)
+
+    subspot_expr(
+        C,
+        first_obs_first_var,
+        patch_size=patch_size,
+        dataset_class=dataset_class,
+        marker=marker,
+        s=s,
+        rotation=rotation,
+        fig_size=fig_size,
+        trans=trans,
+        format=format,
+        save_path=save_path,
+    )
+    return first_obs_first_var, C
 
 
 ###########################################
@@ -2316,21 +2399,7 @@ def sele_gene_cor_log(visium_adata, pixel_adata, gene,
 # 2024.11.08 Adjust
 # 2025.07.03 Support dataframe
 ###########################################
-def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size, 
-                  figure_size=None, save_path=None):
-    """
-    Plot selected gene correlation
-        adata : AnnData. Annotated data matrix.
-        data_impt_reshape : numpy array. Data imputed reshape.
-        gene_hv : list. Gene headers.
-        gene : str. Gene.
-        ylabel : str. Y label.
-    """
-    # if isinstance(adata.X, np.ndarray):
-    #     original_matrix = pd.DataFrame(adata.X)
-    # else:
-    #     original_matrix = pd.DataFrame(adata.X.todense())
-
+def _prepare_gene_cor_matrices(adata, data_impt_reshape, gene_hv):
     if isinstance(adata, pd.DataFrame):
         original_matrix = adata.copy()
     elif hasattr(adata, "X"):
@@ -2342,43 +2411,143 @@ def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title, size,
         raise ValueError("adata must be an AnnData object or pandas DataFrame.")
 
     original_matrix.columns = gene_hv
-
     imputed_matrix_test_exp = pd.DataFrame(data_impt_reshape)
     imputed_matrix_test_exp.columns = gene_hv
+    return original_matrix, imputed_matrix_test_exp
 
-    genedata1 = original_matrix[[gene]].to_numpy()
-    genedata2 = imputed_matrix_test_exp[[gene]].to_numpy()  
+## 2026.08.05 Update _plot_sele_gene_cor_panel using reconstructed_matrix_reshaped_tensor
+def _plot_sele_gene_cor_panel(ax, genedata1, genedata2, title, ylabel):
+    ax.scatter(genedata1[:, 0], genedata2[:, 0], s=8, alpha=0.7)
 
-    g = sns.JointGrid(x=genedata1[:, 0], y=genedata2[:, 0], space=0, height=size)
-    g = g.plot_joint(sns.scatterplot)
-    g = g.plot_marginals(sns.kdeplot, shade=True)
-    
-    if figure_size is not None:
-        g.fig.set_size_inches(*figure_size)
-    
     pearson_corr, _ = pearsonr(genedata1[:, 0], genedata2[:, 0])
     cosine_sim = cosine_similarity(genedata1.reshape(1, -1), genedata2.reshape(1, -1))[0][0]
 
     lr = LinearRegression()
     lr.fit(genedata1, genedata2)
-    x = np.array(g.ax_joint.get_xlim())
-    y = lr.predict(x.reshape(-1, 1))
-    g.ax_joint.plot(x, y[:, 0], color='red', linestyle='--')
+    x = np.linspace(genedata1.min(), genedata1.max(), 100).reshape(-1, 1)
+    y = lr.predict(x)
+    ax.plot(x, y[:, 0], color='red', linestyle='--')
 
     r2_value = r2_score(genedata2, lr.predict(genedata1))
+    ax.annotate(
+        f'Pearson: {pearson_corr:.3f}\nCosine: {cosine_sim:.3f}\nR²: {r2_value:.3f}',
+        xy=(0.4, 0.1),
+        xycoords='axes fraction',
+        fontsize=10,
+    )
+    ax.set_xlabel('Original Expression')
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    return pearson_corr, cosine_sim, r2_value
 
-    g.ax_joint.annotate(f'Pearson: {pearson_corr:.3f}\nCosine: {cosine_sim:.3f}\nR²: {r2_value:.3f}', 
-                    xy=(0.4, 0.1), xycoords='axes fraction', fontsize=10)
 
-    g.ax_joint.set_xlabel('Original Expression')
-    g.ax_joint.set_ylabel(ylabel)
-    g.fig.suptitle(title)
+def _sele_gene_cor_save_path(genes, save_dir=None, suffix='_cor_imput_spot_within.pdf'):
+    filename = f"{'_'.join(genes)}{suffix}"
+    if save_dir is None:
+        return filename
+    return f"{str(save_dir).rstrip('/')}/{filename}"
+
+
+def sele_gene_cor(adata, data_impt_reshape, gene_hv, gene, ylabel, title=None, size=5, 
+                  figure_size=None, dpi=100, save_path=None, save_dir=None):
+    """
+    Plot selected gene correlation.
+
+    Parameters
+    ----------
+    adata : AnnData or DataFrame
+        Original spot-level expression.
+    data_impt_reshape : array-like
+        Imputed spot-level expression.
+    gene_hv : list
+        Gene names.
+    gene : str or list of str
+        One gene name, or multiple genes to plot side-by-side in one figure.
+    ylabel : str
+        Y-axis label for imputed expression.
+    title : str or list of str, optional
+        Plot title(s). Defaults to ``'{gene} expression'`` per panel.
+    size : float
+        Figure size scale (inches per panel height).
+    save_path : str, optional
+        Full output path. If omitted, set ``save_dir`` to auto-name from ``gene``.
+    save_dir : str, optional
+        Output directory. Filename is ``{gene1}_{gene2}_cor_imput_spot_within.pdf``.
+    """
+    if isinstance(gene, str):
+        genes = [gene]
+    else:
+        genes = list(gene)
+
+    if save_path is None and save_dir is not None:
+        save_path = _sele_gene_cor_save_path(genes, save_dir=save_dir)
+
+    if title is None:
+        titles = [f"{g} expression" for g in genes]
+    elif isinstance(title, str):
+        titles = [title if len(genes) == 1 else f"{title}: {g}" for g in genes]
+    else:
+        titles = list(title)
+        if len(titles) != len(genes):
+            raise ValueError("title list length must match gene list length.")
+
+    original_matrix, imputed_matrix_test_exp = _prepare_gene_cor_matrices(
+        adata, data_impt_reshape, gene_hv
+    )
+
+    if len(genes) == 1:
+        gene_name = genes[0]
+        genedata1 = original_matrix[[gene_name]].to_numpy()
+        genedata2 = imputed_matrix_test_exp[[gene_name]].to_numpy()
+
+        g = sns.JointGrid(x=genedata1[:, 0], y=genedata2[:, 0], space=0, height=size)
+        g = g.plot_joint(sns.scatterplot)
+        g = g.plot_marginals(sns.kdeplot, shade=True)
+
+        if figure_size is not None:
+            g.fig.set_size_inches(*figure_size)
+
+        pearson_corr, _ = pearsonr(genedata1[:, 0], genedata2[:, 0])
+        cosine_sim = cosine_similarity(genedata1.reshape(1, -1), genedata2.reshape(1, -1))[0][0]
+
+        lr = LinearRegression()
+        lr.fit(genedata1, genedata2)
+        x = np.array(g.ax_joint.get_xlim())
+        y = lr.predict(x.reshape(-1, 1))
+        g.ax_joint.plot(x, y[:, 0], color='red', linestyle='--')
+
+        r2_value = r2_score(genedata2, lr.predict(genedata1))
+        g.ax_joint.annotate(
+            f'Pearson: {pearson_corr:.3f}\nCosine: {cosine_sim:.3f}\nR²: {r2_value:.3f}',
+            xy=(0.4, 0.1),
+            xycoords='axes fraction',
+            fontsize=10,
+        )
+        g.ax_joint.set_xlabel('Original Expression')
+        g.ax_joint.set_ylabel(ylabel)
+        g.fig.suptitle(titles[0])
+        plt.tight_layout()
+
+        if save_path is not None:
+            plt.savefig(save_path, format='pdf', dpi=dpi, bbox_inches='tight')
+        plt.show()
+        return
+
+    n_genes = len(genes)
+    panel_width = figure_size[0] / n_genes if figure_size is not None else size
+    panel_height = figure_size[1] if figure_size is not None else size
+    fig, axes = plt.subplots(1, n_genes, figsize=(panel_width * n_genes, panel_height))
+    if not isinstance(axes, np.ndarray):
+        axes = [axes]
+
+    for ax, gene_name, panel_title in zip(axes, genes, titles):
+        genedata1 = original_matrix[[gene_name]].to_numpy()
+        genedata2 = imputed_matrix_test_exp[[gene_name]].to_numpy()
+        _plot_sele_gene_cor_panel(ax, genedata1, genedata2, panel_title, ylabel)
 
     plt.tight_layout()
-
     if save_path is not None:
-        plt.savefig(save_path, format='pdf', dpi=300, bbox_inches='tight')
-    
+        plt.savefig(save_path, format='pdf', dpi=dpi, bbox_inches='tight')
     plt.show()
 
 
@@ -2434,7 +2603,7 @@ def mean_cor_box(adata, data_impt_reshape, logger, gene_only=False, save_path=No
     plt.rcParams['font.size'] = 14
 
     plt.figure(figsize=(4, 4))
-    sns.boxplot(x='Type', y='mean_corr', data=data, palette='Set2')
+    sns.boxplot(x='Type', y='mean_corr', data=data, hue='Type', palette='Set2', legend=False)
 
     plt.title('Pearson Correlation', fontsize=16)
     plt.xlabel('', fontsize=16)

@@ -1,3 +1,5 @@
+## 2026.08.05 adjust for the API function
+
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -14,24 +16,48 @@ logging.getLogger().setLevel(logging.INFO)
 
 #############################
 # 2025.01.08 adjust for istar
+# 2026.08.05 add the infer_data_root_from_embed function for the API function
 #############################
-def build_loaders(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_path, 
-                  image_class='HIPT', dataset_class='Visium'):
+def infer_data_root_from_embed(image_embed_path):
+    """Infer dataset root from an embedding path or glob."""
+    path = str(image_embed_path).replace('\\', '/')
+    if '*' in path:
+        path = path.split('*')[0]
+    path = path.rstrip('/')
+    parts = [p for p in path.split('/') if p]
+    if 'ImgEmbeddings' in parts:
+        return '/'.join(parts[:parts.index('ImgEmbeddings')]) or '.'
+    return os.path.dirname(os.path.dirname(path)) or '.'
+
+## 2026.08.05 add the resolve_order_data_paths function for the API function
+def resolve_order_data_paths(image_embed_path, spatial_pos_path=None, reduced_mtx_path=None,
+                             order_dir='OrderData'):
+    """Default OrderData paths under the dataset root of ``image_embed_path``."""
+    data_root = infer_data_root_from_embed(image_embed_path)
+    if spatial_pos_path is None:
+        spatial_pos_path = os.path.join(data_root, order_dir, 'position_order.csv')
+    if reduced_mtx_path is None:
+        reduced_mtx_path = os.path.join(data_root, order_dir, 'matrix_order.npy')
+    return spatial_pos_path, reduced_mtx_path
+
+## 2026.08.05adjust for the API function
+def build_loaders(image_embed_path, batch_size, spatial_pos_path=None, reduced_mtx_path=None,
+                  hist_model=None, image_class=None, enhance_resolution=None,
+                  dataset_class=None, image_clacss=None):
     """
     Build loaders for training and testing.
-        batch_size : int. Batch size.
-        image_embed_path : str. Path to image embeddings.
-        spatial_pos_path : str. Path to spatial positions.
-        reduced_mtx_path : str. Path to reduced expression matrix.
-        image_class : str. Image class.
-        dataset_class : str. Dataset class.
-    Returns:
-        train_loader : DataLoader. Train loader.
-        test_loader : DataLoader. Test loader.
+
+    ``spatial_pos_path`` / ``reduced_mtx_path`` default to OrderData files
+    inferred from ``image_embed_path``.
     """
+    image_class = resolve_hist_model(hist_model, image_class or image_clacss)
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class, default='Visium')
+    spatial_pos_path, reduced_mtx_path = resolve_order_data_paths(
+        image_embed_path, spatial_pos_path, reduced_mtx_path
+    )
     setup_seed(666)
 
-    ## set image_paths, according 'image_clacss'
+    ## set image_paths, according 'image_class'
     if image_class == 'istar':
     
         dataset = DatasetCreat_istar(
@@ -76,23 +102,24 @@ def build_loaders(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_pa
     print("***** Finished building loaders *****")
     return train_loader, test_loader
 
+## 2026.08.05 adjust function
+def build_loader_withinspot(image_embed_path, batch_size, spatial_pos_path=None, reduced_mtx_path=None,
+                            hist_model=None, image_class=None, enhance_resolution=None,
+                            dataset_class=None, image_clacss=None):
+    """
+    Build DataLoader for within-spot inference (image + expression).
 
-def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, reduced_mtx_path, 
-                            image_class='HIPT', dataset_class='Visium'):
+    ``spatial_pos_path`` / ``reduced_mtx_path`` default to OrderData under the
+    dataset root inferred from ``image_embed_path``.
     """
-    Build loaders for inference.
-        batch_size : int. Batch size.
-        image_embed_path : str. Path to image embeddings.
-        spatial_pos_path : str. Path to spatial positions.
-        reduced_mtx_path : str. Path to reduced expression matrix.
-        image_class : str. Image class.
-        dataset_class : str. Dataset class.
-    Returns:
-        all_dataset : DataLoader. Inference loader.
-    """
+    image_class = resolve_hist_model(hist_model, image_class or image_clacss)
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class, default='Visium')
+    spatial_pos_path, reduced_mtx_path = resolve_order_data_paths(
+        image_embed_path, spatial_pos_path, reduced_mtx_path
+    )
     setup_seed(666)
 
-    ## set image_paths, according 'image_clacss'
+    ## set image_paths, according 'image_class'
     if image_class == 'istar':
     
         dataset = DatasetCreat_istar(
@@ -126,22 +153,24 @@ def build_loaders_inference(batch_size, image_embed_path, spatial_pos_path, redu
         raise ValueError('Invalid dataset_class. Only "Visium16", "Visium64", and "VisiumHD" are supported.')
 
     all_dataset = DataLoader(dataset, batch_size, shuffle=False, num_workers=0, pin_memory=pin_memory, drop_last=False)
-    print("***** Finished building loaders_inference *****")
+    print("***** Finished building within-spot loader *****")
     return all_dataset
 
 
-def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_path, 
-                                     dataset_class='Visium16', file_paths_between_spot=None):
+def build_loader_allspot(batch_size, file_paths_spot, spatial_pos_path, 
+                                     enhance_resolution=None, dataset_class=None,
+                                     file_paths_between_spot=None):
     """
-    Build loaders for inference all image.
+    Build DataLoader for all-spot inference (within + between, or single-cell).
         batch_size : int. Batch size.
         file_paths_spot : str. Path to spot image embeddings.
         spatial_pos_path : str. Path to spatial positions.
-        dataset_class : str. Dataset class.
+        enhance_resolution / dataset_class : resolution mode.
         file_paths_between_spot : str. Path to between spot image embeddings.
     Returns:
-        all_dataset : DataLoader. Inference all image loader.
+        all_dataset : DataLoader. All-spot inference loader.
     """
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class)
     setup_seed(666)
 
     if dataset_class == 'Visium16' or dataset_class == 'Visium64':
@@ -167,7 +196,7 @@ def build_loaders_inference_allimage(batch_size, file_paths_spot, spatial_pos_pa
     
     all_dataset = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=False, drop_last=False)
     # all_dataset = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True, drop_last=False)
-    print("***** Finished building loaders_inference *****")
+    print("***** Finished building all-spot loader *****")
     return all_dataset
 
 
@@ -443,7 +472,7 @@ class ContrastiveLoss(nn.Module):
             w4 : float. Weight for cross loss.
             # w5 : float. Weight for ZINB loss. (not used)
         """
-        super(ContrastiveLoss, self).__init__()
+        super().__init__()
         self.temperature = temperature
         self.w1 = w1
         self.w2 = w2
@@ -655,7 +684,7 @@ class FineSTModel(nn.Module):
         dropout_rate=0, 
         negative_slope=0.01
     ):    
-        super(FineSTModel,self).__init__()     
+        super().__init__()     
         self.Autoencoder_matrix = Autoencoder_matrix(n_input_matrix, n_encoder_latent, n_encoder_hidden_matrix) 
         self.matrix_encoder = self.Autoencoder_matrix.encoder
         self.matrix_decoder = self.Autoencoder_matrix.decoder
@@ -674,6 +703,75 @@ class FineSTModel(nn.Module):
         projection_image = self.image_projection(representation_image)      
         return (representation_matrix, reconstruction_matrix, projection_matrix, 
                 representation_image, reconstruction_image, projection_image)
+
+## 2026.08.05 add the build_model function for the API function
+def build_model(params, device=None):
+    """Build a FineSTModel from a params dict and move it to ``device``."""
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
+    model = FineSTModel(
+        n_input_matrix=params['n_input_matrix'],
+        n_input_image=params['n_input_image'],
+        n_encoder_hidden_matrix=params["n_encoder_hidden_matrix"],
+        n_encoder_hidden_image=params["n_encoder_hidden_image"],
+        n_encoder_latent=params["n_encoder_latent"],
+        n_projection_hidden=params["n_projection_hidden"],
+        n_projection_output=params["n_projection_output"],
+        n_encoder_layers=params["n_encoder_layers"],
+    ).to(device)
+    return model
+
+## 2026.08.05 add the prepare_training function for the API function
+def prepare_training(
+    params,
+    image_embed_path,
+    device=None,
+    hist_model=None,
+    image_class=None,
+    enhance_resolution=None,
+    dataset_class=None,
+    spatial_pos_path=None,
+    reduced_mtx_path=None,
+):
+    """
+    Build model, data loaders, optimizer, and contrastive loss for training.
+
+    Returns
+    -------
+    model, train_loader, test_loader, optimizer, criterion
+    """
+    if device is None:
+        from .utils import device as default_device
+        device = default_device
+
+    hist_model = resolve_hist_model(hist_model, image_class)
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class)
+
+    model = build_model(params, device=device)
+    train_loader, test_loader = build_loaders(
+        image_embed_path=image_embed_path,
+        batch_size=params['batch_size'],
+        spatial_pos_path=spatial_pos_path,
+        reduced_mtx_path=reduced_mtx_path,
+        hist_model=hist_model,
+        enhance_resolution=enhance_resolution,
+        dataset_class=dataset_class,
+    )
+    optimizer = torch.optim.SGD(
+        model.parameters(),
+        lr=params['inital_learning_rate'],
+        momentum=0.9,
+        weight_decay=5e-4,
+    )
+    criterion = ContrastiveLoss(
+        temperature=params['temperature'],
+        w1=params['w1'],
+        w2=params['w2'],
+        w3=params['w3'],
+        w4=params['w4'],
+    )
+    return model, train_loader, test_loader, optimizer, criterion
 
 
 #################################
@@ -807,14 +905,7 @@ def load_model(dir_name, parameter_file_path, *args, device=None, best_epoch=Non
     model_state_dict = checkpoint['model_state_dict']
 
     ## init the model
-    model = FineSTModel(n_input_matrix=params['n_input_matrix'],
-                        n_input_image=params['n_input_image'],
-                        n_encoder_hidden_matrix=params["n_encoder_hidden_matrix"],
-                        n_encoder_hidden_image=params["n_encoder_hidden_image"],
-                        n_encoder_latent=params["n_encoder_latent"],
-                        n_projection_hidden=params["n_projection_hidden"],
-                        n_projection_output=params["n_projection_output"],
-                        n_encoder_layers=params["n_encoder_layers"]).to(device)    
+    model = build_model(params, device=device)
     ## load model states
     model.load_state_dict(model_state_dict)
     print(f"Loaded model from epoch {epoch_to_load}")
