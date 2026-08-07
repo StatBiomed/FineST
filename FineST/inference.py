@@ -1,3 +1,5 @@
+## 2026.08.05 add resolve_dataset_class
+
 import logging
 logging.getLogger().setLevel(logging.INFO)
 from .utils import *
@@ -83,27 +85,47 @@ def perform_inference_image(model, test_loader, dataset_class='Visium64', device
             input_coord_all)
 
 
-def perform_inference_image_between_spot(model, test_loader, dataset_class='Visium', device=None):
-    """
-    Perform inference for image between spot.
-        model : Model. Model.
-        test_loader : DataLoader. Test data loader.
-        dataset_class : str. Dataset class.
-        device : torch.device. Device.
+## 2026.08.05 Update infer_expr_img2mat to infer between-spot expression
+def infer_expr_img2mat(model, test_loader, logger=None, enhance_resolution=None,
+                       dataset_class=None, device=None):
+    """Infer gene expression from image features only (image → matrix).
+
+    Use for between-spot or single-nuclei patches where no ST expression
+    matrix is loaded. For within-spot inference with expression data, use
+    :func:`infer_expr` instead.
+
+    Returns
+    -------
+    recon_ref_adata_image_f2 : np.ndarray
+        Spot-level reconstructed expression (reshaped).
+    reconstructed_matrix_reshaped : torch.Tensor
+        Sub-spot level reconstructed expression tensor.
+    representation_image_reshape : np.ndarray
+        Image latent representation (reshaped).
+    input_image_exp : np.ndarray
+        Flattened input image embeddings.
+    input_coord_all : list
+        Spot/patch coordinates aligned with predictions.
     """
     if device is None:
         from .utils import device as default_device
         device = default_device
 
-    print("device",device)    
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class)
+
+    if logger is not None:
+        logger.info("Running image-to-matrix inference task...")
+    start_time = time.time()
+
+    print("device", device)
 
     ########################
     # for whole dataset
-    ########################    
+    ########################
     print("***** Begin perform_inference: ******")
-    
-    input_image_all, input_coord_all = extract_test_data_image_between_spot(test_loader)   
-            
+
+    input_image_all, input_coord_all = extract_test_data_image_between_spot(test_loader)
+
     ## input image
     image_profile = input_image_all.to(device)
     ## reshape image
@@ -111,25 +133,36 @@ def perform_inference_image_between_spot(model, test_loader, dataset_class='Visi
     # input_image_exp = image_profile_reshape.clone().detach().to(device)     # SDU
     input_image_exp = image_profile_reshape.to(device)     # SDU
     ## useful model
-    representation_image = model.image_encoder(input_image_exp) 
+    representation_image = model.image_encoder(input_image_exp)
     ## cross decoder
-    reconstructed_matrix_reshaped = model.matrix_decoder(representation_image)  
-    _, reconstruction_iamge_reshapef2 = reshape_latent_image(reconstructed_matrix_reshaped, dataset_class)
+    reconstructed_matrix_reshaped = model.matrix_decoder(representation_image)
+    _, reconstruction_iamge_reshapef2 = reshape_latent_image(
+        reconstructed_matrix_reshaped, dataset_class
+    )
     ## reshape
-    _, representation_image_reshape = reshape_latent_image(representation_image, dataset_class)
-    
-    ######################## 
+    _, representation_image_reshape = reshape_latent_image(
+        representation_image, dataset_class
+    )
+
+    ########################
     # convert
-    ########################  
+    ########################
     ## matrix
-    representation_image_reshape = representation_image_reshape.cpu().detach().numpy() 
-    reconstruction_iamge_reshapef2 = reconstruction_iamge_reshapef2.cpu().detach().numpy() 
-    
-    return (reconstruction_iamge_reshapef2, 
-            reconstructed_matrix_reshaped,
-            representation_image_reshape,
-            input_image_exp,
-            input_coord_all)
+    representation_image_reshape = representation_image_reshape.cpu().detach().numpy()
+    reconstruction_iamge_reshapef2 = reconstruction_iamge_reshapef2.cpu().detach().numpy()
+
+    elapsed = time.time() - start_time
+    print(f"Image-to-matrix inference: {elapsed:.4f} seconds")
+    if logger is not None:
+        logger.info("Running image-to-matrix inference task DONE!")
+
+    return (
+        reconstruction_iamge_reshapef2,
+        reconstructed_matrix_reshaped,
+        representation_image_reshape,
+        input_image_exp.cpu().detach().numpy(),
+        input_coord_all,
+    )
 
 
 ########################
@@ -214,14 +247,14 @@ def calculate_euclidean_distances(adata_spot, nbs):
 #################################################
 # 2025.01.24: add the infer model im main code
 #################################################
-def infer_model_fst(model, test_loader, logger, 
-                    dataset_class='Visium64', device=None): 
+def infer_expr(model, test_loader, logger, 
+                    enhance_resolution=None, dataset_class=None, device=None): 
     """
-    Infer model for FST.
+    Infer gene expression from image features (within-spot).
         model : Model. Model.
         test_loader : DataLoader. Test data loader.
         logger : logging.Logger. Logger.
-        dataset_class : str. Dataset class.
+        enhance_resolution / dataset_class : resolution mode.
         device : torch.device. Device.
     Returns:
         matrix_profile : torch.Tensor. Matrix profile.
@@ -233,6 +266,8 @@ def infer_model_fst(model, test_loader, logger,
     if device is None:
         from .utils import device as default_device
         device = default_device
+
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class)
 
     model.to(device)
 
@@ -249,3 +284,5 @@ def infer_model_fst(model, test_loader, logger,
     
     return (matrix_profile, reconstructed_matrix, recon_ref_adata_image_f2, 
             reconstructed_matrix_reshaped, input_coord_all)
+
+infer_model_fst = infer_expr

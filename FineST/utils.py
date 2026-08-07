@@ -1,3 +1,6 @@
+## 2026.08.05 add function to setup experiment
+
+
 import numpy as np
 import random
 import pandas as pd
@@ -41,42 +44,65 @@ def setup_seed(seed):
         print("CUDA is not available. Using CPU.")
 
 
-def map_subspot_to_nuclei(adata_subspot, adata_nuclei, 
-                          inherit_uns_from="subspot", spatial_key="spatial"):
-    """
-    Map each subspot to its nearest nuclei and keep unique mappings.
+def map_subspot_to_nuclei(
+    adata_subspot,
+    adata_nuclei,
+    inherit_uns_from="subspot",
+    spatial_key="spatial",
+):
+    """Map sub-spot imputation to nearest nuclei and keep unique mappings.
 
-    Parameters:
-        adata_subspot : AnnData. AnnData object containing subspot data (to be mapped).
-        adata_nuclei : AnnData. AnnData object containing nuclei data (reference).
-        spatial_key : str. Key in obsm for spatial coordinates.
-        inherit_uns_from : str. 'subspot' or 'nuclei'. Whether to inherit the uns from the subspot or nuclei.
+    For each sub-spot, find the nearest nucleus by ``obsm[spatial_key]``,
+    then retain one sub-spot per unique nucleus coordinate (first match wins).
 
-    Returns:
-        adata_map : AnnData. AnnData object with only the uniquely mapped subspots, including spatial coordinates.
+    Parameters
+    ----------
+    adata_subspot : AnnData
+        Sub-spot (or super-resolved) expression to map, e.g.
+        ``adata_imput_all_subspot`` from Section 6.
+    adata_nuclei : AnnData
+        Single-nucleus reference with spatial coordinates, e.g.
+        ``adata_imput_all_sc`` from nuclei-level imputation.
+    inherit_uns_from : {'subspot', 'nuclei'}, default 'subspot'
+        Which AnnData supplies ``uns['spatial']`` for the output object.
+    spatial_key : str, default 'spatial'
+        Key in ``obsm`` holding x/y coordinates for both inputs.
+
+    Returns
+    -------
+    AnnData
+        Uniquely mapped sub-spots at nucleus coordinates; same ``var`` as
+        ``adata_subspot``.
+
+    Examples
+    --------
+    >>> adata_map = map_subspot_to_nuclei(adata_imput_all_subspot, adata_imput_all_sc)
     """
-    ## Build tree for nuclei coordinates, find nearest nuclei index for each subspot
+    if spatial_key not in adata_subspot.obsm:
+        raise KeyError(f"adata_subspot missing obsm['{spatial_key}']")
+    if spatial_key not in adata_nuclei.obsm:
+        raise KeyError(f"adata_nuclei missing obsm['{spatial_key}']")
+
     tree = cKDTree(adata_nuclei.obsm[spatial_key])
     _, closest_indices = tree.query(adata_subspot.obsm[spatial_key], k=1)
-    
-    ## Get the corresponding coordinates of mapped nuclei, Keep only unique mappings
+
     mapped_coords = adata_nuclei.obsm[spatial_key][closest_indices]
     _, unique_idx = np.unique(mapped_coords, axis=0, return_index=True)
-    
-    ## Construct new AnnData object with unique mappings
+
     adata_map = sc.AnnData(
         adata_subspot.X[unique_idx],
         var=adata_subspot.var.copy(),
-        obs=adata_subspot.obs.iloc[unique_idx].copy()
+        obs=adata_subspot.obs.iloc[unique_idx].copy(),
     )
     adata_map.obsm[spatial_key] = mapped_coords[unique_idx]
     adata_map.var_names = adata_subspot.var_names
 
-    ## Copy .uns["spatial"]
     if inherit_uns_from == "subspot":
-        adata_map.uns["spatial"] = adata_subspot.uns["spatial"].copy()
+        if "spatial" in adata_subspot.uns:
+            adata_map.uns["spatial"] = adata_subspot.uns["spatial"].copy()
     elif inherit_uns_from == "nuclei":
-        adata_map.uns["spatial"] = adata_nuclei.uns["spatial"].copy()
+        if "spatial" in adata_nuclei.uns:
+            adata_map.uns["spatial"] = adata_nuclei.uns["spatial"].copy()
     else:
         raise ValueError("inherit_uns_from must be 'subspot' or 'nuclei'.")
 
@@ -371,6 +397,82 @@ def setup_logger(model_save_folder):
 
     return logger
 
+## Resolution / histology model aliases (public API)
+ENHANCE_RESOLUTION_TO_DATASET_CLASS = {
+    'divide_2by2': 'VisiumHD',
+    'divide_4by4': 'Visium16',
+    'divide_8by8': 'Visium64',
+    'single_cell': 'VisiumSC',
+}
+
+_LEGACY_DATASET_CLASSES = frozenset(
+    {'Visium16', 'Visium64', 'VisiumSC', 'VisiumHD', 'Visium'}
+)
+
+
+def resolve_hist_model(hist_model=None, image_class=None, default='HIPT'):
+    """Resolve ``hist_model`` from ``hist_model`` or legacy ``image_class``."""
+    model = hist_model if hist_model is not None else image_class
+    return default if model is None else model
+
+
+def resolve_dataset_class(enhance_resolution=None, dataset_class=None, default='Visium16'):
+    """Map public ``enhance_resolution`` alias to internal ``dataset_class``."""
+    if enhance_resolution is not None:
+        if enhance_resolution in ENHANCE_RESOLUTION_TO_DATASET_CLASS:
+            resolved = ENHANCE_RESOLUTION_TO_DATASET_CLASS[enhance_resolution]
+        elif enhance_resolution in _LEGACY_DATASET_CLASSES:
+            resolved = enhance_resolution
+        else:
+            valid = sorted(ENHANCE_RESOLUTION_TO_DATASET_CLASS)
+            raise ValueError(
+                f"Unknown enhance_resolution {enhance_resolution!r}. "
+                f"Expected one of {valid} or a legacy dataset class."
+            )
+        if dataset_class is not None and dataset_class != resolved:
+            raise ValueError(
+                f"Conflicting dataset_class={dataset_class!r} and "
+                f"enhance_resolution={enhance_resolution!r}."
+            )
+        return resolved
+    if dataset_class is not None:
+        return dataset_class
+    return default
+
+
+## 2026.08.05 add function to setup experiment
+def setup_experiment(parameter_file_path, model_folder='logging/', dir_name=None):
+    """Create a run folder, configure logging, and load parameter JSON.
+
+    Parameters
+    ----------
+    parameter_file_path : str
+        Path to the hyperparameter JSON file.
+    model_folder : str
+        Parent directory for timestamped run folders (default ``logging/``).
+    dir_name : str, optional
+        Existing run folder to reuse. If None, creates
+        ``{model_folder}{timestamp}``.
+
+    Returns
+    -------
+    dir_name : str
+    logger : logging.Logger
+    params : dict
+    """
+    import json
+    from datetime import datetime
+
+    with open(parameter_file_path, 'r') as json_file:
+        params = json.load(json_file)
+
+    if dir_name is None:
+        dir_name = model_folder + datetime.now().strftime('%Y%m%d%H%M%S%f')
+
+    os.makedirs(dir_name, exist_ok=True)
+    logger = setup_logger(dir_name)
+    return dir_name, logger, params
+
 
 ## define function
 def reshape_latent_image(inputdata, dataset_class='Visium64'):   
@@ -576,8 +678,12 @@ def subspot_coord_expr_adata(recon_mat_reshape_tensor, adata, gene_hv, patch_siz
 
 
     ## Establish new anndata in sub-spot level
-    adata_spot = sc.AnnData(X=pd.DataFrame(all_spot_all_variable))
-    adata_spot.var_names = gene_hv
+    n_obs, _ = all_spot_all_variable.shape
+    adata_spot = sc.AnnData(
+        X=all_spot_all_variable,
+        obs=pd.DataFrame(index=[str(i) for i in range(n_obs)]),
+        var=pd.DataFrame(index=[str(g) for g in gene_hv]),
+    )
     adata_spot.obs["x"] = C2[:, 0]
     adata_spot.obs["y"] = C2[:, 1]
     adata_spot.obsm['spatial'] = adata_spot.obs[["x", "y"]].values

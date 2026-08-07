@@ -1,3 +1,8 @@
+## 2026.08.05 add function to load tissue positions and order adata by image
+## 2026.08.05 add reshape_infer_expr and reshape2adata
+## 2026.08.05 add resolve_dataset_class
+## 2026.08.06 aadjust for VisiumHD
+
 import pandas as pd
 import scanpy as sc
 import time
@@ -147,6 +152,24 @@ def json_load(json_path):
         visium_scale_factors = json.load(file)
     return visium_scale_factors
 
+## 2026.08.06 add function to normalize VisiumHD positions
+def _normalize_visiumhd_positions(positions):
+    """Normalize Visium HD tissue positions (parquet column-order convention).
+
+    Visium HD ``tissue_positions.parquet`` stores ``pxl_row_in_fullres`` /
+    ``pxl_col_in_fullres`` values swapped relative to their column names.
+    Reassign columns by index order, matching ``parquet2csv``.
+    """
+    positions = positions.copy()
+    if 'barcode' in positions.columns:
+        positions = positions.set_index('barcode')
+    positions.columns = [
+        'in_tissue', 'array_row', 'array_col',
+        'pxl_col_in_fullres', 'pxl_row_in_fullres',
+    ]
+    positions = positions[positions['in_tissue'] == 1]
+    return positions.reset_index()
+
 
 def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
     """
@@ -157,11 +180,8 @@ def parquet2csv(parquet_path, parquet_name='tissue_positions.parquet'):
         DataFrame. Filtered DataFrame.
     """
     os.chdir(str(parquet_path))
-    positions = pd.read_parquet(parquet_name)    
-    positions.set_index('barcode', inplace=True)
-    ## inverse pxl_row_in_fullres and pxl_col_in_fullres
-    positions.columns = ['in_tissue', 'array_row', 'array_col', 'pxl_col_in_fullres', 'pxl_row_in_fullres']
-    position_tissue = positions[positions['in_tissue'] == 1]
+    positions = pd.read_parquet(parquet_name)
+    position_tissue = _normalize_visiumhd_positions(positions).set_index('barcode')
     return position_tissue
 
 
@@ -516,6 +536,26 @@ def sort_matrix(adata, position_image, spotID_order, gene_hv):
     return matrix_order, matrix_order_df
 
 
+##########################################
+## 2026.08.04 LLY add the _parse_coord_token for the filename format
+##########################################
+def _parse_coord_token(token: str):
+    """Parse a coordinate token from an embedding filename.
+
+    Accepts ``'10014'``, ``'10014.0'``, and true fractions like ``'10014.5'``.
+    Whole numbers are returned as ``int`` (Visium original spots); otherwise ``float``.
+    """
+    token = str(token)
+    for suffix in ('.pth', '.png'):
+        if token.endswith(suffix):
+            token = token[: -len(suffix)]
+            break
+    val = float(token)
+    if abs(val - round(val)) < 1e-6:
+        return int(round(val))
+    return val
+
+
 def get_image_coord(file_paths, ST_class):
     """
     Extract image coordinates from file paths.
@@ -535,12 +575,12 @@ def get_image_coord(file_paths, ST_class):
         DataFrame with columns ['pixel_x', 'pixel_y'] containing extracted coordinates
     """
     data = []
-    file_paths.sort() 
+    file_paths = sorted(file_paths)
     for file_path in file_paths:
         parts = file_path.split('_')
         if ST_class == 'Visium' or ST_class == 'VisiumSC':
-            part_3 = int(parts[-2])
-            part_4 = int(parts[-1].split('.')[0])
+            part_3 = _parse_coord_token(parts[-2])
+            part_4 = _parse_coord_token(parts[-1])
         elif ST_class == 'VisiumHD':
             part_3 = parts[-2]
             part_4 = parts[-1].split('.pth')[0]
@@ -558,6 +598,30 @@ def get_image_coord_all(file_paths):
         parts = file_path.split('_')
         data.append([parts[-2], parts[-1].split('.pth')[0]])
     return data
+
+
+## 2026.08.05 add function to get image coordinates from embedding directory
+def embed_paths_and_coords(embed_dir):
+    """List ``.pth`` files in an embedding directory and parse pixel coords from filenames.
+
+    Parameters
+    ----------
+    embed_dir : str
+        Directory containing image embedding ``.pth`` files.
+
+    Returns
+    -------
+    file_paths : list
+        Sorted embedding filenames.
+    spatial_coords : pd.DataFrame
+        Columns ``pixel_y``, ``pixel_x``.
+    """
+    file_paths = sorted(os.listdir(embed_dir))
+    spatial_coords = pd.DataFrame(
+        get_image_coord_all(list(file_paths)),
+        columns=['pixel_y', 'pixel_x'],
+    )
+    return file_paths, spatial_coords
 
 
 def image_coord_merge(df, position, ST_class):
@@ -626,32 +690,61 @@ def image_coord_merge(df, position, ST_class):
 
 
 def update_adata_coord(adata, matrix_order, position_image, 
-                       spotID_order=None, gene_hv=None, dataset_class='Visium16'):
+                       spotID_order=None, gene_hv=None,
+                       dataset_class=None, ST_class=None):
     """
     Update the AnnData object coordinates.
         adata : AnnData.
-        matrix_order : pd.DataFrame.
+        matrix_order : pd.DataFrame or array-like, gene matrix ordered by image coords.
         position_image : pd.DataFrame.
-        spotID_order : list.
-        gene_hv : list.
-        dataset_class : str.
+        spotID_order : list, optional. Barcodes aligned with matrix rows (VisiumHD).
+        gene_hv : list, optional. Gene names (VisiumHD).
+        dataset_class : str, optional. ``'Visium16'``, ``'Visium64'``, or ``'VisiumHD'``.
+        ST_class : str, optional. ``'Visium'``, ``'VisiumSC'``, or ``'VisiumHD'``.
+            When set, maps to ``dataset_class`` (VisiumHD → VisiumHD; Visium → Visium16).
     Returns:
         AnnData. Updated AnnData object.
     """
+    if ST_class == 'VisiumHD':
+        dataset_class = 'VisiumHD'
+    elif ST_class in ('Visium', 'VisiumSC') and dataset_class is None:
+        dataset_class = 'Visium16'
+    if dataset_class is None:
+        dataset_class = 'Visium16'
+
+    n_rows = matrix_order.shape[0] if hasattr(matrix_order, 'shape') else len(matrix_order)
+    if dataset_class in ('Visium16', 'Visium64') and n_rows != adata.n_obs:
+        if 'barcode' in position_image.columns:
+            dataset_class = 'VisiumHD'
+
+    if isinstance(matrix_order, pd.DataFrame):
+        matrix_values = matrix_order.values
+    else:
+        matrix_values = np.asarray(matrix_order)
+
     if dataset_class in ['Visium16', 'Visium64']:
-        adata.X = csr_matrix(matrix_order, dtype=np.float32)
-        adata.obs_names = matrix_order.index    # order by image feature name 
+        adata.X = csr_matrix(matrix_values, dtype=np.float32)
+        if isinstance(matrix_order, pd.DataFrame):
+            adata.obs_names = matrix_order.index
         adata.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
         adata.obs['array_row'] = np.array(position_image.loc[:, 'y'])
         adata.obs['array_col'] = np.array(position_image.loc[:, 'x'])
 
     elif dataset_class == 'VisiumHD':
-        sparse_matrix = csr_matrix(matrix_order, dtype=np.float32)
-        ## construct new adata (reduce 97 coords)
-        adata_redu = sc.AnnData(X=sparse_matrix, 
-                                obs=pd.DataFrame(index=spotID_order), 
-                                var=pd.DataFrame(index=gene_hv))
-        adata_redu.X = csr_matrix(matrix_order, dtype=np.float32)
+        if spotID_order is None:
+            spotID_order = np.array(position_image['barcode'])
+        if gene_hv is None:
+            gene_hv = (
+                np.array(matrix_order.columns)
+                if isinstance(matrix_order, pd.DataFrame)
+                else np.array(adata.var_names)
+            )
+        sparse_matrix = csr_matrix(matrix_values, dtype=np.float32)
+        adata_redu = sc.AnnData(
+            X=sparse_matrix,
+            obs=pd.DataFrame(index=spotID_order),
+            var=pd.DataFrame(index=gene_hv),
+        )
         adata_redu.obsm['spatial'] = np.array(position_image.loc[:, ['pixel_y', 'pixel_x']])
         adata_redu.obs['array_row'] = np.array(position_image.loc[:, 'y'])
         adata_redu.obs['array_col'] = np.array(position_image.loc[:, 'x'])
@@ -679,19 +772,110 @@ def update_st_coord(position_image):
     })
     return position_order
 
+## 2026.08.05 add function to load tissue positions
+def load_tissue_positions(visium_path, ST_class):
+    """Load Visium spot/bin coordinates from CSV or Parquet."""
+    if ST_class == 'VisiumHD':
+        if visium_path.endswith('.parquet'):
+            return _normalize_visiumhd_positions(pd.read_parquet(visium_path))
+        position = pd.read_csv(visium_path)
+        if 'in_tissue' in position.columns:
+            position = position[position['in_tissue'] == 1].copy()
+        return position
 
-def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class, weight_exponent=1):
+    if visium_path.endswith('.parquet'):
+        position = pd.read_parquet(visium_path)
+        if 'in_tissue' in position.columns:
+            position = position[position['in_tissue'] == 1].copy()
+        return position
+    position = pd.read_csv(visium_path, header=None)
+    if ST_class in ('Visium', 'VisiumSC'):
+        position = position.rename(columns={
+            position.columns[-2]: 'pixel_x',
+            position.columns[-1]: 'pixel_y',
+        })
+    return position
+
+## 2026.08.05 add function to order adata by image
+def order_adata_by_image(
+    adata,
+    position_path,
+    image_embed_dir,
+    ST_class='Visium',
+    save_dir=None,
+):
+    """Align ST spots with image embeddings and optionally save OrderData.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Preprocessed AnnData (e.g. after ``adata_LR`` and ``adata_preprocess``).
+    position_path : str
+        Path to ``tissue_positions_list.csv`` or ``.parquet``.
+    image_embed_dir : str
+        Directory containing ``*.pth`` image embedding files.
+    ST_class : str
+        ``'Visium'``, ``'VisiumSC'``, or ``'VisiumHD'`` for coordinate parsing.
+    save_dir : str, optional
+        Directory for ``position_order.csv`` and ``matrix_order.npy``.
+
+    Returns
+    -------
+    position_order : pd.DataFrame
+    position_image : pd.DataFrame
+    matrix_order_df : pd.DataFrame
+    gene_hv : np.ndarray
+    """
+    gene_hv = np.array(adata.var_names)
+
+    file_paths = sorted(
+        f for f in os.listdir(image_embed_dir) if f.endswith('.pth')
+    )
+    print("Image embedding file: ", file_paths[:3])
+
+    position = load_tissue_positions(position_path, ST_class)
+    print("The coords of ST spot: ", position.shape)
+
+    position_image = get_image_coord(file_paths, ST_class)
+    position_image = image_coord_merge(position_image, position, ST_class)
+    position_order = update_st_coord(position_image)
+    print("The coords of image patch (merged): ", position_order.shape)
+
+    if ST_class == 'VisiumHD':
+        spotID_order = np.array(position_image['barcode'])
+    else:
+        spotID_order = np.array(position_image.iloc[:, 0])
+    _, matrix_order_df = sort_matrix(adata, position_image, spotID_order, gene_hv)
+
+    if save_dir is not None:
+        os.makedirs(save_dir, exist_ok=True)
+        position_order.to_csv(
+            os.path.join(save_dir, 'position_order.csv'),
+            index=False,
+            header=False,
+        )
+        np.save(os.path.join(save_dir, 'matrix_order.npy'), matrix_order_df.T)
+        print(f"Saved OrderData to {save_dir}")
+
+    return position_order, position_image, matrix_order_df, gene_hv
+
+
+def impute_adata(adata, adata_spot, C2, gene_hv, dataset_class=None, weight_exponent=1,
+                 enhance_resolution=None):
     """
     Prepare impute_adata: Fill gene expression using nbs
         adata_know : AnnData. adata (original) 1331 × 596
         adata_spot : AnnData. all subspot 21296 × 596
         C2 : pd.DataFrame.
         gene_hv : list.
-        dataset_class : str.
+        enhance_resolution / dataset_class : resolution mode.
         weight_exponent : int. (default is 1)
     Returns:
         AnnData. Imputed AnnData object.
     """
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class)
+    if dataset_class is None:
+        raise ValueError('Provide enhance_resolution or dataset_class.')
     adata_know = adata.copy()
     adata_know.obs[["x", "y"]] = adata.obsm['spatial']
     sudo = pd.DataFrame(C2, columns=["x", "y"])
@@ -769,6 +953,127 @@ def weight_adata(adata_spot, sudo_adata, gene_hv, w=0.5, do_scale=False):
 
     return adata_impt, data_impt
 
+## 2026.08.05 add function to reshape inferred expression
+def reshape_infer_expr(
+    reconstructed_matrix_reshaped,
+    adata,
+    gene_hv,
+    patch_size=64,
+    enhance_resolution=None,
+    dataset_class=None,
+    spatial_coords=None,
+):
+    """Map within-spot inference output to sub-spot and spot-level AnnData.
+
+    Combines ``reshape_latent_image`` → ``subspot_coord_expr_adata`` →
+    spot-level aggregation via ``reshape2adata``.
+
+    Parameters
+    ----------
+    reconstructed_matrix_reshaped : torch.Tensor
+        Output of ``infer_expr`` for within-spot inference.
+    adata : AnnData
+        Reference spot-level AnnData (barcodes / spatial metadata).
+    gene_hv : array-like
+        Gene names in model output order.
+    patch_size : int
+        HE patch size used in Step 0 (e.g. 64 for HIPT Visium16, 112 for Virchow2).
+    enhance_resolution / dataset_class : str
+        ``divide_4by4``, ``single_cell``, or legacy ``Visium16`` / ``VisiumSC`` etc.
+    spatial_coords : AnnData or array-like, optional
+        Custom spot coordinates for ``subspot_coord_expr_adata`` when ``adata``
+        is not the coordinate source (e.g. all-spot inference).
+
+    Returns
+    -------
+    adata_infer : AnnData
+        Sub-spot level inferred expression.
+    adata_infer_reshape : torch.Tensor
+        Spot-level aggregated expression tensor.
+    adata_infer_spot : AnnData
+        Spot-level AnnData aligned to ``adata``.
+    C2 : np.ndarray
+        Sub-spot pixel coordinates.
+    all_spot_all_variable : np.ndarray
+        Sub-spot expression matrix.
+    """
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class)
+    coord_source = adata if spatial_coords is None else spatial_coords
+
+    # Get the sub-spot level gene expression of all genes on all within-spots
+    # reshape_latent_image: e.g. torch.Size([21296, 596]) -> torch.Size([1331, 16, 596]) for Visium16
+    reconstructed_matrix_reshaped_tensor, _ = reshape_latent_image(
+        reconstructed_matrix_reshaped,
+        dataset_class=dataset_class,
+    )
+    (_, _, all_spot_all_variable, C2, adata_infer) = subspot_coord_expr_adata(
+        reconstructed_matrix_reshaped_tensor,
+        coord_source,
+        gene_hv,
+        patch_size=patch_size,
+        dataset_class=dataset_class,
+    )  # adata_infer: 21296 × 596 (Visium16) or 85184 × 596 (Visium64)
+
+    # Aggregate sub-spot expression to spot level
+    _, adata_infer_reshape = reshape_latent_image(
+        torch.tensor(adata_infer.X),
+        dataset_class=dataset_class,
+    )
+    adata_infer_spot = reshape2adata(
+        adata,
+        adata_infer_reshape,
+        gene_hv,
+        spatial_loc_all=spatial_coords,
+    )  # adata_infer_spot: 1331 × 596
+    return adata_infer, adata_infer_reshape, adata_infer_spot, C2, all_spot_all_variable, reconstructed_matrix_reshaped_tensor
+
+## 2026.08.05 add function to reshape imputed expression
+def reshape_imput_spot(
+    data_imput,
+    adata,
+    gene_hv,
+    enhance_resolution=None,
+    dataset_class=None,
+    spatial_coords=None,
+):
+    """Aggregate sub-spot imputed expression to spot-level AnnData.
+
+    Combines ``reshape_latent_image`` → ``reshape2adata``.
+
+    Parameters
+    ----------
+    data_imput : torch.Tensor or array-like
+        Sub-spot imputed expression from ``weight_adata``.
+    adata : AnnData
+        Reference spot-level AnnData.
+    gene_hv : array-like
+        Gene names.
+    enhance_resolution / dataset_class : str
+        ``divide_4by4``, ``single_cell``, or legacy ``Visium16`` / ``VisiumSC`` etc.
+    spatial_coords : array-like, optional
+        Coordinates for all-spot imputation when row count differs from ``adata``.
+
+    Returns
+    -------
+    data_imput_reshape : torch.Tensor
+        Spot-level aggregated expression tensor.
+    adata_imput_spot : AnnData
+        Spot-level imputed AnnData aligned to ``adata`` (1331 × n_genes for within-spot).
+    """
+    dataset_class = resolve_dataset_class(enhance_resolution, dataset_class)
+    if not isinstance(data_imput, torch.Tensor):
+        data_imput = torch.tensor(data_imput)
+
+    # Aggregate sub-spot imputed expression to spot level
+    _, data_imput_reshape = reshape_latent_image(data_imput, dataset_class=dataset_class)
+    adata_imput_spot = reshape2adata(
+        adata,
+        data_imput_reshape,
+        gene_hv,
+        spatial_loc_all=spatial_coords,
+    )  # adata_imput_spot: 1331 × n_genes (within-spot)
+    return data_imput_reshape, adata_imput_spot
+
 
 def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
     """
@@ -782,11 +1087,18 @@ def reshape2adata(adata, adata_impt_all_reshape, gene_hv, spatial_loc_all=None):
         torch.Tensor. The reshaped data as a PyTorch tensor.
     """
     if isinstance(adata_impt_all_reshape, torch.Tensor):
-        adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.numpy())
+        X = adata_impt_all_reshape.detach().cpu().numpy()
     elif isinstance(adata_impt_all_reshape, anndata.AnnData):
-        adata_impt_spot = sc.AnnData(X = adata_impt_all_reshape.to_df())
+        X = adata_impt_all_reshape.to_df().values
+    else:
+        X = np.asarray(adata_impt_all_reshape)
 
-    adata_impt_spot.var_names = gene_hv
+    n_obs = X.shape[0]
+    adata_impt_spot = sc.AnnData(
+        X=X,
+        obs=pd.DataFrame(index=[str(i) for i in range(n_obs)]),
+        var=pd.DataFrame(index=[str(g) for g in gene_hv]),
+    )
 
     if adata_impt_all_reshape.shape[0] == adata.shape[0]:
         adata_impt_spot.obs_names = adata.obs_names

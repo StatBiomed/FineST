@@ -48,7 +48,7 @@ def save_model(model, dir_name, params, optimizer, LOSS, epoch=None):
 #################################################
 # 2025.01.24: add the Train model im main code
 #################################################
-def train_model(params, model, train_loader, optimizer, cur_epoch, l, tree_type, leaf_size, dataset_class, device=None): 
+def train_epoch(params, model, train_loader, optimizer, cur_epoch, l, tree_type, leaf_size, dataset_class, device=None): 
 
     if device is None:
         from .utils import device as default_device
@@ -219,7 +219,7 @@ def train_model_fst(params, model, train_loader, test_loader,
         #####################
         model.train()
         start_time = time.time()
-        train_loss = train_model(params, model, train_loader, optimizer, epoch, l, 
+        train_loss = train_epoch(params, model, train_loader, optimizer, epoch, l, 
                                      tree_type='KDTree', leaf_size=2, dataset_class=dataset_class)   
         print("--- %s seconds ---" % (time.time() - start_time))
         
@@ -251,3 +251,6 @@ def train_model_fst(params, model, train_loader, test_loader,
     logger.info('Finished Training')
 
     return dir_name, train_losses, test_losses, best_epoch, best_loss
+
+# Public name used by notebooks / step1
+train_model = train_model_fst
